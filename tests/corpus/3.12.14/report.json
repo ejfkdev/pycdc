@@ -87,7 +87,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 228: orig  orelse=[]) | dec  orelse=[])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2086,
+   "ndiff": 2092,
    "ntotal": 2518,
    "detail": "line 381: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 382: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 383: orig ('COMPARE_OP', '==') | got ('LOAD_CONST', 'None')"
   },

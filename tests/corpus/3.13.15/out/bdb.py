@@ -646,12 +646,12 @@ The arg parameter depends on the previous event.
         self.reset()
         sys.settrace(self.trace_dispatch)
         try:
-            pass
+            return eval(expr, globals, locals)
         except BdbQuit:
             pass
-        self.quitting = True
-        sys.settrace(None)
-        return eval(expr, globals, locals)
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
     def runctx(self, cmd, globals, locals):
         '''For backwards-compatibility.  Defers to run().'''

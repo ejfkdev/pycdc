@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 34,
-  "SIG-DIFF": 4,
-  "AST-PASS": 2
+  "SIG-DIFF": 3,
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -101,11 +101,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 2247: orig  Try(body=[] | dec  Try(body=[Pass()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 701,
-   "ntotal": 2537,
-   "detail": "line 602: orig ('POP_JUMP_FORWARD_IF_FALSE', '#23') | got ('POP_JUMP_FORWARD_IF_TRUE', '#23')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', '#38')\nline 1796: orig ('LOAD_FAST', 'expr') | got ('PUSH_EXC_INFO', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bisect",

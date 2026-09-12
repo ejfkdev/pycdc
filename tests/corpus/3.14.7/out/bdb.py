@@ -865,12 +865,12 @@ The arg parameter depends on the previous event.
         self.reset()
         self.start_trace()
         try:
-            pass
+            return eval(expr, globals, locals)
         except BdbQuit:
             pass
-        self.quitting = True
-        self.stop_trace()
-        return eval(expr, globals, locals)
+        finally:
+            self.quitting = True
+            self.stop_trace()
 
     def runctx(self, cmd, globals, locals):
         '''For backwards-compatibility.  Defers to run().'''

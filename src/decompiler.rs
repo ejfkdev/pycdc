@@ -1479,6 +1479,86 @@ pub fn decompile_in_scope(
                     }
                 }
             }
+            // 3.11+ `try: return <call> except E: ... finally: ...`:
+            // the return's VALUE is computed inside the protected body
+            // but the inline finally copy + RETURN sit UNPROTECTED
+            // between the body and the dispatch, so the dispatch-tail
+            // finally entries cannot reach the body's region through
+            // any existing gap predicate (the gap is copy statements +
+            // a value return, not padding/protocol/term). Unmerged, the
+            // body region gets fin=None, a phantom second region opens
+            // at the dispatch tail, the copy statements leak as
+            // siblings and the return lands after them (bdb 3.11
+            // runeval: `try: pass / except BdbQuit: pass /
+            // self.quitting = True / sys.settrace(None) / return
+            // eval(...)` — re-evaluating eval on the success path, a
+            // real behavior change). Recognize the gap: it must END at
+            // the dispatch head with a value RETURN, contain copy work
+            // (stores/calls), and hold no chain material or loops. The
+            // entry must start INSIDE the region's own dispatch chain.
+            let mut deep_vrc_idx: Option<usize> = None;
+            if !extends && !is_exc && deep_idx.is_none() && deep_fin_idx.is_none() {
+                if let Some((ri, h)) =
+                    regions.iter().enumerate().rev().find_map(|(ri, r)| {
+                        r.finally_handler
+                            .is_none()
+                            .then_some(())
+                            .and(r.except_handler.filter(|&h| {
+                                h <= e.start
+                                    && e.start < ctx.chain_extent(h)
+                                    && r.region_end < h
+                            }))
+                            .map(|h| (ri, h))
+                    })
+                {
+                    let gap_ok = match (
+                        ctx.idx_of.get(&regions[ri].region_end),
+                        ctx.idx_of.get(&h),
+                    ) {
+                        (Some(&gi), Some(&hi)) if gi < hi => {
+                            let span = &ctx.instrs[gi..hi];
+                            let last_real = span.iter().rev().find(|x| {
+                                !matches!(
+                                    x.op,
+                                    Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                )
+                            });
+                            let has_copy_work = span.iter().any(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::STORE_ATTR
+                                        | Op::STORE_FAST
+                                        | Op::STORE_NAME
+                                        | Op::STORE_DEREF
+                                        | Op::STORE_SUBSCR
+                                        | Op::CALL
+                                        | Op::CALL_FUNCTION
+                                        | Op::CALL_METHOD
+                                )
+                            });
+                            let no_chain = !span.iter().any(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::PUSH_EXC_INFO
+                                        | Op::CHECK_EXC_MATCH
+                                        | Op::CHECK_EG_MATCH
+                                        | Op::POP_EXCEPT
+                                        | Op::RERAISE
+                                )
+                            });
+                            let no_loop = !span.iter().any(|x| x.is_backward);
+                            matches!(last_real.map(|x| x.op), Some(Op::RETURN_VALUE))
+                                && has_copy_work
+                                && no_chain
+                                && no_loop
+                        }
+                        _ => false,
+                    };
+                    if gap_ok {
+                        deep_vrc_idx = Some(ri);
+                    }
+                }
+            }
             if let Some(ri) = deep_exc_idx {
                 let e2 = e.end.max(e.start);
                 regions[ri].body_end = regions[ri].body_end.max(e2);
@@ -1486,6 +1566,17 @@ pub fn decompile_in_scope(
             } else if let Some(ri) = deep_fin_idx {
                 let e2 = e.end.max(e.start);
                 regions[ri].body_end = regions[ri].body_end.max(e2);
+                regions[ri].region_end = regions[ri].region_end.max(e2);
+            } else if let Some(ri) = deep_vrc_idx {
+                // extend the COVER only: the block must stay open across
+                // the unprotected copy+return span so the flush defers
+                // (cover > pos) and emit_return's at_region_edge path
+                // folds the return into the body. Extending body_end
+                // would drag the walked copy statements into the body
+                // (bdb 3.11 runeval rendered them twice: once in the
+                // body, once as the finally)
+                let e2 = e.end.max(e.start);
+                regions[ri].finally_handler.get_or_insert(e.target);
                 regions[ri].region_end = regions[ri].region_end.max(e2);
             } else if extends {
                 let r = regions.last_mut().unwrap();
@@ -4603,6 +4694,24 @@ impl<'a> Ctx<'a> {
             }
         }
         self.pending_nested_finally = None;
+        // 3.11+ value-return inline finally copy (bdb 3.11 runeval
+        // `try: return eval(..) except BdbQuit: pass finally: ..`): the
+        // copy sits UNPROTECTED between the body and the dispatch, so
+        // the walk executed it as real statements between body_end and
+        // the flush and the orelse capture above collected it as a
+        // phantom `else:` — identical to the finalbody rendered from
+        // the handler's copy. When the body ends in the folded value
+        // return and the captured orelse duplicates the finalbody
+        // exactly, it IS the inline copy: drop the else.
+        if self.version.at_least(3, 11)
+            && tc.except_handler.is_some()
+            && tc.finally_handler.is_some()
+            && matches!(body.last(), Some(Stmt::Return(Some(_))))
+            && !orelse.is_empty()
+            && stmts_eq(&orelse, &finalbody)
+        {
+            orelse.clear();
+        }
         // try/except/else WITHOUT finally (3.11+): the else body lies inline
         // between the try body (body_end) and the handler, ending in a
         // JUMP_FORWARD to the merge point past the handler. It is NOT covered
