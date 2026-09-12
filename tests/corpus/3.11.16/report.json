@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 34,
-  "AST-PASS": 4,
-  "SIG-DIFF": 2
+  "AST-PASS": 5,
+  "SIG-DIFF": 1
  },
  "results": [
   {
@@ -41,11 +41,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 334: orig  If(test=Compare(left=Name(id='m' | dec  Expr(value=Call(func=Attribute(value=Name(id='f'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1188,
-   "ntotal": 1554,
-   "detail": "line 293: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', '#70') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', '#75')\nline 329: orig ('LOAD_FAST', 'm') | got ('LOAD_FAST', 'f')\nline 330: orig ('POP_JUMP_FORWARD_IF_NONE', '#58') | got ('LOAD_METHOD', 'close')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_py_abc",

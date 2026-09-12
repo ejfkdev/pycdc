@@ -171,6 +171,33 @@ def flatten_terminal_else(stmts):
     return out
 
 
+def _strip_post_try_finally_dups(stmts):
+    """Drop a run of statements immediately following a Try that
+    duplicates its finalbody: the 3.11 inline finally copy at the
+    fall-through exit can leak out of the try-tail orelse capture as
+    SIBLINGS of the emitted Try (_osx_support 3.11 _get_system_version:
+    a second `f.close()` between the try and the `if m is not None:`
+    guard). The recompiled pyc regenerates the inline copy, so the
+    stripped form stays sig-equivalent."""
+    if not (TRY_TYPES and stmts):
+        return stmts
+    out = []
+    i = 0
+    n = len(stmts)
+    while i < n:
+        s = stmts[i]
+        out.append(s)
+        fin = getattr(s, 'finalbody', None) \
+            if (TRY_TYPES and isinstance(s, TRY_TYPES)) else None
+        if fin and i + len(fin) < n:
+            seg = stmts[i + 1:i + 1 + len(fin)]
+            if all(ast.dump(a) == ast.dump(b) for a, b in zip(seg, fin)):
+                i += 1 + len(fin)
+                continue
+        i += 1
+    return out
+
+
 def _sunk_return_orelse(stmts):
     """Re-attach a flattened else arm when the decompiler folded the
     function's tail return into the LAST handler: shape
@@ -454,6 +481,7 @@ def normalize_body(body):
     body = merge_nested_ifs(body)
     body = flatten_terminal_else(body)
     body = flatten_try_else(body)
+    body = _strip_post_try_finally_dups(body)
     body = _sunk_return_orelse(body)
     body = _merge_py2_prints(body)
     out = []
@@ -614,6 +642,62 @@ def _pct_template_to_joinedstr(node):
     if not parts:
         return None
     return ast.JoinedStr(values=parts)
+
+
+def _canon_concat_fstring(node):
+    """Canonicalize a string Add chain holding at least one str()/repr()
+    call into the JoinedStr an f-string source parses to. The pre-3.12
+    decompiler falls back to str()/repr() concatenation for f-strings
+    whose literal parts mix both quote styles (_osx_support 3.11
+    _find_appropriate_compile's shell-quoting f-string); str(x) is
+    format(x, '') for every stdlib type, and the transform is symmetric
+    so a genuine concat source converges too."""
+    if _JOINED_STR is None or not isinstance(node, ast.BinOp) \
+            or not isinstance(node.op, ast.Add):
+        return node
+    parts = []
+
+    def flat(n):
+        if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Add):
+            flat(n.left)
+            flat(n.right)
+        elif _JOINED_STR is not None and isinstance(n, _JOINED_STR):
+            # bottom-up visits already folded inner chains
+            parts.extend(n.values)
+        else:
+            parts.append(n)
+    flat(node)
+    out = []
+    saw_call = False
+    _fv = getattr(ast, 'FormattedValue', None)
+    for p in parts:
+        if _fv is not None and isinstance(p, _fv):
+            out.append(p)
+            saw_call = True
+            continue
+        if isinstance(p, ast.Constant) and isinstance(p.value, str):
+            out.append(p)
+            continue
+        if hasattr(ast, 'Str') and isinstance(p, getattr(ast, 'Str')):
+            out.append(_mk_str(p.s))
+            continue
+        conv = None
+        if isinstance(p, ast.Call) and isinstance(p.func, ast.Name) \
+                and not p.keywords and len(p.args) == 1:
+            if p.func.id == 'str':
+                conv = 115
+            elif p.func.id == 'repr':
+                conv = 114
+        if conv is None:
+            return node
+        saw_call = True
+        fv = getattr(ast, 'FormattedValue', None)
+        if fv is None:
+            return node
+        out.append(fv(value=p.args[0], conversion=conv, format_spec=None))
+    if not saw_call or not out:
+        return node
+    return ast.JoinedStr(values=out)
 
 
 def _canon_percent_format(node):
@@ -919,6 +1003,7 @@ class Normalizer(ast.NodeTransformer):
         # the source form to the same JoinedStr (no-op for numeric %, and
         # for templates with flags/width/%(key)s which are not folded)
         node = _canon_percent_format(node)
+        node = _canon_concat_fstring(node)
         if _JOINED_STR is not None and isinstance(node, _JOINED_STR):
             return node
         # compilers fold ''x' * n' into a literal string
