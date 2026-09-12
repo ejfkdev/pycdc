@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 28,
+  "PASS": 29,
   "AST-PASS": 8,
-  "SIG-DIFF": 4
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -169,11 +169,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1265: orig  body=[Print(dest=None | dec  body=[Pass()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1586,
-   "ntotal": 2732,
-   "detail": "line 1064: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')\nline 1065: orig ('LOAD_ATTR', 'formatweek') | got ('RETURN_VALUE', '')\nline 1066: orig ('LOAD_FAST', 'theweek') | got ('formatday', 4)"
+   "verdict": "PASS"
   },
   {
    "module": "cgi",

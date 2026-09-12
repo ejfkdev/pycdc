@@ -242,6 +242,8 @@ class TextCalendar(Calendar):
         Print a single week (no newline).
         '''
 
+        print self.formatweek(theweek, width),
+
     def formatday(self, day, weekday, width):
         '''
         Returns a formatted day.
@@ -292,6 +294,8 @@ class TextCalendar(Calendar):
         """
         Print a month's calendar.
         """
+
+        print self.formatmonth(theyear, themonth, w, l),
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
         """

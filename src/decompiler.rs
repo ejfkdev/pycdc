@@ -9867,6 +9867,31 @@ impl<'a> Ctx<'a> {
     /// (2.7 aifc initfp EOFError handler: `if len(...)==1: print
     /// 'marker', else: print 'markers',` rendered both strings
     /// unconditionally with a `pass` guard hoisted above the prints)
+    /// py2: an unterminated `print x,` chain (PRINT_ITEMs with no
+    /// PRINT_NEWLINE) must still emit a Print statement - flush the
+    /// buffered items as a `newline: false` print when an instruction
+    /// arrives that a running print chain cannot cross (RETURN, a jump,
+    /// RAISE). calendar 2.6/2.7 prweek/prmonth: the function's sole
+    /// `print self.formatweek(theweek, width),` was dropped entirely and
+    /// the body rendered `pass`; SocketServer 2.7 collect_children's
+    /// trailing-comma prints inside loop arms leaked across the back
+    /// edge.
+    fn flush_pending_print(&mut self) {
+        if self.version.major != 2 || self.pending_print.is_empty() {
+            return;
+        }
+        let values = std::mem::take(&mut self.pending_print)
+            .into_iter()
+            .map(|(_, v)| v)
+            .collect();
+        let dest = self.pending_print_dest.take();
+        self.push_stmt(Stmt::Print {
+            dest,
+            values,
+            newline: false,
+        });
+    }
+
     fn split_arm_prints(&mut self, b: &mut Block) {
         if self.version.major != 2 || self.pending_print.is_empty() {
             return;
@@ -13860,6 +13885,7 @@ impl<'a> Ctx<'a> {
 
             // ---------- returns / yields ----------
             Op::RETURN_VALUE => {
+                self.flush_pending_print();
                 // 3.11+ sunk arm-tail copy: an inline `LOAD None;
                 // RETURN` whose next real instruction is the arm's own
                 // out-of-line handler (PUSH_EXC_INFO), AND whose handler
@@ -15247,6 +15273,17 @@ impl<'a> Ctx<'a> {
             Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::CONTINUE_LOOP => {
                 if self.is_dead_forward_glue() {
                     return true;
+                }
+                // only a BACKWARD edge (the loop's iteration boundary)
+                // flushes a pending `print x,` chain here: forward
+                // arm-end jumps must keep the buffer intact so the
+                // arm's block close can split the chain by offsets
+                // (split_arm_prints) - flushing early sucked the
+                // pre-arm items into the arm (aifc 2.6/2.7 initfp
+                // `print 'Warning...', / print len(...), / if ...:
+                // print 'marker',` merged all items into the if arm)
+                if inst.is_backward {
+                    self.flush_pending_print();
                 }
                 // 3.9 break-in-try/finally exits via a FORWARD
                 // JUMP_ABSOLUTE past the handler copy
@@ -18326,6 +18363,7 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::RAISE_VARARGS => {
+                self.flush_pending_print();
                 // 3.8-3.10 sunk tail-raise pair (see sunk_raise_pair_side):
                 // drop the success-side copy; at the handler-side copy
                 // flush the chain first so the raise renders AFTER the Try
