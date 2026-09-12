@@ -27711,6 +27711,72 @@ return None;
                     None
                 }
             })
+            .or_else(|| {
+                // the target landed on an EXTENDED_ARG prefix feeding a
+                // back edge (3.14: prefix spans carry no idx_of entry,
+                // so the lookup above missed): resolve the fed
+                // instruction. A pure span threads like the direct
+                // form; a statement span keeps the RAW edge offset as
+                // the merge (the arm-tail back edge itself) instead of
+                // a degenerate loop-top target (_markupbase 3.14
+                // _parse_doctype_subset: the `if j < 0: return j`
+                // guard's false exit landed on the prefix of the arm-
+                // end JUMP_BACKWARD, threading never fired, the If's
+                // end overshot the arm and the whole `elif c == '%'`
+                // chain rendered as post-loop siblings — the `<` arm
+                // fell through into the dispatch again)
+                // scope: 3.14+ only — pre-3.14 EXTARG-prefixed targets
+                // belong to the historical raw-target machinery
+                // (configparser 3.12 lost byte-exactness and _strptime
+                // 3.6/3.13 chains tore when the fallback applied there)
+                if !self.version.at_least(3, 14) {
+                    return None;
+                }
+                let ins = self
+                    .instrs
+                    .iter()
+                    .find(|x| x.start == target && x.start != x.offset)?;
+                if ins.is_backward
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                {
+                    let cj_end = self.cur_next;
+                    let span_stmts = self
+                        .idx_of
+                        .get(&cj_end)
+                        .copied()
+                        .map_or(false, |si| {
+                            self.instrs[si..]
+                                .iter()
+                                .take_while(|x| x.offset < ins.offset)
+                                .any(|x| {
+                                    !matches!(
+                                        x.op,
+                                        Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                    ) && !is_pure_value_op(x.op)
+                                        && !matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                | Op::TO_BOOL
+                                        )
+                                })
+                        });
+                    if span_stmts {
+                        Some(ins.offset)
+                    } else {
+                        ins.target
+                    }
+                } else {
+                    None
+                }
+            })
             .unwrap_or(target);
         if target != raw_target {
             self.cond_jump_redirect.insert(self.cur_offset, target);

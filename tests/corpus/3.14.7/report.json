@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 10,
-  "AST-PASS": 6
+  "SIG-DIFF": 9,
+  "AST-PASS": 7
  },
  "results": [
   {
@@ -53,11 +53,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 760: orig  ctx=Load())]))])] | dec  ctx=Load())]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 627,
-   "ntotal": 1362,
-   "detail": "line 596: orig ('POP_JUMP_IF_FALSE', '#269') | got ('POP_JUMP_IF_FALSE', '#267')\nline 605: orig ('POP_JUMP_IF_FALSE', '#153') | got ('POP_JUMP_IF_FALSE', '#151')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'c')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_opcode_metadata",
@@ -89,11 +85,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2456: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
+   "ast_detail": "diff at token 2439: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 890,
+   "ndiff": 848,
    "ntotal": 3207,
-   "detail": "line 2145: orig ('FOR_ITER', '#793') | got ('FOR_ITER', '#788')\nline 2294: orig ('POP_JUMP_IF_FALSE', '#414') | got ('POP_JUMP_IF_TRUE', '#357')\nline 2296: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')"
+   "detail": "line 2145: orig ('FOR_ITER', '#793') | got ('FOR_ITER', '#783')\nline 2294: orig ('POP_JUMP_IF_FALSE', '#414') | got ('POP_JUMP_IF_FALSE', '#408')\nline 2319: orig ('POP_JUMP_IF_FALSE', '#391') | got ('POP_JUMP_IF_FALSE', '#389')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
