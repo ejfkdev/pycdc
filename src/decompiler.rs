@@ -196,6 +196,16 @@ struct InlineComp {
     key: Option<ExprRef>,
     cleared_vars: Vec<String>,
     target_seen: bool,
+    /// pending element-ternary folds: (merge offset, condition). The
+    /// linear comp walk evaluates BOTH arms of an element ternary onto
+    /// the value stack (then under else); when the walk reaches the
+    /// ternary's merge offset the pair is folded into a Ternary. This
+    /// works for nested ternaries (inner merge folds first) and for
+    /// dict-comp key AND value positions alike (folding at the append
+    /// op cannot tell which slot a pending cond belongs to).
+    pending_merges: Vec<(usize, ExprRef)>,
+    /// else-arm target shared by the current and-chain's ternary links
+    tern_chain_t: Option<usize>,
 }
 
 /// Pre-3.11 try statement collected across its handler chain.
@@ -2046,6 +2056,11 @@ impl<'a> Ctx<'a> {
             self.cur_next = inst.end();
             if let Some(l) = inst.line {
                 self.cur_line = Some(l);
+            }
+            // inline comprehension element ternary: fold the arm pair
+            // when the walk reaches the ternary's merge
+            if self.inline_comp.is_some() {
+                self.comp_fold_ternary_at(pos);
             }
             if std::env::var("PYCDC_STACK").is_ok() {
                 eprintln!(
@@ -5475,6 +5490,11 @@ impl<'a> Ctx<'a> {
             self.cur_next = inst.end();
             if let Some(l) = inst.line {
                 self.cur_line = Some(l);
+            }
+            // inline comprehension element ternary: fold the arm pair
+            // when the walk reaches the ternary's merge
+            if self.inline_comp.is_some() {
+                self.comp_fold_ternary_at(pos);
             }
             // nested tries inside a handler body open from the same table
             self.open_exception_blocks(pos);
@@ -15451,6 +15471,13 @@ impl<'a> Ctx<'a> {
                     && target > self.cur_offset
                     && self.find_loop_exit(target).is_none()
                     && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+                    // inside an inline comprehension the linear walk
+                    // MUST evaluate both ternary arms — a pure-value
+                    // span past the element ternary's skip JF is its
+                    // else arm, not dead code (base64 3.12 _85encode:
+                    // the chars2 else expression skipped, the elt
+                    // values shifted one slot)
+                    && !self.in_comp_region(self.cur_offset)
                     && self.is_pure_value_region(self.cur_next, target)
                 {
                                         self.skip_until = Some(target);
@@ -29102,6 +29129,53 @@ return None;
             .unwrap_or(false);
         if let Some(comp) = &mut self.inline_comp {
             if self.cur_offset < comp.end {
+                // element ternary guard: same recognition as the
+                // code-object builder (a forward JF between the jump
+                // and its target skips the else arm to a merge, both
+                // arms pure value runs). Record the condition (and-
+                // chain links sharing the else target merge into one
+                // BoolOp) and fall through — the linear walk evaluates
+                // both arms and LIST_APPEND folds them.
+                let raw_t = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&ci3| self.instrs[ci3].target);
+                if let Some(ci3) = self.idx_of.get(&self.cur_offset).copied() {
+                    if let Some(m_off) =
+                        Self::genexpr_ternary_merge(&self.instrs, ci3)
+                    {
+                        if let Some(t_off) = raw_t {
+                            let cj = if jump_if_true {
+                                negate_cond(cond.clone())
+                            } else {
+                                cond.clone()
+                            };
+                            if comp.tern_chain_t == Some(t_off) {
+                                // continuation link of the same and-chain:
+                                // conjoin into the pending cond, no new
+                                // merge (the chain shares ONE then-arm skip)
+                                if let Some(last) = comp.pending_merges.last_mut() {
+                                    let mut vals = Vec::new();
+                                    flatten_boolop(
+                                        last.1.clone(),
+                                        BoolOpKind::And,
+                                        &mut vals,
+                                    );
+                                    flatten_boolop(cj, BoolOpKind::And, &mut vals);
+                                    last.1 = Rc::new(Expr::BoolOp {
+                                        op: BoolOpKind::And,
+                                        values: vals,
+                                    });
+                                }
+                            } else {
+                                comp.pending_merges.push((m_off, cj));
+                                comp.tern_chain_t = Some(t_off);
+                            }
+                            return;
+                        }
+                    }
+                }
+                comp.tern_chain_t = None;
                 // 3.12+ inline filters come in two layouts:
                 // - INVERTED (same-line 3.12; ALL of 3.13/3.14): the
                 //   jump lands ON the append (target is
@@ -47966,8 +48040,37 @@ impl<'a> Ctx<'a> {
             key: None,
             cleared_vars: cleared_all,
             target_seen: false,
+            pending_merges: Vec::new(),
+            tern_chain_t: None,
         });
         self.comp_target_store = true;
+    }
+
+    /// Fold one pending element ternary when the linear comp walk
+    /// reaches its merge offset: the stack holds [.., then_v, else_v]
+    /// (both arms evaluated, the skip JF suppressed) — combine into the
+    /// Ternary. Innermost nesting folds first (inner merges precede
+    /// outer ones in the walk).
+    fn comp_fold_ternary_at(&mut self, offset: usize) {
+        // several nested ternaries can share ONE merge offset (their
+        // arm-skip JFs all land on the append): fold them all,
+        // innermost (LAST recorded) first so the stack pairs line up
+        while let Some(idx) = self.inline_comp.as_ref().and_then(|c| {
+            c.pending_merges.iter().rposition(|(m, _)| *m == offset)
+        }) {
+            let (_, cond) = self
+                .inline_comp
+                .as_mut()
+                .map(|c| c.pending_merges.remove(idx))
+                .unwrap();
+            let else_v = self.pop_expr();
+            let then_v = self.pop_expr();
+            self.push(Rc::new(Expr::Ternary {
+                cond,
+                then_expr: then_v,
+                else_expr: else_v,
+            }));
+        }
     }
 
     fn comp_add_element(&mut self, inst: &Instruction) {

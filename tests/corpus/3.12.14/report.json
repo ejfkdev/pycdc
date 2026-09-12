@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 30,
-  "AST-PASS": 6,
-  "SIG-DIFF": 4
+  "AST-PASS": 7,
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -81,11 +81,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1134: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=Name(id='words'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1007,
-   "ntotal": 1926,
-   "detail": "line 905: orig ('GET_ITER', '') | got ('STORE_FAST', 'chunks')\nline 906: orig ('LOAD_FAST_AND_CLEAR', 'word') | got ('LOAD_FAST', 'padding')\nline 907: orig ('SWAP', '') | got ('POP_JUMP_IF_FALSE', '#71')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bdb",

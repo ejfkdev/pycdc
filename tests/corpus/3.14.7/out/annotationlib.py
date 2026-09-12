@@ -731,7 +731,7 @@ default, contingent on type(obj):
         if locals is None:
             locals = {}
         locals = {param.__name__: param for param in type_params} | locals
-    return_value = {key: value for key, value in ann.items() if isinstance(value, str)}
+    return_value = {key: value if not isinstance(value, str) else eval(_rewrite_star_unpack(value), globals, locals) for key, value in ann.items()}
     return return_value
 
 def type_repr(value):
@@ -760,7 +760,7 @@ def annotations_to_string(annotations):
     Always returns a fresh a dictionary.
     '''
 
-    return {n: t for n, t in annotations.items() if not isinstance(t, str)}
+    return {n: t if isinstance(t, str) else type_repr(t) for n, t in annotations.items()}
 
 def _rewrite_star_unpack(arg):
     """If the given argument annotation expression is a star unpack e.g. `'*Ts'`

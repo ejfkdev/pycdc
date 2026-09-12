@@ -111,7 +111,7 @@
    "module": "annotationlib",
    "ast_detail": "diff at token 3249: orig  While(test=Name(id='True' | dec  While(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1529,
+   "ndiff": 1531,
    "ntotal": 4144,
    "detail": "line 536: orig ('POP_JUMP_IF_FALSE', '#245') | got ('POP_JUMP_IF_FALSE', '#246')\nline 543: orig ('FOR_ITER', '#243') | got ('FOR_ITER', '#244')\nline 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')"
   },
@@ -125,11 +125,11 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 920: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=Name(id='words'",
+   "ast_detail": "diff at token 1693: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1146,
+   "ndiff": 962,
    "ntotal": 2151,
-   "detail": "line 989: orig ('GET_ITER', '') | got ('STORE_FAST', 'chunks')\nline 990: orig ('LOAD_FAST_AND_CLEAR', 'word') | got ('LOAD_FAST', 'padding')\nline 991: orig ('SWAP', '') | got ('TO_BOOL', '')"
+   "detail": "line 1155: orig ('POP_JUMP_IF_FALSE', '#134') | got ('POP_JUMP_IF_FALSE', '#135')\nline 1180: orig ('FOR_ITER', '#105') | got ('FOR_ITER', '#106')\nline 1182: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'result, i') | got ('LOAD_FAST', 'result')"
   },
   {
    "module": "bdb",
