@@ -609,9 +609,8 @@ def _strptime_datetime_date(cls, data_string, format='%a %b %d %Y'):
     '''Return a date instance based on the input string and the
     format string.'''
 
-    _strptime(data_string, format)
-    (tt, _,
-    args) = _strptime(data_string, format)
+    tt, _, _ = _strptime(data_string, format)
+    args = tt[:3]
     return cls(*args)
 
 def _parse_tz(tzname, gmtoff, gmtoff_fraction):

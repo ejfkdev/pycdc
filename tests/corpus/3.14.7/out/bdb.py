@@ -466,7 +466,7 @@ The arg parameter depends on the previous event.
         if lineno < code.co_firstlineno:
             return False
         if code not in self.code_linenos:
-            self.code_linenos[code] = set((lineno for _ in code.co_lines()))
+            self.code_linenos[code] = set((lineno for _, _, lineno in code.co_lines()))
         return lineno in self.code_linenos[code]
 
     def user_call(self, frame, argument_list):

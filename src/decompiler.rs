@@ -39820,6 +39820,25 @@ fn cmp_from_index(idx: usize) -> CmpOp {
 
 impl<'a> Ctx<'a> {
     fn handle_pop_top(&mut self) {
+        // 3.14 `_` elision: the compiler replaces the store of a
+        // throwaway `_` name inside a tuple unpack with a POP_TOP
+        // discarding that slot (UNPACK_SEQUENCE; POP_TOP;
+        // STORE_FAST_STORE_FAST). The open unpack frame must consume
+        // the slot as a placeholder target or the tuple never
+        // completes and the loop target collapses (bdb 3.14
+        // _lineno_in_frame: `for _, _, lineno in code.co_lines()`
+        // rendered `for _ in code.co_lines()`).
+        if let Some((remaining, _, _, fv)) = self.unpack_frames.last() {
+            if *remaining > 0 {
+                let is_slot = matches!(self.stack.last(), Some(Sv::E(e)) if Rc::ptr_eq(e, fv));
+                if is_slot {
+                    if let Some(Sv::E(_)) = self.stack.pop() {
+                        self.collect_unpack_target(self.name_expr("_"));
+                    }
+                    return;
+                }
+            }
+        }
         // 3.12+ value-preserving boolop/chain arm: COPY 1 + TO_BOOL
         // before the guard's cond jump retains the tested operand under
         // the arm; the arm's leading POP_TOP drops that copy before the
@@ -40202,6 +40221,114 @@ impl<'a> Ctx<'a> {
 
     /// Common path for every store instruction: unpack bookkeeping,
     /// import stores, function/class def detection, else plain assignment.
+    /// Consume one unpack-frame slot with the given target; runs the
+    /// completion cascade when the frame fills. Returns true when an
+    /// open frame consumed the target. Shared by emit_store and the
+    /// 3.14 `_`-elision POP_TOP path.
+    fn collect_unpack_target(&mut self, target: ExprRef) -> bool {
+        // drop stale exhausted frames (stores rerouted elsewhere)
+        while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
+            self.unpack_frames.pop();
+            self.unpack_targets.0.pop();
+            self.unpack_target_lines.pop();
+        }
+        if let Some(frame) = self.unpack_frames.last_mut() {
+            frame.0 -= 1;
+            let done = frame.0 == 0;
+            let (count, star_at) = (frame.1, frame.2);
+            let index = count - 1 - frame.0;
+            let starred = star_at == Some(index);
+            if let Some(targets) = self.unpack_targets.0.last_mut() {
+                targets.push((target, starred));
+            }
+            if let Some(lines) = self.unpack_target_lines.last_mut() {
+                lines.push(self.cur_line);
+            }
+            if done {
+                let (_, _, _, value) = self.unpack_frames.pop().unwrap();
+                let targets = self.unpack_targets.0.pop().unwrap();
+                let lines = self.unpack_target_lines.pop().unwrap_or_default();
+                let tuple: ExprRef = Rc::new(Expr::Tuple(
+                    targets
+                        .into_iter()
+                        .map(|(t, star)| {
+                            if star {
+                                Rc::new(Expr::Starred(t))
+                            } else {
+                                t
+                            }
+                        })
+                        .collect(),
+                ));
+                if self.unpack_frames.is_empty() {
+                    // source line wraps inside the target list: record
+                    // the break positions so codegen reproduces them
+                    // (3.13+ fuses only same-line stores)
+                    let wraps: Vec<u16> = lines
+                        .windows(2)
+                        .enumerate()
+                        .filter(|(_, w)| {
+                            matches!((w[0], w[1]), (Some(a), Some(b)) if a != b)
+                        })
+                        .map(|(i, _)| (i + 1) as u16)
+                        .collect();
+                    if !wraps.is_empty() {
+                        self.pending_unpack_wrap = wraps;
+                    }
+                    self.assign_or_for_target(tuple, value);
+                } else {
+                    // nested: the completed tuple is the parent's next target
+                    let parent = self.unpack_frames.last_mut().unwrap();
+                    parent.0 -= 1;
+                    let pdone = parent.0 == 0;
+                    let (pcount, pstar) = (parent.1, parent.2);
+                    let pindex = pcount - 1 - parent.0;
+                    let pstarred = pstar == Some(pindex);
+                    if let Some(targets) = self.unpack_targets.0.last_mut() {
+                        targets.push((tuple, pstarred));
+                    }
+                    if let Some(lines) = self.unpack_target_lines.last_mut() {
+                        lines.push(self.cur_line);
+                    }
+                    if pdone {
+                        let (_, _, _, pvalue) = self.unpack_frames.pop().unwrap();
+                        let ptargets = self.unpack_targets.0.pop().unwrap();
+                        let plines =
+                            self.unpack_target_lines.pop().unwrap_or_default();
+                        if self.unpack_frames.is_empty() {
+                            let pwraps: Vec<u16> = plines
+                                .windows(2)
+                                .enumerate()
+                                .filter(|(_, w)| {
+                                    matches!((w[0], w[1]), (Some(a), Some(b)) if a != b)
+                                })
+                                .map(|(i, _)| (i + 1) as u16)
+                                .collect();
+                            if !pwraps.is_empty() {
+                                self.pending_unpack_wrap = pwraps;
+                            }
+                        }
+                        let ptuple: ExprRef = Rc::new(Expr::Tuple(
+                            ptargets
+                                .into_iter()
+                                .map(|(t, star)| {
+                                    if star {
+                                        Rc::new(Expr::Starred(t))
+                                    } else {
+                                        t
+                                    }
+                                })
+                                .collect(),
+                        ));
+                        self.assign_or_for_target(ptuple, pvalue);
+                    }
+                }
+            }
+            return true;
+        }
+        false
+    }
+
     fn emit_store(&mut self, target: ExprRef, val: ExprRef) {
         if self.legacy_handler_cleanup {
             self.legacy_handler_cleanup = false;
@@ -40310,104 +40437,7 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-        // drop stale exhausted frames (stores rerouted elsewhere)
-        while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
-            self.unpack_frames.pop();
-            self.unpack_targets.0.pop();
-            self.unpack_target_lines.pop();
-        }
-        if let Some(frame) = self.unpack_frames.last_mut() {
-            frame.0 -= 1;
-            let done = frame.0 == 0;
-            let (count, star_at) = (frame.1, frame.2);
-            let index = count - 1 - frame.0;
-            let starred = star_at == Some(index);
-            if let Some(targets) = self.unpack_targets.0.last_mut() {
-                targets.push((target, starred));
-            }
-            if let Some(lines) = self.unpack_target_lines.last_mut() {
-                lines.push(self.cur_line);
-            }
-            if done {
-                let (_, _, _, value) = self.unpack_frames.pop().unwrap();
-                let targets = self.unpack_targets.0.pop().unwrap();
-                let lines = self.unpack_target_lines.pop().unwrap_or_default();
-                let tuple: ExprRef = Rc::new(Expr::Tuple(
-                    targets
-                        .into_iter()
-                        .map(|(t, star)| {
-                            if star {
-                                Rc::new(Expr::Starred(t))
-                            } else {
-                                t
-                            }
-                        })
-                        .collect(),
-                ));
-                if self.unpack_frames.is_empty() {
-                    // source line wraps inside the target list: record
-                    // the break positions so codegen reproduces them
-                    // (3.13+ fuses only same-line stores)
-                    let wraps: Vec<u16> = lines
-                        .windows(2)
-                        .enumerate()
-                        .filter(|(_, w)| {
-                            matches!((w[0], w[1]), (Some(a), Some(b)) if a != b)
-                        })
-                        .map(|(i, _)| (i + 1) as u16)
-                        .collect();
-                    if !wraps.is_empty() {
-                        self.pending_unpack_wrap = wraps;
-                    }
-                    self.assign_or_for_target(tuple, value);
-                } else {
-                    // nested: the completed tuple is the parent's next target
-                    let parent = self.unpack_frames.last_mut().unwrap();
-                    parent.0 -= 1;
-                    let pdone = parent.0 == 0;
-                    let (pcount, pstar) = (parent.1, parent.2);
-                    let pindex = pcount - 1 - parent.0;
-                    let pstarred = pstar == Some(pindex);
-                    if let Some(targets) = self.unpack_targets.0.last_mut() {
-                        targets.push((tuple, pstarred));
-                    }
-                    if let Some(lines) = self.unpack_target_lines.last_mut() {
-                        lines.push(self.cur_line);
-                    }
-                    if pdone {
-                        let (_, _, _, pvalue) = self.unpack_frames.pop().unwrap();
-                        let ptargets = self.unpack_targets.0.pop().unwrap();
-                        let plines =
-                            self.unpack_target_lines.pop().unwrap_or_default();
-                        if self.unpack_frames.is_empty() {
-                            let pwraps: Vec<u16> = plines
-                                .windows(2)
-                                .enumerate()
-                                .filter(|(_, w)| {
-                                    matches!((w[0], w[1]), (Some(a), Some(b)) if a != b)
-                                })
-                                .map(|(i, _)| (i + 1) as u16)
-                                .collect();
-                            if !pwraps.is_empty() {
-                                self.pending_unpack_wrap = pwraps;
-                            }
-                        }
-                        let ptuple: ExprRef = Rc::new(Expr::Tuple(
-                            ptargets
-                                .into_iter()
-                                .map(|(t, star)| {
-                                    if star {
-                                        Rc::new(Expr::Starred(t))
-                                    } else {
-                                        t
-                                    }
-                                })
-                                .collect(),
-                        ));
-                        self.assign_or_for_target(ptuple, pvalue);
-                    }
-                }
-            }
+        if self.collect_unpack_target(target.clone()) {
             return;
         }
         self.emit_assign_single(target, val);
@@ -47596,7 +47626,6 @@ fn genexpr_ternary_merge(
                 | Op::END_FOR
                 | Op::POP_ITER
                 | Op::NOT_TAKEN
-                | Op::POP_TOP
                 | Op::JUMP_BACKWARD
                 | Op::JUMP_BACKWARD_NO_INTERRUPT
                 | Op::JUMP_ABSOLUTE
@@ -47607,6 +47636,26 @@ fn genexpr_ternary_merge(
                 | Op::GET_YIELD_FROM_ITER
                 | Op::PRECALL
                 | Op::EXTENDED_ARG => {}
+                // 3.14 `_` elision: the compiler replaces the store of a
+                // throwaway `_` unpack target with a POP_TOP discarding
+                // the slot (bdb 3.14 _lineno_in_frame `(lineno for _, _,
+                // lineno in code.co_lines())` rendered `for _ in ...`).
+                // Consume the slot with a placeholder so the tuple
+                // target completes with the right arity. A POP_TOP with
+                // no unpack in progress stays ignored (yield-resume
+                // discard) via the arm below.
+                Op::POP_TOP if unpack_remaining > 0 => {
+                    unpack_names.push(Rc::new(Expr::Name("_".to_string())));
+                    unpack_remaining -= 1;
+                    if unpack_remaining == 0 {
+                        let tuple =
+                            Rc::new(Expr::Tuple(std::mem::take(&mut unpack_names)));
+                        if let Some(last) = partials.last_mut() {
+                            last.target = Some(tuple);
+                        }
+                    }
+                }
+                Op::POP_TOP => {}
                 Op::GET_ITER => {}
                 Op::GET_AITER => {
                     pending_async = true;
