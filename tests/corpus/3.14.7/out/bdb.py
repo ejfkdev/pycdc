@@ -566,8 +566,8 @@ The arg parameter depends on the previous event.
                 self.frame_trace_lines_opcodes[frame] = frame.f_trace_lines, frame.f_trace_opcodes
                 frame.f_trace_lines = True
                 frame = frame.f_back
-        self.set_stepinstr()
-        self.enterframe = None
+            self.set_stepinstr()
+            self.enterframe = None
         self.start_trace()
 
     def set_continue(self):

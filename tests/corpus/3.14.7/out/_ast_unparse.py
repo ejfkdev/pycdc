@@ -634,12 +634,12 @@ class Unparser(NodeVisitor):
                 expr = self._unparse_interpolation_value(node.value)
             if expr.startswith('{'):
                 self.write(' ')
-        self.write(expr)
-        if node.conversion != -1:
-            self.write(f'!{chr(node.conversion)}')
-        if node.format_spec:
-            self.write(':')
-            self._write_ftstring_inner(node.format_spec, is_format_spec=True)
+            self.write(expr)
+            if node.conversion != -1:
+                self.write(f'!{chr(node.conversion)}')
+            if node.format_spec:
+                self.write(':')
+                self._write_ftstring_inner(node.format_spec, is_format_spec=True)
 
     def visit_FormattedValue(self, node):
         self._write_interpolation(node)

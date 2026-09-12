@@ -697,6 +697,7 @@ pub fn decompile_in_scope(
     // `with` cleanup handlers (WITH_EXCEPT_START) are tracked separately.
     let mut handler_kind: HashMap<usize, bool> = HashMap::new();
     let mut with_regions: HashMap<usize, usize> = HashMap::new(); // body start -> end
+    let mut with_frags: Vec<(usize, usize, usize)> = Vec::new(); // (start, end, handler target)
     let mut all_handler_targets: Vec<usize> = Vec::new();
     for e in &exc_entries {
         if let Some(&hi) = idx_of.get(&e.target) {
@@ -726,7 +727,7 @@ pub fn decompile_in_scope(
                 }
             }
             if window.iter().any(|x| x.op == Op::WITH_EXCEPT_START) {
-                with_regions.insert(e.start, e.end);
+                with_frags.push((e.start, e.end, e.target));
                 all_handler_targets.push(e.target);
                 continue;
             }
@@ -747,6 +748,49 @@ pub fn decompile_in_scope(
                 };
             handler_kind.insert(e.target, is_except);
             all_handler_targets.push(e.target);
+        }
+    }
+    // 3.14 splits one with body into SEVERAL exception-table entries
+    // separated by NOT_TAKEN padding gaps (one per statement range, all
+    // sharing the WITH_EXCEPT_START handler). A per-fragment map made the
+    // With block adopt a single fragment as its region, truncating the
+    // body (_ast_unparse 3.14 _write_interpolation: the delimit block
+    // closed after the first guard and the tail dedented out of the
+    // with). Merge same-target fragments across small padding gaps.
+    {
+        with_frags.sort_by_key(|f| f.0);
+        let mut merged: Vec<(usize, usize, usize)> = Vec::new();
+        for (s, e, t) in with_frags {
+            // merge ONLY across pure padding gaps: a gap holding real
+            // instructions is separately-scoped code (bdb 3.14 set_trace:
+            // the post-with-statement fragments sit on either side of the
+            // frame-walk loop — merging across it dragged the after-loop
+            // `set_stepinstr()` into the loop body)
+            let gap_pad = merged.last().map_or(false, |last| {
+                last.2 == t
+                    && s >= last.1
+                    && s <= last.1.saturating_add(16)
+                    && instrs
+                        .iter()
+                        .filter(|x| x.offset >= last.1 && x.offset < s)
+                        .all(|x| {
+                            matches!(
+                                x.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                            )
+                        })
+            });
+            if gap_pad {
+                let last = merged.last_mut().unwrap();
+                if e > last.1 {
+                    last.1 = e;
+                }
+                continue;
+            }
+            merged.push((s, e, t));
+        }
+        for (s, e, _) in merged {
+            with_regions.insert(s, e);
         }
     }
     // handler zone: everything from the first handler target that covers
@@ -13074,8 +13118,17 @@ impl<'a> Ctx<'a> {
                             None => self
                                 .with_regions
                                 .iter()
-                                .filter(|(k, _)| **k >= body_at)
-                                .min_by_key(|(k, _)| *k)
+                                // the merged region may START before the
+                                // body (the exception table protects from
+                                // the enter-call tail): a region
+                                // CONTAINING body_at is this with's span
+                                .find(|(k, v)| **k < body_at && body_at < **v)
+                                .or_else(|| {
+                                    self.with_regions
+                                        .iter()
+                                        .filter(|(k, _)| **k >= body_at)
+                                        .min_by_key(|(k, _)| *k)
+                                })
                                 .map(|(k, v)| (*k, *v))
                                 .unwrap_or((body_at, usize::MAX)),
                         };
