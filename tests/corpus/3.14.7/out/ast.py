@@ -344,9 +344,6 @@ def get_source_segment(source, node, *, padded=False):
     try:
         if node.end_lineno is None or node.end_col_offset is None:
             return
-    except AttributeError:
-        return
-    try:
         lineno = node.lineno - 1
         end_lineno = node.end_lineno - 1
         col_offset = node.col_offset

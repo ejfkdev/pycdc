@@ -3,8 +3,7 @@
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
   "PASS": 35,
-  "AST-PASS": 4,
-  "SIG-DIFF": 1
+  "AST-PASS": 5
  },
  "results": [
   {
@@ -77,11 +76,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 6060: orig  keywords=[]))]) | dec  keywords=[]))])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2479,
-   "ntotal": 7116,
-   "detail": "line 4497: orig ('POP_JUMP_IF_FALSE', '#98') | got ('POP_JUMP_IF_FALSE', '#105')\nline 4504: orig ('POP_JUMP_IF_FALSE', '#98') | got ('POP_JUMP_IF_FALSE', '#105')\nline 4512: orig ('POP_JUMP_IF_FALSE', '#98') | got ('POP_JUMP_IF_FALSE', '#105')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "asynchat",

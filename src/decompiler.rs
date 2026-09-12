@@ -1333,7 +1333,21 @@ pub fn decompile_in_scope(
                                 | Op::CACHE
                                 | Op::RETURN_VALUE
                                 | Op::RETURN_CONST
-                        )
+                        ) || (x.op == Op::LOAD_CONST
+                            // 3.14 sinks `return None` exits as an
+                            // explicit LOAD-None + RETURN_VALUE pair
+                            // (ast 3.14 get_source_segment: the
+                            // [60,64) gap between same-handler
+                            // fragments is LOAD_CONST None; RETURN —
+                            // the bare-RETURN-only set split the try
+                            // in two)
+                            && matches!(
+                                ctx.code
+                                    .consts
+                                    .get(x.arg as usize)
+                                    .map(|o| &**o),
+                                Some(PyObject::None)
+                            ))
                     })
                 }
                 _ => false,
@@ -18020,7 +18034,29 @@ impl<'a> Ctx<'a> {
                         });
                     if !over_pending_chain {
                         self.close_blocks_at(self.cur_offset);
-                        self.skip_until = Some(target);
+                        // an exception-time with cleanup handler sits
+                        // between this exit jump and its target: bound
+                        // the skip to the handler so the source-level
+                        // code (elif/else chain arms) between the
+                        // handler tail and the merge still gets walked
+                        // (ast 3.9 visit_Constant: the with-exit
+                        // JABS->128 of `if isinstance(value, tuple):`
+                        // skipped over the whole `elif value is ...:`
+                        // and the kind/`u` else chain; the
+                        // WITH_EXCEPT_START guard owns the handler tail
+                        // jump afterwards)
+                        let mut sk = target;
+                        if self
+                            .with_handler_starts
+                            .contains(&self.cur_next)
+                        {
+                            let he =
+                                self.with_handler_skip_end(self.cur_next);
+                            if he > self.cur_next && he < target {
+                                sk = he;
+                            }
+                        }
+                        self.skip_until = Some(sk);
                     }
                     return true;
                 }
@@ -37988,6 +38024,21 @@ if split_cond {
                         if self.blocks[t_idx].stmts.is_empty()
                             && self.blocks[t_idx].start < self.cur_offset
                         {
+                            // pending stores walked INSIDE this arm
+                            // must land before the continue - the
+                            // direct stmts.push bypasses push_stmt's
+                            // flush and the buffered assign attached
+                            // to the next post-guard statement,
+                            // rendering `continue; keywords = True`
+                            // (dead code) instead of the source order
+                            // (ast 3.10 dump _format)
+                            if t_idx + 1 == self.blocks.len()
+                                && !self.pending_stores.is_empty()
+                            {
+                                self.flushing = true;
+                                self.flush_pending_stores();
+                                self.flushing = false;
+                            }
                             self.blocks[t_idx].stmts.push(Stmt::Continue);
                             return;
                         }

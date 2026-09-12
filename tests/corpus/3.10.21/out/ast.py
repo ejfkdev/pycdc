@@ -142,8 +142,8 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                     keywords = True
                 else:
                     if value is None and getattr(cls, name, ...) is None:
-                        continue
                         keywords = True
+                        continue
                     value, simple = _format(value, level)
                     allsimple = allsimple and simple
                     if keywords:

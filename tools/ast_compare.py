@@ -1303,6 +1303,37 @@ def canonical_bool(node):
                 vals.extend(cv.values)  # flatten same-op chains
             else:
                 vals.append(cv)
+        if kind is ast.And:
+            # chained-comparison refold: `a op1 b and b op2 c` (b pure)
+            # IS the source chained comparison `a op1 b op2 c`; the
+            # decompiler renders each link as its own guard which the
+            # Normalizer merges into an And (ast 3.10/3.14 literal_eval
+            # `node.args == node.keywords == []`). Runs before the sort
+            # so the merged Compare sorts as one operand.
+            changed = True
+            while changed and len(vals) > 1:
+                changed = False
+                for i in range(len(vals)):
+                    for j in range(len(vals)):
+                        if i == j:
+                            continue
+                        a, b = vals[i], vals[j]
+                        if (isinstance(a, ast.Compare)
+                                and isinstance(b, ast.Compare)
+                                and a.comparators
+                                and _is_pure_bool_operand(a.comparators[-1])
+                                and ast.dump(a.comparators[-1])
+                                == ast.dump(b.left)):
+                            vals[i] = ast.Compare(
+                                left=a.left,
+                                ops=list(a.ops) + list(b.ops),
+                                comparators=list(a.comparators)
+                                + list(b.comparators))
+                            del vals[j]
+                            changed = True
+                            break
+                    if changed:
+                        break
         # dedupe identical PURE operands (`A and A` == `A`): merged
         # guard chains can re-test a condition the decompiler already
         # folded into the wrapper test (bdb 3.14 effective: guard
@@ -1482,6 +1513,26 @@ def flatten_terminating_else(stmts, loop_body=False):
                 stmts.append(ast.If(test=tail.test, body=body, orelse=[]))
                 stmts.extend(orelse)
                 changed = True
+    # a TAIL loop-else with no breaks anywhere: the else arm runs only
+    # on exhaustion, which is exactly when the flattened sibling
+    # position runs (ast 3.14 _compare: source `for ...: if not
+    # _compare(...): return False else: return True` vs the
+    # decompiler's post-loop sibling `return True`). Breaks in the
+    # body would fall INTO the flattened siblings, so the gate counts
+    # them (nested-loop breaks belong to their own loop and are
+    # already excluded by _count_breaks).
+    if stmts:
+        _last = stmts[-1]
+        if isinstance(_last, _LOOP_TYPES):
+            _orelse = getattr(_last, 'orelse', None) or []
+            if _orelse and _count_breaks(_last.body) == 0 \
+                    and _count_breaks(_orelse) == 0:
+                _last.orelse = []
+                stmts = list(stmts[:-1]) + [_last] + _orelse
+                # the released tail may now TERMINATE an enclosing If's
+                # then arm that flatten_terminal_else already passed
+                # over (it ran before this flatten): re-run it
+                stmts = flatten_terminal_else(stmts)
     return [_flatten_node(s) for s in stmts]
 
 
@@ -1743,6 +1794,37 @@ def _break_to_tail_return(body, tail):
                 n += _break_to_tail_return(h.body, tail)
             n += _break_to_tail_return(getattr(s, 'orelse', []) or [], tail)
             n += _break_to_tail_return(getattr(s, 'finalbody', []) or [], tail)
+        i += 1
+    return n
+
+
+def _tail_return_to_break(body, ret_dump):
+    """Replace `return V` statements whose value dump equals ret_dump
+    with Break, recursing through If/With/Try(body, handlers, orelse)
+    but NOT nested loops (their returns exit the function across
+    scopes; a Break would only leave the inner loop) and NOT
+    finalbody (a return there swallows exceptions; a break would
+    not). Inverse of _break_to_tail_return for the single-statement
+    tail case."""
+    n = 0
+    i = 0
+    while i < len(body):
+        s = body[i]
+        if (isinstance(s, ast.Return) and s.value is not None
+                and ast.dump(s.value) == ret_dump):
+            body[i] = ast.Break()
+            n += 1
+        elif isinstance(s, (ast.If, ast.With,
+                            getattr(ast, 'AsyncWith', ast.With))):
+            n += _tail_return_to_break(s.body, ret_dump)
+            n += _tail_return_to_break(getattr(s, 'orelse', []) or [],
+                                       ret_dump)
+        elif isinstance(s, _TRY_TYPES):
+            n += _tail_return_to_break(s.body, ret_dump)
+            for h in getattr(s, 'handlers', []) or []:
+                n += _tail_return_to_break(h.body, ret_dump)
+            n += _tail_return_to_break(getattr(s, 'orelse', []) or [],
+                                       ret_dump)
         i += 1
     return n
 
@@ -2010,6 +2092,21 @@ def _normalize_func_tail_loop(node):
                 _strip_orelse_tail_breaks(_o)
                 lp.orelse = _flatten_tail_elses(_o)
         return
+    # a loop followed by EXACTLY [return V]: an in-arm `return V` is
+    # observationally identical to `break` (the break falls through to
+    # the same return; exhaustion runs it too). 3.14 sinks the tail
+    # return into every break exit and the decompiler renders the sunk
+    # copy (ast 3.14 _splitlines_no_ff: `if lineno > maxlines: return
+    # lines` vs the source break + post-loop return). Canonicalize
+    # matching in-arm returns to breaks on both sides.
+    for i, s in enumerate(body):
+        if (isinstance(s, _LOOP_TYPES)
+                and len(body) == i + 2
+                and isinstance(body[-1], ast.Return)
+                and body[-1].value is not None):
+            rd = ast.dump(body[-1].value)
+            _tail_return_to_break(s.body, rd)
+            _tail_return_to_break(getattr(s, 'orelse', None) or [], rd)
     for i, s in enumerate(body):
         if (isinstance(s, ast.While) and _is_const_true(s.test)
                 and i + 1 < len(body)):
@@ -2025,6 +2122,42 @@ def _normalize_func_tail_loop(node):
                 _bare_return_to_break(s.body)
                 _bare_return_to_break(getattr(s, 'orelse', []) or [])
             break
+
+
+def fold_nested_compare_chain(stmts):
+    """Fold `if a op1 b: if b op2 c: X` (inner If is the sole stmt, no
+    else arms) into the chained comparison `if a op1 b op2 c: X`. The
+    decompiler renders each link of a source chained comparison as its
+    own nested guard (ast 3.10/3.14 literal_eval `node.args ==
+    node.keywords == []`); the forms are equivalent when the shared
+    middle operand is pure (no calls - re-evaluation unobservable)."""
+    out = []
+    for s in stmts:
+        if isinstance(s, ast.If):
+            s.body = fold_nested_compare_chain(s.body)
+            if s.orelse:
+                s.orelse = fold_nested_compare_chain(s.orelse)
+            while (not s.orelse and len(s.body) == 1
+                   and isinstance(s.test, ast.Compare)
+                   and len(s.test.ops) == 1
+                   and isinstance(s.body[0], ast.If)):
+                inner = s.body[0]
+                if (inner.orelse
+                        or not isinstance(inner.test, ast.Compare)
+                        or len(inner.test.ops) != 1):
+                    break
+                shared_a = s.test.comparators[-1]
+                shared_b = inner.test.left
+                if ast.dump(shared_a) != ast.dump(shared_b) \
+                        or not _is_pure_bool_operand(shared_a):
+                    break
+                s.test = ast.Compare(
+                    left=s.test.left,
+                    ops=[s.test.ops[0], inner.test.ops[0]],
+                    comparators=[shared_a] + list(inner.test.comparators))
+                s.body = inner.body
+        out.append(s)
+    return out
 
 
 def merge_adjacent_guard_breaks(stmts):
@@ -2883,8 +3016,25 @@ def dump(src):
         for field, value in ast.iter_fields(node):
             if (isinstance(value, list) and value
                     and isinstance(value[0], ast.stmt)):
-                setattr(node, field,
-                        merge_adjacent_guard_breaks(merge_nested_ifs(value)))
+                setattr(node, field, merge_adjacent_guard_breaks(
+                    merge_nested_ifs(fold_nested_compare_chain(value))))
+    # re-run the terminal-else flatten AFTER the loop-else tail
+    # flatten inside _flatten_node: a released loop tail can make an
+    # ENCLOSING If's then arm terminal one level up, which the
+    # normalize_body-stage flatten already passed over (ast 3.14
+    # _compare: the list branch's `else: return True` released into
+    # the outer If body, whose own else arm then had to flatten too)
+    _stable = 0
+    while _stable < 2:
+        _stable += 1
+        for node in ast.walk(tree):
+            for field, value in ast.iter_fields(node):
+                if (isinstance(value, list) and value
+                        and isinstance(value[0], ast.stmt)):
+                    _nv = flatten_terminal_else(value)
+                    if len(_nv) != len(value):
+                        _stable = 0
+                    setattr(node, field, _nv)
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
@@ -3064,6 +3214,12 @@ def dump(src):
                             val = merge_guard_continues(val)
                     _v2 = flatten_terminating_else(
                         merge_nested_ifs(val), loop_body=is_loop_body)
+                    # the loop-else tail flatten inside
+                    # flatten_terminating_else can release a tail that
+                    # makes an ENCLOSING If's then arm terminal; give
+                    # the fixpoint a per-round flatten_terminal_else so
+                    # the cascade converges (ast 3.14 _compare)
+                    _v2 = flatten_terminal_else(_v2)
                     if is_loop_body:
                         _v2 = fold_guard_continue_else(_v2)
                     setattr(node, field,
