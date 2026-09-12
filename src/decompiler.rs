@@ -33498,6 +33498,7 @@ if split_cond {
     }
 
     fn back_edge_exit(&self, loop_start: usize) -> Option<usize> {
+        let mut last: Option<usize> = None;
         for inst in self.instrs.iter() {
             if inst.is_backward && inst.target == Some(loop_start) {
                 // skip DEAD back edges: a backward edge directly after a
@@ -33548,10 +33549,18 @@ if split_cond {
                 if dead {
                     continue;
                 }
-                return self.instrs.iter().find(|i| i.start > inst.end()).map(|i| i.start);
+                last = Some(inst.end());
             }
         }
-        None
+        // the LAST live back edge bounds the real loop body: py2 layouts
+        // carry additional live in-body edges (the try-body-exit JABS
+        // before the handler region) whose successor is the HANDLER
+        // head, not the loop exit - reading the exit off the first edge
+        // made find_loop_exit's else-range test classify every handler
+        // forward jump as a break (SocketServer 2.7 collect_children:
+        // the ECHILD/EINTR elif chain rendered all-break). For the
+        // single-back-edge 3.8+ while-True idiom first == last.
+        last.and_then(|e| self.instrs.iter().find(|i| i.start > e).map(|i| i.start))
     }
 
     /// True when [top, cur) contains only condition-evaluation instructions

@@ -493,13 +493,10 @@ class ForkingMixIn:
                 pid, _ = os.waitpid(-1, 0)
                 self.active_children.discard(pid)
             except OSError, e:
-                if e.errno != errno.ECHILD:
+                if e.errno == errno.ECHILD:
+                    self.active_children.clear()
+                elif e.errno != errno.EINTR:
                     break
-                self.active_children.clear()
-                break
-                if e.errno != errno.EINTR:
-                    break
-                break
         for pid in self.active_children.copy():
             try:
                 pid, _ = os.waitpid(pid, os.WNOHANG)

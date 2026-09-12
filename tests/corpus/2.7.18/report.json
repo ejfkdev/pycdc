@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 29,
-  "AST-PASS": 8,
-  "SIG-DIFF": 3
+  "AST-PASS": 9,
+  "SIG-DIFF": 2
  },
  "results": [
   {
@@ -57,11 +57,7 @@
   },
   {
    "module": "SocketServer",
-   "ast_detail": "diff at token 1033: orig  ops=[Eq()] | dec  ops=[NotEq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1110,
-   "ntotal": 1389,
-   "detail": "line 215: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#35')\nline 217: orig ('POP_JUMP_IF_FALSE', '#33') | got ('POP_JUMP_IF_FALSE', '#34')\nline 231: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#32')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "StringIO",
