@@ -38822,7 +38822,79 @@ if split_cond {
             return false;
         };
         // probe the target shape BEFORE popping so a failed fold leaves
-        // the stack untouched
+        // the stack untouched. Two shapes:
+        // - the With statement is the container's last statement: the
+        //   return folds into its body
+        // - a sunk exit INSIDE an open branch arm of the with body (bdb
+        //   3.14 trace_dispatch: `if event == 'line': return
+        //   self.dispatch_line(frame)` — SWAP 3; SWAP 2; exit; RETURN):
+        //   the return belongs to the open arm; fold it there. Without
+        //   this the SWAPs mis-route the modeled placeholder slots and
+        //   every arm returns the PREVIOUS arm's value.
+        let arm_fold = !matches!(
+            self.blocks.last().and_then(|b| b.stmts.last()),
+            Some(Stmt::With { .. })
+        ) && matches!(
+            self.blocks.last().map(|b| b.kind),
+            Some(BlockType::If) | Some(BlockType::Else)
+        ) && self
+            .blocks
+            .iter()
+            .any(|b| b.kind == BlockType::With);
+        if arm_fold {
+            // fold the return into the OPEN arm, then let the arm close
+            // normally at its end (closing here would render the return
+            // as a sibling AFTER the arm: `if c: pass` + `return v`).
+            // The modeled exit-placeholder slots (Const None + Null
+            // pushed at the with header) sit UNDER the value and are
+            // never consumed when the protocol is skipped — drop them
+            // here or every later CALL/RETURN pops them instead of real
+            // values (bdb 3.14 trace_dispatch: arm values shifted by
+            // one slot per skipped exit).
+            let value = self.pop_expr();
+            while matches!(self.stack.last(), Some(Sv::Null)) {
+                self.stack.pop();
+            }
+            while let Some(Sv::E(e)) = self.stack.last() {
+                let is_none_ph = matches!(&**e, Expr::Const(o)
+                    if matches!(&**o, PyObject::None));
+                if !is_none_ph {
+                    break;
+                }
+                // only placeholders that belong to an open with's exit
+                // protocol: count them against live with blocks
+                let open_withs = self
+                    .blocks
+                    .iter()
+                    .filter(|b| b.kind == BlockType::With)
+                    .count();
+                let trailing_nones = self
+                    .stack
+                    .iter()
+                    .filter(|s: &&Sv| {
+                        matches!(s, Sv::E(e2)
+                            if matches!(&**e2, Expr::Const(o)
+                                if matches!(&**o, PyObject::None)))
+                    })
+                    .count();
+                if trailing_nones + 1 <= open_withs {
+                    break;
+                }
+                self.stack.pop();
+            }
+            let ret = match &*value {
+                Expr::Const(o) if matches!(&**o, PyObject::None) => Stmt::Return(None),
+                _ => Stmt::Return(Some(value)),
+            };
+            if let Some(top) = self.blocks.last_mut() {
+                top.stmts.push(ret);
+            }
+            let skip_end = self.with_handler_skip_end(after);
+            if self.skip_until.map_or(true, |s| s < skip_end) {
+                self.skip_until = Some(skip_end);
+            }
+            return true;
+        }
         if !matches!(
             self.blocks.last().and_then(|b| b.stmts.last()),
             Some(Stmt::With { .. })

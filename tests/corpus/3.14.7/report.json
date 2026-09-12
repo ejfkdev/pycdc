@@ -127,8 +127,8 @@
    "module": "bdb",
    "ast_detail": "diff at token 492: orig  body=[Return(value=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 3350,
-   "ntotal": 4006,
+   "ndiff": 3341,
+   "ntotal": 4011,
    "detail": "line 532: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')\nline 533: orig ('LOAD_ATTR', 'monitoring') | got ('LOAD_DEREF', 'self')\nline 534: orig ('LOAD_ATTR', 'DISABLE') | got ('STORE_ATTR', '_disable_current_event')"
   },
   {
