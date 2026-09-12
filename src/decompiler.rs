@@ -17363,11 +17363,13 @@ impl<'a> Ctx<'a> {
                     Some(Sv::E(e)) => e.clone(),
                     _ => self.name_expr("???"),
                 };
-                let c = if jump_if_true {
-                    simplify_not(cond)
-                } else {
-                    cond
-                };
+                // the stack value IS the preserved operand of the
+                // boolop - for both polarities. simplify_not here
+                // stripped an explicit UNARY_NOT from `not A or B`
+                // (asyncore 2.6 writable rendered `self.connected or
+                // len(...)`, reporting writable while connected with
+                // an empty buffer - the exact inverse)
+                let c = cond;
                 let mut blk = Block::new(BlockType::If, self.cur_next, target);
                 blk.cond = Some(c);
                 blk.cond_set = true;

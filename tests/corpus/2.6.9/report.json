@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 17,
-  "AST-PASS": 19,
-  "SIG-DIFF": 4
+  "AST-PASS": 20,
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -117,11 +117,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2357: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1738,
-   "ntotal": 2270,
-   "detail": "line 115: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 148: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 424: orig ('JUMP_IF_FALSE', '#210') | got ('JUMP_IF_FALSE', '#211')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "atexit",

@@ -406,7 +406,7 @@ class dispatcher_with_send(dispatcher):
         self.initiate_send()
 
     def writable(self):
-        return self.connected or len(self.out_buffer)
+        return not self.connected or len(self.out_buffer)
 
     def send(self, data):
         if self.debug:
