@@ -1881,6 +1881,64 @@ def _strip_dup_tail_returns(node):
         return
 
 
+def _is_bare_return(s):
+    return (isinstance(s, ast.Return)
+            and (s.value is None
+                 or (hasattr(ast, 'NameConstant')
+                     and isinstance(s.value, ast.NameConstant)
+                     and s.value.value is None)
+                 or (hasattr(ast, 'Constant')
+                     and isinstance(s.value, ast.Constant)
+                     and s.value.value is None)
+                 or (isinstance(s.value, ast.Name)
+                     and s.value.id == 'None')))
+
+
+def _strip_tail_bare_returns(stmts):
+    """Drop bare `return` statements that sit at the very END of a
+    function's control flow (falling off the end returns None too, so
+    they are no-ops). Recurses through the tail positions of If/loop/
+    Try bodies and handler bodies - but NEVER through finalbody (a
+    `return` there swallows in-flight exceptions; removing it changes
+    semantics) and never through nested function/class scopes. 3.11
+    sinks a `LOAD None; RETURN` copy into every exit of a try
+    structure and the decompiler faithfully renders each one (asyncore
+    3.10/3.11 readwrite: phantom `return`s inside the last guard arm,
+    the OSError else arm and the bare-except arm of a function that
+    ENDS with the try). Both sides get stripped, so a source's own
+    explicit tail return stays equal."""
+    if not stmts:
+        return stmts
+    last = stmts[-1]
+    if _is_bare_return(last):
+        out = list(stmts[:-1])
+        if not out:
+            out = [ast.Pass()]
+        return out
+    if isinstance(last, ast.If):
+        last.body = _strip_tail_bare_returns(last.body)
+        if last.orelse:
+            last.orelse = _strip_tail_bare_returns(last.orelse)
+    elif isinstance(last, _LOOP_TYPES):
+        last.body = _strip_tail_bare_returns(last.body)
+        # a loop orelse runs on exhaustion - also function tail when
+        # the loop itself is
+        if getattr(last, 'orelse', None):
+            last.orelse = _strip_tail_bare_returns(last.orelse)
+    elif isinstance(last, _TRY_TYPES):
+        last.body = _strip_tail_bare_returns(last.body)
+        if getattr(last, 'orelse', None):
+            last.orelse = _strip_tail_bare_returns(last.orelse)
+        for h in getattr(last, 'handlers', None) or []:
+            if h.body:
+                h.body = _strip_tail_bare_returns(h.body)
+        # finalbody deliberately NOT stripped
+    elif isinstance(last, (ast.With,
+                           getattr(ast, 'AsyncWith', ast.With))):
+        last.body = _strip_tail_bare_returns(last.body)
+    return stmts
+
+
 def _normalize_func_tail_loop(node):
     """If a function/method body's LAST statement is a loop, a bare
     `return` inside that loop is observationally identical to a `break`
@@ -2833,6 +2891,7 @@ def dump(src):
             _normalize_func_tail_loop(node)
             _normalize_func_tail_handler_return(node)
             _strip_dup_tail_returns(node)
+            node.body = _strip_tail_bare_returns(node.body)
             # function-tail loop: a handler-tail `break` and the
             # loop-tail `continue` (or the source's stripped bare
             # `return`) all leave the function with None when the
