@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 29,
-  "AST-PASS": 9,
-  "SIG-DIFF": 2
+  "AST-PASS": 10,
+  "SIG-DIFF": 1
  },
  "results": [
   {
@@ -169,11 +169,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 3597: orig  body=[If(test=Compare(left=Name(id='key' | dec  body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1205,
-   "ntotal": 3035,
-   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#235')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#234')\nline 626: orig ('POP_JUMP_IF_FALSE', '#187') | got ('POP_JUMP_IF_FALSE', '#186')"
+   "verdict": "AST-PASS"
   }
  ]
 }

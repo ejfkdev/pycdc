@@ -905,8 +905,9 @@ def print_form(form):
         print '<P>No form fields.'
     print '<DL>'
     for key in keys:
+        print '<DT>' + escape(key) + ':',
         value = form[key]
-        print '<DT>' + escape(key) + ':', '<i>' + escape(repr(type(value))) + '</i>'
+        print '<i>' + escape(repr(type(value))) + '</i>'
         print '<DD>' + escape(repr(value))
     print '</DL>'
     print

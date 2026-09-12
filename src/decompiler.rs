@@ -12054,6 +12054,20 @@ impl<'a> Ctx<'a> {
             },
             other => other,
         };
+        // py2: an unterminated `print a,` chain buffers in pending_print
+        // until PRINT_NEWLINE - a NON-print statement arriving first must
+        // not overtake the buffered items (cgi 2.7 print_form:
+        // `print '<DT>'+...: , / value = form[key]` rendered the Assign
+        // ABOVE the print because the store flushed at the next guard
+        // while the print waited for the statement-final bare `print`).
+        // Recursion-safe: flush_pending_print pushes a Print, which is
+        // excluded here.
+        if self.version.major == 2
+            && !self.pending_print.is_empty()
+            && !matches!(stmt, Stmt::Print { .. })
+        {
+            self.flush_pending_print();
+        }
         // any other statement flushes a pending same-line store group first
         // to preserve source order
         if !self.flushing && !self.pending_stores.is_empty() {

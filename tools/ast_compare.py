@@ -326,6 +326,9 @@ def _merge_py2_prints(stmts):
 def normalize_body(body):
     """Normalize a statement list: drop docstrings, merge adjacent
     from-imports, hoist global/nonlocal, flatten terminal elses."""
+    # guard-conjoin BEFORE terminal-else flattening strips the orelse
+    # that form 1b matches on (cgi 2.7 indexed_value)
+    body = merge_nested_ifs(body)
     body = flatten_terminal_else(body)
     body = flatten_try_else(body)
     body = _sunk_return_orelse(body)
@@ -563,6 +566,26 @@ class Normalizer(ast.NodeTransformer):
                 merged = ast.BoolOp(op=ast.And(),
                                     values=[merged, extra])
             node.ifs = [merged]
+        return node
+
+    def visit_If(self, node):
+        # form 1b BEFORE child normalization: `if a: (if b: X else: Y)
+        # else: Y` == `if a and b: X else: Y` (both false paths run the
+        # same Y). generic_visit's flatten_terminal_else would strip the
+        # twin else arms first and strand the tail as siblings, blocking
+        # the merge (cgi 2.7 indexed_value: the decompiler conjoins the
+        # guards and unifies the two `return None` arms).
+        if (node.orelse and len(node.body) == 1
+                and isinstance(node.body[0], ast.If)
+                and node.body[0].orelse
+                and dump_stmts(normalize_body(list(node.body[0].orelse)))
+                == dump_stmts(normalize_body(list(node.orelse)))):
+            inner = node.body[0]
+            node = ast.If(
+                test=ast.BoolOp(op=ast.And(),
+                                values=[node.test, inner.test]),
+                body=inner.body, orelse=inner.orelse)
+        self.generic_visit(node)
         return node
 
     def visit_Try(self, node):
@@ -1798,6 +1821,20 @@ def merge_nested_ifs(stmts):
                     merged_test = ast.BoolOp(op=ast.And(),
                                              values=[s.test, inner.test])
                     s = ast.If(test=merged_test, body=inner.body, orelse=[])
+            # form 1b: if a: (if b: X else: Y) else: Y
+            #   ->  if a and b: X else: Y
+            # both false paths run the SAME Y, so the guards conjoin
+            # exactly (cgi 2.7 indexed_value: the decompiler merged the
+            # twin `return None` arms, the source nests them)
+            elif (s.orelse and len(s.body) == 1
+                    and isinstance(s.body[0], ast.If)
+                    and s.body[0].orelse
+                    and dump_stmts(s.body[0].orelse) == dump_stmts(s.orelse)):
+                inner = s.body[0]
+                merged_test = ast.BoolOp(op=ast.And(),
+                                         values=[s.test, inner.test])
+                s = ast.If(test=merged_test, body=inner.body,
+                           orelse=inner.orelse)
             # form 2: if a: X else: (if b: X2) with X == X2 -> if a or b: X
             elif (len(s.orelse) == 1 and isinstance(s.orelse[0], ast.If)
                   and dump_stmts(s.body) == dump_stmts(s.orelse[0].body)):

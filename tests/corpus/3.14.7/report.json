@@ -61,7 +61,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 760: orig  ctx=Load())]))]) | dec  ctx=Load())]))",
+   "ast_detail": "diff at token 403: orig  orelse=[Assert(test=Compare(left=Name(id='decltype' | dec  orelse=[If(test=Compare(left=Name(id='decltype'",
    "verdict": "SIG-DIFF",
    "ndiff": 627,
    "ntotal": 1362,
