@@ -487,7 +487,7 @@ class NodeTransformer(NodeVisitor):
                             continue
                     new_values.append(value)
                 old_value[:] = new_values
-            if isinstance(old_value, AST):
+            elif isinstance(old_value, AST):
                 new_node = self.visit(old_value)
                 if new_node is None:
                     delattr(node, field)

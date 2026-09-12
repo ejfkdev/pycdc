@@ -27,8 +27,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 552: orig  body=[Pass()])] | dec  body=[Return()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2858,
-   "ntotal": 3876,
+   "ndiff": 2849,
+   "ntotal": 3874,
    "detail": "line 958: orig ('LOAD_GLOBAL', 'NULL + RuntimeError') | got ('JUMP_FORWARD', '#22')\nline 959: orig ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\") | got ('PUSH_EXC_INFO', '')\nline 960: orig ('PRECALL', '') | got ('LOAD_GLOBAL', 'GeneratorExit')"
   },
   {

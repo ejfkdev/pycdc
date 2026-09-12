@@ -10967,13 +10967,24 @@ impl<'a> Ctx<'a> {
                     // folded chain exit: an elif/else region starts right
                     // here and runs until the next folded exit (or the
                     // enclosing structure closes it)
-                    let mut else_blk = Block::new(
-                        BlockType::Else,
-                        pos,
-                        self.cap_else_at_loop(pos, usize::MAX),
-                    );
+                    let real_end = self.cap_else_at_loop(pos, usize::MAX);
+                    // mark the elif head exactly like the unfolded
+                    // creation paths: the path-0 close in
+                    // handle_cond_jump keys off is_elif, and without it
+                    // a chain arm whose guard PJF lands on the capped
+                    // end (the loop's back edge — the 3.8-3.10 chain
+                    // tail when the arm holds its own inner back edges
+                    // and loop-top threading vetoes) closes the arm AT
+                    // its own guard, ejecting it as a sibling if
+                    // (_osx_support 3.10-3.13 _default_sysroot `elif
+                    // in_incdirs:` re-ran the strip logic after the
+                    // first arm)
+                    let is_elif = self.starts_with_cond_jump(pos, real_end);
+                    let mut else_blk =
+                        Block::new(BlockType::Else, pos, real_end);
                     else_blk.cond = Some(cond);
                     else_blk.folded_exit = true;
+                    else_blk.is_elif = is_elif;
                     self.pending_then.push(body);
                     self.blocks.push(else_blk);
                 } else if b.else_end.is_none()
@@ -20989,12 +21000,20 @@ impl<'a> Ctx<'a> {
                 Some(t) if t > target && self.idx_of.contains_key(&t) => {
                     // final operand: its jump skips the body (if exit) and
                     // must be the last instruction before the body starts
-                    // (3.14 pads the body head with NOT_TAKEN)
+                    // (3.14 pads the body head with NOT_TAKEN). The skip
+                    // stops AT the body start: a 3.10 line-marker NOP can
+                    // BE the body's first instruction (`if a or b: while
+                    // True: try:` — _osx_support 3.10
+                    // _find_appropriate_compiler), and skipping past it
+                    // overshot ti, bailing the merge and DeMorgan-
+                    // flattening the guard (the a-true path lost the body)
                     let mut nj = jk + 1;
-                    while matches!(
-                        self.instrs.get(nj).map(|x| x.op),
-                        Some(Op::NOT_TAKEN) | Some(Op::NOP)
-                    ) {
+                    while nj < ti
+                        && matches!(
+                            self.instrs.get(nj).map(|x| x.op),
+                            Some(Op::NOT_TAKEN) | Some(Op::NOP)
+                        )
+                    {
                         nj += 1;
                     }
                     if nj != ti {

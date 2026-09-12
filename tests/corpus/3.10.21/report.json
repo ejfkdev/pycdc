@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
   "PASS": 31,
-  "AST-PASS": 4,
-  "SIG-DIFF": 5
+  "AST-PASS": 5,
+  "SIG-DIFF": 4
  },
  "results": [
   {
@@ -37,11 +37,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 552: orig  orelse=[If(test=Name(id='in_incdirs' | dec  orelse=[])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 916,
-   "ntotal": 1418,
-   "detail": "line 473: orig ('FOR_ITER', '#63') | got ('FOR_ITER', '#62')\nline 482: orig ('JUMP_ABSOLUTE', '#20') | got ('JUMP_FORWARD', '#37')\nline 487: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_py_abc",
@@ -79,7 +75,7 @@
    "module": "ast",
    "ast_detail": "diff at token 376: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 6948,
+   "ndiff": 7002,
    "ntotal": 7851,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', '#79') | got ('POP_JUMP_IF_FALSE', '#78')\nline 617: orig ('POP_JUMP_IF_FALSE', '#79') | got ('POP_JUMP_IF_FALSE', '#78')\nline 623: orig ('POP_JUMP_IF_FALSE', '#79') | got ('POP_JUMP_IF_FALSE', '#78')"
   },
