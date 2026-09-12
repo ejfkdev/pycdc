@@ -4237,6 +4237,18 @@ impl<'a> Ctx<'a> {
         let mut orelse = Vec::new();
         let mut early_fin: Option<Vec<Stmt>> = None;
         if tc.region_end > tc.body_end {
+            // the walked finally-copy stores may still sit in
+            // pending_stores (their flush trigger is the next
+            // statement, and the flush point here is the RETURN):
+            // land them in the parent FIRST so the capture sees them
+            // (bdb 3.14 wrapper: push_stmt(Try) flushed the pending
+            // copy Assign AHEAD of the Try, leaking
+            // `_disable_current_event = False` before the try)
+            if !self.pending_stores.is_empty() {
+                self.flushing = true;
+                self.flush_pending_stores();
+                self.flushing = false;
+            }
             if let Some(top) = self.blocks.last_mut() {
                 let mark = self.pending_orelse_mark.take().unwrap_or(0);
                 let taken = if mark <= top.stmts.len() {
@@ -26542,8 +26554,28 @@ return None;
         let Some(&bi) = self.idx_of.get(&body_start) else {
 return None;
         };
+        // LAST back edge within the loop span, not the first: a nested
+        // arm's mid-body `continue` (bdb 3.14 effective: the ignore-
+        // decrement arm's trampoline at 308) is NOT the fused guard's
+        // body end — bounding there closed the wrapper before the loop's
+        // rest (the else arm's try/except) and the try flushed at loop
+        // level, running eval() for disabled breakpoints
+        let lb_end = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && (b.start == loop_top
+                        || (b.cond_end != usize::MAX && b.cond_end == loop_top))
+            })
+            .map(|b| b.end)
+            .filter(|e| *e != usize::MAX);
         let mut body_end = None;
         for ins in self.instrs[bi..].iter() {
+            if lb_end.map_or(false, |bnd| ins.offset >= bnd) {
+                break;
+            }
             if ins.offset >= body_start {
                 if let Some(t) = ins.target {
                     if ins.is_backward
@@ -26555,8 +26587,11 @@ return None;
                                 | Op::JUMP_BACKWARD_NO_INTERRUPT
                         )
                     {
+                        // record and KEEP SCANNING: nested arms carry
+                        // their own continues; the LAST back edge before
+                        // the loop end is the body's real terminus
                         body_end = Some(ins.offset);
-                        break;
+                        continue;
                     }
                     // terminal break chunk: the body IS [POP_TOP...] +
                     // a forward jump past the loop exit — scanning past
@@ -35846,6 +35881,17 @@ if split_cond {
                                 && b.else_end.is_some()
                                 && b.end != usize::MAX
                             {
+                                b.end
+                            } else if matches!(b.kind, BlockType::Try)
+                                && b.end < self.cur_offset
+                            {
+                                // a Try whose protected region the walk
+                                // has already left: close at its own end,
+                                // not its start — the Try arm's deferral
+                                // check (cover > pos) reads a start-pos as
+                                // "walk still inside" and strands the
+                                // flush (bdb 3.13/3.14 effective: the
+                                // else arm's try/except vanished)
                                 b.end
                             } else {
                                 b.start

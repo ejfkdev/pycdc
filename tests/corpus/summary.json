@@ -51,8 +51,8 @@
   "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
    "PASS": 24,
-   "AST-PASS": 9,
-   "SIG-DIFF": 7
+   "AST-PASS": 10,
+   "SIG-DIFF": 6
   }
  },
  "3.3.7": {

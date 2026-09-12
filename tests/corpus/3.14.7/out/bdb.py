@@ -70,7 +70,6 @@ class _MonitoringTracer:
         def wrapper(*args):
             if self._tracing_thread != threading.current_thread():
                 return
-            self._disable_current_event = False
             try:
                 frame = sys._getframe().f_back
                 ret = func(frame, *args)
@@ -1057,17 +1056,17 @@ def effective(file, line, frame):
                     b.ignore -= 1
                     continue
                 return b, True
-        try:
-            val = eval(b.cond, frame.f_globals, frame.f_locals)
-            if val:
-                if b.ignore > 0:
-                    b.ignore -= 1
+            try:
+                val = eval(b.cond, frame.f_globals, frame.f_locals)
+                if val:
+                    if b.ignore > 0:
+                        b.ignore -= 1
+                    else:
+                        return b, True
                 else:
-                    return b, True
-            else:
-                continue
-        except:
-            return b, False
+                    continue
+            except:
+                return b, False
     return (None, None)
 
 class Tdb(Bdb):

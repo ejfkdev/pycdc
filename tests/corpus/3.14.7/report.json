@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 9,
-  "SIG-DIFF": 7
+  "AST-PASS": 10,
+  "SIG-DIFF": 6
  },
  "results": [
   {
@@ -125,11 +125,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 441: orig  Try(body=[Assign(targets=[Name(id='frame' | dec  Assign(targets=[Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3385,
-   "ntotal": 3999,
-   "detail": "line 486: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')\nline 487: orig ('LOAD_ATTR', '_getframe') | got ('LOAD_DEREF', 'self')\nline 488: orig ('PUSH_NULL', '') | got ('STORE_ATTR', '_disable_current_event')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bisect",

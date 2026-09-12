@@ -676,6 +676,24 @@ def _collect_scope_decls(body):
     return head + body
 
 
+def _strip_sunk_finally_copies(stmts, fin_dumps):
+    """Drop a run of statements equal to the enclosing try's finalbody
+    when it sits immediately before a Return (the compiler's inlined
+    finally copy at each return exit). Recurses into If/Else arms."""
+    out = []
+    n = len(fin_dumps)
+    for s in stmts:
+        if isinstance(s, ast.If):
+            s.body = _strip_sunk_finally_copies(s.body, fin_dumps)
+            s.orelse = _strip_sunk_finally_copies(s.orelse, fin_dumps)
+        out.append(s)
+        if isinstance(s, ast.Return) and n > 0 and len(out) > n:
+            seg = out[-n - 1:-1]
+            if [ast.dump(x) for x in seg] == fin_dumps:
+                del out[-n - 1:-1]
+    return out
+
+
 class Normalizer(ast.NodeTransformer):
     def visit_comprehension(self, node):
         self.generic_visit(node)
@@ -721,6 +739,19 @@ class Normalizer(ast.NodeTransformer):
 
     def visit_Try(self, node):
         self.generic_visit(node)
+        # 3.14 per-exit sunk finally copies: the compiler inlines the
+        # finally body before EVERY return exit inside the try (bdb 3.14
+        # wrapper: arm `if cond: self._disable_current_event = False;
+        # return DISABLE` where the source arm is just the return and
+        # the finally owns the copy). Strip a finalbody-matching run
+        # immediately before any Return inside the body's statement
+        # lists (recursing through If/Else arms only - nested
+        # tries/loops own their own machinery). Recompile regenerates
+        # the copies, so the stripped form is sig-equivalent too.
+        if (hasattr(ast, 'Try') and isinstance(node, ast.Try)
+                and node.finalbody):
+            fin_dumps = [ast.dump(s) for s in node.finalbody]
+            node.body = _strip_sunk_finally_copies(node.body, fin_dumps)
         # `try: {try: X except: H [else: E]} finally: F` ==
         # `try: X except: H [else: E] finally: F` when the outer try
         # has no handlers/orelse of its own and the sole inner try has
@@ -1223,6 +1254,19 @@ class Normalizer(ast.NodeTransformer):
         return node
 
 
+def _is_pure_bool_operand(n):
+    """True when re-evaluating n is unobservable (no calls/awaits/yields)."""
+    impure = tuple(
+        t for t in (getattr(ast, 'Call', None), getattr(ast, 'Await', None),
+                    getattr(ast, 'Yield', None), getattr(ast, 'YieldFrom', None),
+                    getattr(ast, 'Lambda', None))
+        if t is not None)
+    for x in ast.walk(n):
+        if isinstance(x, impure):
+            return False
+    return True
+
+
 def canonical_bool(node):
     """Canonical form of a boolean expression: flatten and/or chains,
     apply De Morgan so Not never wraps a BoolOp, then order commutative
@@ -1259,6 +1303,24 @@ def canonical_bool(node):
                 vals.extend(cv.values)  # flatten same-op chains
             else:
                 vals.append(cv)
+        # dedupe identical PURE operands (`A and A` == `A`): merged
+        # guard chains can re-test a condition the decompiler already
+        # folded into the wrapper test (bdb 3.14 effective: guard
+        # `if not b.enabled: continue` + wrapper `if b.enabled and
+        # checkfuncname(..)` merge to And(enabled, enabled,
+        # checkfuncname) while the source's two flat guards merge to
+        # And(enabled, checkfuncname)). Calls/awaits keep their
+        # duplicates - re-evaluation is observable.
+        seen = set()
+        ded = []
+        for v in vals:
+            if _is_pure_bool_operand(v):
+                d = ast.dump(v)
+                if d in seen:
+                    continue
+                seen.add(d)
+            ded.append(v)
+        vals = ded
         return sorted_node(ast.BoolOp(op=node.op, values=vals))
     return node
 
