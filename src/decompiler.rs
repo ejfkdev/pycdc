@@ -33134,6 +33134,64 @@ if split_cond {
                         }
                     }
                 }
+                // the capped-away tail may still hold the arm's real
+                // END: an else arm shaped `if g: continue` + terminator
+                // (a chain's FINAL else: `elif x in ignorechars:
+                // continue` + `raise`, base64 3.10/3.11 a85decode)
+                // keeps its raise PAST the arm-internal continue edge -
+                // capping at the edge ejected the raise to loop level,
+                // where it re-ran after every fall-through arm (a valid
+                // 'z' raised 'Non-Ascii85 digit'). When everything from
+                // the edge to the loop end is the edge itself, targeted
+                // pure-value operand runs, padding and terminators, the
+                // arm extends over them.
+                if cap > pos && end == usize::MAX {
+                    if let (Some(&ci), Some(&ei)) =
+                        (self.idx_of.get(&cap), self.idx_of.get(&e))
+                    {
+                        let mut k = ci + 1;
+                        let mut saw_term_end = None;
+                        let mut ok = false;
+                        while k < ei {
+                            let ins = &self.instrs[k];
+                            if matches!(ins.op, Op::NOP | Op::CACHE) {
+                                k += 1;
+                                continue;
+                            }
+                            if matches!(
+                                ins.op,
+                                Op::RETURN_VALUE
+                                    | Op::RETURN_CONST
+                                    | Op::RAISE_VARARGS
+                                    | Op::RERAISE
+                            ) {
+                                saw_term_end = Some(ins.end());
+                                k += 1;
+                                continue;
+                            }
+                            // operand material feeding the terminator,
+                            // entered by a forward jump from inside the
+                            // region (the guard's false exit) or by
+                            // fall-through past a terminator-free prefix
+                            if is_pure_value_op(ins.op)
+                                && (self.targets.contains(&ins.offset)
+                                    || saw_term_end.is_none())
+                                && !ins.is_backward
+                            {
+                                k += 1;
+                                continue;
+                            }
+                            saw_term_end = None;
+                            ok = false;
+                            break;
+                        }
+                        if let Some(te) = saw_term_end {
+                            ok = true;
+                            cap = te;
+                        }
+                        let _ = ok;
+                    }
+                }
                 if cap > pos { cap } else { end }
             }
             None => end,

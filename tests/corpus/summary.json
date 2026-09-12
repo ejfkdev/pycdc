@@ -18,9 +18,9 @@
  "3.10.21": {
   "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
   "counts": {
-   "PASS": 31,
+   "PASS": 32,
    "AST-PASS": 5,
-   "SIG-DIFF": 4
+   "SIG-DIFF": 3
   }
  },
  "3.11.16": {
