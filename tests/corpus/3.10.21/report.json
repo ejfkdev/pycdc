@@ -93,11 +93,11 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1556: orig  orelse=[If(test=Compare(left=Name(id='x' | dec  orelse=[])",
+   "ast_detail": "diff at token 1571: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 646,
+   "ndiff": 2,
    "ntotal": 1931,
-   "detail": "line 1211: orig ('FOR_ITER', '#167') | got ('FOR_ITER', '#124')\nline 1221: orig ('POP_JUMP_IF_FALSE', '#124') | got ('POP_JUMP_IF_FALSE', '#123')\nline 1224: orig ('JUMP_FORWARD', '#124') | got ('JUMP_FORWARD', '#123')"
+   "detail": "line 1290: orig ('JUMP_ABSOLUTE', '#59') | got ('JUMP_FORWARD', '#161')\nline 1307: orig ('JUMP_ABSOLUTE', '#59') | got ('JUMP_FORWARD', '#161')"
   },
   {
    "module": "bdb",

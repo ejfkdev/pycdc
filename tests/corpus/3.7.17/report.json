@@ -87,9 +87,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1472: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 783,
+   "ndiff": 773,
    "ntotal": 1946,
-   "detail": "line 1153: orig ('EXTENDED_ARG', '') | got ('SETUP_LOOP', '#182')\nline 1154: orig ('SETUP_LOOP', '#186') | got ('LOAD_FAST', 'b')\nline 1155: orig ('LOAD_FAST', 'b') | got ('LOAD_CONST', \"b'uuuu'\")"
+   "detail": "line 1153: orig ('EXTENDED_ARG', '') | got ('SETUP_LOOP', '#181')\nline 1154: orig ('SETUP_LOOP', '#186') | got ('LOAD_FAST', 'b')\nline 1155: orig ('LOAD_FAST', 'b') | got ('LOAD_CONST', \"b'uuuu'\")"
   },
   {
    "module": "bdb",

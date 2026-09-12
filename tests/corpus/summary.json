@@ -90,16 +90,16 @@
   "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
   "counts": {
    "PASS": 34,
-   "AST-PASS": 2,
-   "SIG-DIFF": 4
+   "AST-PASS": 3,
+   "SIG-DIFF": 3
   }
  },
  "3.9.25": {
   "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
   "counts": {
    "PASS": 35,
-   "AST-PASS": 2,
-   "SIG-DIFF": 3
+   "AST-PASS": 3,
+   "SIG-DIFF": 2
   }
  }
 }

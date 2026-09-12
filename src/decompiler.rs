@@ -23917,6 +23917,60 @@ impl<'a> Ctx<'a> {
                 };
                 let mut body_end = None;
                 let mut k2 = bi;
+                // handler spans of try structures inside the body: a
+                // flat scan must not read a terminator INSIDE an except
+                // handler as the body end (the normal path skips the
+                // handler — base64 3.8 a85decode: the handler's `raise
+                // ValueError('Ascii85 overflow')` ended the scan at 126,
+                // truncating the If before `curr_clear()` and dropping
+                // the whole elif chain out of the loop). Span = from the
+                // SETUP_* target to the first END_FINALLY/RERAISE at or
+                // after it.
+                let body_bound = link_targets
+                    .iter()
+                    .copied()
+                    .filter(|&lt| lt > bs)
+                    .min()
+                    .unwrap_or(usize::MAX);
+                let mut handler_spans: Vec<(usize, usize)> = Vec::new();
+                {
+                    let mut hs = bi;
+                    while let Some(ins) = self.instrs.get(hs) {
+                        if ins.offset >= body_bound {
+                            break;
+                        }
+                        if matches!(
+                            ins.op,
+                            Op::SETUP_FINALLY | Op::SETUP_WITH | Op::SETUP_ASYNC_WITH
+                        ) {
+                            if let Some(h) = ins.target {
+                                if h > bs && h < body_bound {
+                                    let hend = self
+                                        .instrs
+                                        .iter()
+                                        .skip(hs)
+                                        .find(|x| {
+                                            x.offset >= h
+                                                && matches!(
+                                                    x.op,
+                                                    Op::END_FINALLY | Op::RERAISE
+                                                )
+                                        })
+                                        .map(|x| x.end())
+                                        .unwrap_or(body_bound);
+                                    handler_spans.push((h, hend));
+                                }
+                            }
+                        }
+                        hs += 1;
+                        if hs - bi > 400 {
+                            break;
+                        }
+                    }
+                }
+                let in_handler = |off: usize| {
+                    handler_spans.iter().any(|&(h, e)| h <= off && off < e)
+                };
                 while let Some(ins) = self.instrs.get(k2) {
                     // a body that FALLS THROUGH to the chain's skip label
                     // ends there: link targets at/after the body start
@@ -23931,7 +23985,9 @@ impl<'a> Ctx<'a> {
                         body_end = Some(ins.offset);
                         break;
                     }
-                    if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS) {
+                    if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS)
+                        && !in_handler(ins.offset)
+                    {
                         body_end = Some(ins.end());
                         break;
                     }
@@ -23943,12 +23999,27 @@ impl<'a> Ctx<'a> {
                                 Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
                             )
                         {
-                            let internal = self.instrs[bi..k2]
+                            // a forward JF landing INSIDE the chain's own
+                            // else boundary is interior structure (a
+                            // try body's skip over its except handler),
+                            // not the body-terminal else-skip — ending
+                            // the scan there truncates the If at the
+                            // handler start and the try/clear tail
+                            // ejects into the OUTER arm (base64 3.8/3.9
+                            // a85decode: If[40,104] instead of [40,142),
+                            // `try: pack except: raise` + `curr_clear()`
+                            // landed in the else of `if 33<=x<=117:`)
+                            let interior = link_targets
                                 .iter()
-                                .any(|x| x.target == Some(t));
-                            if !internal {
-                                body_end = Some(ins.end());
-                                break;
+                                .any(|&lt| lt > bs && t < lt);
+                            if !interior {
+                                let internal = self.instrs[bi..k2]
+                                    .iter()
+                                    .any(|x| x.target == Some(t));
+                                if !internal {
+                                    body_end = Some(ins.end());
+                                    break;
+                                }
                             }
                         }
                     }
