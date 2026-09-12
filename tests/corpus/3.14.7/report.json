@@ -101,7 +101,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2466: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
+   "ast_detail": "diff at token 2456: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
    "verdict": "SIG-DIFF",
    "ndiff": 890,
    "ntotal": 3207,
@@ -193,7 +193,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 833: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 831: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1239,
    "ntotal": 1660,
@@ -201,7 +201,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1192: orig  body=[AnnAssign(target=Name(id='elements_added' | dec  body=[Assign(targets=[Name(id='cursect'",
+   "ast_detail": "diff at token 1188: orig  body=[AnnAssign(target=Name(id='elements_added' | dec  body=[Assign(targets=[Name(id='cursect'",
    "verdict": "SIG-DIFF",
    "ndiff": 3264,
    "ntotal": 5081,

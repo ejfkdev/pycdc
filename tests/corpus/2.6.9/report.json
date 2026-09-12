@@ -157,7 +157,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 3492: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Compare(left=Name(id='key'",
+   "ast_detail": "diff at token 3472: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
    "ndiff": 2430,
    "ntotal": 3219,

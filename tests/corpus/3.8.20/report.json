@@ -157,7 +157,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1820: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
+   "ast_detail": "diff at token 1812: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
    "ndiff": 2823,
    "ntotal": 4350,

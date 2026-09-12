@@ -153,7 +153,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1109: orig  keywords=[]))]) | dec  keywords=[]))",
+   "ast_detail": "diff at token 1105: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 593,
    "ntotal": 1484,

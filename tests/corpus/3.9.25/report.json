@@ -77,7 +77,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 4308: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])] | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]",
+   "ast_detail": "diff at token 4298: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])] | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]",
    "verdict": "SIG-DIFF",
    "ndiff": 2479,
    "ntotal": 7116,
@@ -161,7 +161,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1324: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
+   "ast_detail": "diff at token 1316: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
    "ndiff": 2826,
    "ntotal": 4333,

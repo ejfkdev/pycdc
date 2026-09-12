@@ -2172,6 +2172,48 @@ def _mutates_container(body):
     return False
 
 
+def fold_guard_continue_else(stmts):
+    """LOOP-BODY equivalence: `if c: X; continue` followed by siblings
+    <rest> == `if c: X else: <rest>` - the continue skips exactly the
+    rest of this iteration, which the else arm also skips on c-true
+    and runs on c-false (_osx_support 3.10-3.13
+    _default_sysroot_chain: the source's elif chain normalizes to
+    guard+continue form, the decompiler renders nested else arms).
+    Recursive: elif chains fold one level per guard, and guards nested
+    inside already-folded else arms must fold too. Stops at nested
+    loops - THEIR bodies' continues are their own."""
+    out = []
+    i = 0
+    n = len(stmts)
+    while i < n:
+        s = stmts[i]
+        if (isinstance(s, ast.If) and not s.orelse
+                and s.body and isinstance(s.body[-1], ast.Continue)
+                and i + 1 < n):
+            rest = fold_guard_continue_else(stmts[i + 1:])
+            out.append(ast.If(test=s.test,
+                              body=s.body[:-1] or [ast.Pass()],
+                              orelse=rest))
+            return out
+        if isinstance(s, ast.If):
+            s.body = fold_guard_continue_else(s.body)
+            s.orelse = fold_guard_continue_else(s.orelse)
+        elif isinstance(s, (ast.With, getattr(ast, 'AsyncWith', ast.With))):
+            s.body = fold_guard_continue_else(s.body)
+        elif TRY_TYPES and isinstance(s, TRY_TYPES):
+            s.body = fold_guard_continue_else(s.body)
+            for h in getattr(s, 'handlers', None) or []:
+                h.body = fold_guard_continue_else(h.body)
+            if getattr(s, 'orelse', None):
+                s.orelse = fold_guard_continue_else(s.orelse)
+            if getattr(s, 'finalbody', None):
+                s.finalbody = fold_guard_continue_else(s.finalbody)
+        # nested loops scope their own continues - do not descend
+        out.append(s)
+        i += 1
+    return out
+
+
 def unfold_invariant_while(stmts):
     """`while G: B` where G is a side-effect-free test that B never
     rebinds is equivalent to `if G: while True: B` - G is loop-invariant
@@ -2405,12 +2447,13 @@ def dump(src):
                             # 3.3, cgi 3.6, _strptime 3.12 regressed
                             # under an unconditional re-merge)
                             val = merge_guard_continues(val)
+                    _v2 = flatten_terminating_else(
+                        merge_nested_ifs(val), loop_body=is_loop_body)
+                    if is_loop_body:
+                        _v2 = fold_guard_continue_else(_v2)
                     setattr(node, field,
                             unfold_invariant_while(
-                                split_tail_ternary_return(
-                                    flatten_terminating_else(
-                                        merge_nested_ifs(val),
-                                        loop_body=is_loop_body))))
+                                split_tail_ternary_return(_v2)))
         if ast.dump(tree) == _before:
             break
         # a docstring-only body normalizes to empty; the source may have
