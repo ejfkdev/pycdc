@@ -47368,6 +47368,65 @@ fn genexpr_ternary_merge(
                         star_kwargs: star_kw,
                     }));
                 }
+                // 3.13+ CALL_KW / <=3.12 CALL_FUNCTION_KW: [callable,
+                // (NULL), args..., kwnames-tuple TOS], oparg = total
+                // value count. Without this arm the kwnames tuple rode
+                // the stack as the elt value (`ast.parse(f"({p})",
+                // mode="eval").body` inside a genexpr rendered
+                // `('mode',).body` - annotationlib 3.14
+                // _template_to_ast).
+                Op::CALL_KW | Op::CALL_FUNCTION_KW => {
+                    let underflow = || Rc::new(Expr::Name("?".to_string()));
+                    let kw_names_e = stack.pop().unwrap_or_else(underflow);
+                    let mut names: Vec<String> = Vec::new();
+                    if let Expr::Const(o) = &*kw_names_e {
+                        if let PyObject::Tuple(items) = &**o {
+                            for it in items {
+                                if let PyObject::Str(s) = &**it {
+                                    names.push(s.clone());
+                                }
+                            }
+                        }
+                    }
+                    let n = inst.arg as usize;
+                    let mut all = Vec::new();
+                    for _ in 0..n {
+                        if let Some(v) = stack.pop() {
+                            all.push(v);
+                        }
+                    }
+                    all.reverse();
+                    let npos = n.saturating_sub(names.len());
+                    let args: Vec<ExprRef> =
+                        all.iter().take(npos.min(all.len())).cloned().collect();
+                    let mut keywords: Vec<(Option<String>, ExprRef)> =
+                        Vec::new();
+                    for (ki, nm) in names.iter().enumerate() {
+                        if let Some(v) = all.get(npos + ki) {
+                            keywords.push((Some(nm.clone()), v.clone()));
+                        }
+                    }
+                    let mut func = stack.pop().unwrap_or_else(underflow);
+                    if is_null_marker(&func) {
+                        func = stack.pop().unwrap_or_else(underflow);
+                    }
+                    if self.version.at_least(3, 14)
+                        && matches!(&*func, Expr::Attribute { .. })
+                        && stack.len() >= 1
+                    {
+                        // 3.14 method load: [attr, receiver, args] -
+                        // the receiver slot rides under the attr and
+                        // must be dropped (mirrors the CALL arm)
+                        stack.pop();
+                    }
+                    stack.push(Rc::new(Expr::Call {
+                        func,
+                        args,
+                        keywords,
+                        star_args: None,
+                        star_kwargs: None,
+                    }));
+                }
                 Op::CALL_FUNCTION | Op::CALL | Op::CALL_METHOD => {
                     let n = if inst.op == Op::CALL_FUNCTION && !self.version.at_least(3, 6) {
                         (inst.arg & 0xFF) as usize

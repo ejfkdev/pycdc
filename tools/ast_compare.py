@@ -398,6 +398,14 @@ def flatten_try_else(stmts, at_loop_tail=False, _chg=None,
                     for h in handlers:
                         if not ends_terminal(h.body):
                             arm = at_loop_tail != 'loop'
+                            # a no-op Pass tail yields to the appended
+                            # loop exit (annotationlib 3.14: the source
+                            # handler `pass` vs the decompile's bare
+                            # `continue` - the bytecode only carries
+                            # the exit jump)
+                            while h.body and isinstance(h.body[-1],
+                                                        ast.Pass):
+                                h.body.pop()
                             h.body.append(ast.Break() if arm
                                           else ast.Continue())
                     s.orelse = []
@@ -690,11 +698,19 @@ class Normalizer(ast.NodeTransformer):
         # twin else arms first and strand the tail as siblings, blocking
         # the merge (cgi 2.7 indexed_value: the decompiler conjoins the
         # guards and unifies the two `return None` arms).
+        # deepcopy both probe sides: normalize_body MUTATES (the
+        # terminal-else flattening strips orelse in place), and a
+        # failed comparison used to leave the probed chain severed --
+        # every arm past the second link silently dropped
+        # (annotationlib 3.14 ForwardRef.evaluate's
+        # hasattr/is_forwardref/NameError arms vanished)
         if (node.orelse and len(node.body) == 1
                 and isinstance(node.body[0], ast.If)
                 and node.body[0].orelse
-                and dump_stmts(normalize_body(list(node.body[0].orelse)))
-                == dump_stmts(normalize_body(list(node.orelse)))):
+                and dump_stmts(normalize_body(
+                    copy.deepcopy(list(node.body[0].orelse))))
+                == dump_stmts(normalize_body(
+                    copy.deepcopy(list(node.orelse))))):
             inner = node.body[0]
             node = ast.If(
                 test=ast.BoolOp(op=ast.And(),
@@ -1398,6 +1414,12 @@ def strip_noop_continues(stmts, at_loop_tail):
     for idx, s in enumerate(stmts):
         if terminated:
             continue
+        # a Pass with real siblings is a no-op the bytecode never
+        # carries (annotationlib 3.14: the source's handler
+        # `pass` + the hoisted loop-tail `continue` vs the decompile's
+        # bare continue)
+        if isinstance(s, ast.Pass) and n > 1:
+            continue
         # only the LAST statement of a loop-tail body falls through to
         # the back edge - a continue in an earlier statement (or inside
         # a mid-list if) is real control flow
@@ -1411,6 +1433,8 @@ def strip_noop_continues(stmts, at_loop_tail):
         if isinstance(s, TERMINATORS):
             terminated = True
         out.append(s)
+    if not out and stmts:
+        out.append(ast.Pass())
     return out
 
 
@@ -2643,9 +2667,11 @@ class _ArtifactFolder(ast.NodeTransformer):
         t = node.test
         flag = None
         _const_t = getattr(ast, 'Constant', None)
-        if _const_t is not None and isinstance(t, _const_t) \
-                and isinstance(t.value, bool):
-            flag = t.value
+        if _const_t is not None and isinstance(t, _const_t):
+            # CPython constant-folds ANY constant if-test (`if 0:`
+            # blocks compile to nothing - _pylong 3.14's documentation
+            # dead code); mirror the fold
+            flag = bool(t.value)
         elif isinstance(t, ast.Name) and t.id in ('True', 'False'):
             flag = t.id == 'True'
         if flag is True:

@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 11,
-  "AST-PASS": 5
+  "SIG-DIFF": 10,
+  "AST-PASS": 6
  },
  "results": [
   {
@@ -53,7 +53,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 403: orig  orelse=[Assert(test=Compare(left=Name(id='decltype' | dec  orelse=[If(test=Compare(left=Name(id='decltype'",
+   "ast_detail": "diff at token 760: orig  ctx=Load())]))])] | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
    "ndiff": 627,
    "ntotal": 1362,
@@ -81,11 +81,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 814: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 517,
-   "ntotal": 1551,
-   "detail": "line 1016: orig ('LOAD_FAST', 'n') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'n, hi')\nline 1017: orig ('LOAD_FAST', 'hi') | got ('LOAD_FAST', 'p256')\nline 1018: orig ('LOAD_FAST', 'p256') | got ('BINARY_OP', '*')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sitebuiltins",
@@ -117,9 +113,9 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 446: orig  body=[Pass() | dec  body=[Continue()])])",
+   "ast_detail": "diff at token 3249: orig  While(test=Name(id='True' | dec  While(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1616,
+   "ndiff": 1529,
    "ntotal": 4144,
    "detail": "line 536: orig ('POP_JUMP_IF_FALSE', '#245') | got ('POP_JUMP_IF_FALSE', '#246')\nline 543: orig ('FOR_ITER', '#243') | got ('FOR_ITER', '#244')\nline 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')"
   },
