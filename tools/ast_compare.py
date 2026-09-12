@@ -1454,6 +1454,12 @@ def visit_noop_node(s, at_loop_tail):
         s.orelse = strip_noop_continues(s.orelse, at_loop_tail)
         if not s.body:
             s.body = [ast.Pass()]
+        # an else arm stripped down to a lone Pass IS no else at all
+        # (bdb 3.13 effective: the dec's `if val: ... else: continue`
+        # at the loop tail stripped to `else: pass` and never matched
+        # the source's else-less form)
+        if len(s.orelse) == 1 and isinstance(s.orelse[0], ast.Pass):
+            s.orelse = []
     elif isinstance(s, (ast.With, getattr(ast, 'AsyncWith', ast.With))):
         s.body = strip_noop_continues(s.body, at_loop_tail)
         if not s.body:

@@ -11718,13 +11718,25 @@ impl<'a> Ctx<'a> {
                                     Op::RETURN_VALUE | Op::RETURN_CONST
                                 )
                             });
+                    // a force-close from a back edge / break / continue
+                    // (close_inner_blocks_to_loop passes b.start as pos)
+                    // arrives with the walk ALREADY PAST the region end:
+                    // deferring strands the ctx — no future
+                    // open_exception_blocks can fire its tail_work — and
+                    // the whole Try is silently dropped (bdb 3.13
+                    // effective: the else arm's `try: val = eval(b.cond)
+                    // except: return (b, False)` vanished). Only defer
+                    // while the walk can still reach the cover.
+                    let walk_past_cover = self.cur_offset > cover;
                     if tc.split_body2.is_some() {
                         // split finally: the reconstruct rebuilds every
                         // span — emit now, before the walk drifts into
                         // the second protected fragment
                         self.pending_try_body.pop();
                         self.emit_try_tail(tc, pos);
-                    } else if cover > pos || return_at_edge {
+                    } else if (cover > pos && !walk_past_cover)
+                        || return_at_edge
+                    {
                         self.pending_try_body.pop();
                         self.pending_try_body.push(body);
                         self.pending_try_ctx = Some(tc);
