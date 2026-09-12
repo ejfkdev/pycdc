@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 30,
-  "AST-PASS": 7,
-  "SIG-DIFF": 3
+  "AST-PASS": 8,
+  "SIG-DIFF": 2
  },
  "results": [
   {
@@ -85,11 +85,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 228: orig  orelse=[]) | dec  orelse=[])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2092,
-   "ntotal": 2518,
-   "detail": "line 381: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 382: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 383: orig ('COMPARE_OP', '==') | got ('LOAD_CONST', 'None')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bisect",

@@ -407,18 +407,18 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
             registry['version'] = _wm._filters_version
         if registry.get(key):
             return
-    for item in _wm._get_filters():
-        action, msg, cat, mod, ln = item
-        if msg is None or msg.match(text):
-            if not issubclass(category, cat):
-                continue
-        if mod is None or mod.match(module):
-            if not ln == 0:
-                if not lineno == ln:
+        for item in _wm._get_filters():
+            action, msg, cat, mod, ln = item
+            if msg is None or msg.match(text):
+                if not issubclass(category, cat):
                     continue
-        break
-    else:
-        action = _wm.defaultaction
+            if mod is None or mod.match(module):
+                if not ln == 0:
+                    if not lineno == ln:
+                        continue
+            break
+        else:
+            action = _wm.defaultaction
     if action == 'ignore':
         return
     if action == 'error':

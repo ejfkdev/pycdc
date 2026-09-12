@@ -93,22 +93,22 @@ class Bdb:
         with self.set_enterframe(frame):
             if self.quitting:
                 return
-        if event == 'line':
-            return self.dispatch_line(frame)
-        if event == 'call':
-            return self.dispatch_call(frame, arg)
-        if event == 'return':
-            return self.dispatch_return(frame, arg)
-        if event == 'exception':
-            return self.dispatch_exception(frame, arg)
-        if event == 'c_call':
+            if event == 'line':
+                return self.dispatch_line(frame)
+            if event == 'call':
+                return self.dispatch_call(frame, arg)
+            if event == 'return':
+                return self.dispatch_return(frame, arg)
+            if event == 'exception':
+                return self.dispatch_exception(frame, arg)
+            if event == 'c_call':
+                return self.trace_dispatch
+            if event == 'c_exception':
+                return self.trace_dispatch
+            if event == 'c_return':
+                return self.trace_dispatch
+            print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
             return self.trace_dispatch
-        if event == 'c_exception':
-            return self.trace_dispatch
-        if event == 'c_return':
-            return self.trace_dispatch
-        print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
-        return self.trace_dispatch
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.
@@ -321,7 +321,7 @@ class Bdb:
                 frame.f_trace = self.trace_dispatch
                 self.botframe = frame
                 frame = frame.f_back
-        self.set_step()
+            self.set_step()
         sys.settrace(self.trace_dispatch)
 
     def set_continue(self):
@@ -334,10 +334,9 @@ class Bdb:
         if not self.breaks:
             sys.settrace(None)
             frame = sys._getframe().f_back
-            if frame:
-                while frame is not self.botframe:
-                    del frame.f_trace
-                    frame = frame.f_back
+            while frame and frame is not self.botframe:
+                del frame.f_trace
+                frame = frame.f_back
 
     def set_quit(self):
         '''Set quitting attribute to True.
@@ -586,8 +585,9 @@ class Bdb:
             exec(cmd, globals, locals)
         except BdbQuit:
             pass
-        self.quitting = True
-        sys.settrace(None)
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -624,8 +624,13 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
-        self.quitting = True
-        sys.settrace(None)
+        try:
+            res = func(*args, **kwds)
+        except BdbQuit:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
         return res
 
 

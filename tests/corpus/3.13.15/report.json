@@ -101,11 +101,11 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 202: orig  body=[Return()]) | dec  body=[Return()])])",
+   "ast_detail": "diff at token 2726: orig  ctx=Load()))])]) | dec  ctx=Load()))])])])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2328,
+   "ndiff": 1359,
    "ntotal": 2803,
-   "detail": "line 416: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 417: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 418: orig ('COMPARE_OP', 'bool(==)') | got ('LOAD_CONST', 'None')"
+   "detail": "line 758: orig ('POP_JUMP_IF_FALSE', '#24') | got ('POP_JUMP_IF_TRUE', '#24')\nline 1417: orig ('POP_JUMP_IF_FALSE', '#62') | got ('POP_JUMP_IF_FALSE', '#63')\nline 1436: orig ('_load_breaks', 1) | got ('RETURN_CONST', 'None')"
   },
   {
    "module": "bisect",

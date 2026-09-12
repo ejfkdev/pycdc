@@ -97,24 +97,24 @@ The arg parameter depends on the previous event.
         with self.set_enterframe(frame):
             if self.quitting:
                 return
-        if event == 'line':
-            return self.dispatch_line(frame)
-        if event == 'call':
-            return self.dispatch_call(frame, arg)
-        if event == 'return':
-            return self.dispatch_return(frame, arg)
-        if event == 'exception':
-            return self.dispatch_exception(frame, arg)
-        if event == 'c_call':
+            if event == 'line':
+                return self.dispatch_line(frame)
+            if event == 'call':
+                return self.dispatch_call(frame, arg)
+            if event == 'return':
+                return self.dispatch_return(frame, arg)
+            if event == 'exception':
+                return self.dispatch_exception(frame, arg)
+            if event == 'c_call':
+                return self.trace_dispatch
+            if event == 'c_exception':
+                return self.trace_dispatch
+            if event == 'c_return':
+                return self.trace_dispatch
+            if event == 'opcode':
+                return self.dispatch_opcode(frame, arg)
+            print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
             return self.trace_dispatch
-        if event == 'c_exception':
-            return self.trace_dispatch
-        if event == 'c_return':
-            return self.trace_dispatch
-        if event == 'opcode':
-            return self.dispatch_opcode(frame, arg)
-        print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
-        return self.trace_dispatch
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.
@@ -362,7 +362,7 @@ The arg parameter depends on the previous event.
                 self.frame_trace_lines_opcodes[frame] = frame.f_trace_lines, frame.f_trace_opcodes
                 frame.f_trace_lines = True
                 frame = frame.f_back
-        self.set_stepinstr()
+            self.set_stepinstr()
         sys.settrace(self.trace_dispatch)
 
     def set_continue(self):
@@ -629,8 +629,9 @@ The arg parameter depends on the previous event.
             exec(cmd, globals, locals)
         except BdbQuit:
             pass
-        self.quitting = True
-        sys.settrace(None)
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -671,8 +672,9 @@ The arg parameter depends on the previous event.
             res = func(*args, **kwds)
         except BdbQuit:
             pass
-        self.quitting = True
-        sys.settrace(None)
+        finally:
+            self.quitting = True
+            sys.settrace(None)
         return res
 
 

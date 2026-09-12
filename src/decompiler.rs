@@ -629,6 +629,94 @@ struct Ctx<'a> {
     import_module: Option<(u32, String)>,
 }
 
+/// Value-return-copy gap mirror: the span [gap_start, gap_end) is an
+/// inline finally copy of the handler at `fh` when its op sequence
+/// (pads dropped) matches the handler's copy (PUSH_EXC_INFO head
+/// skipped) op-for-op up to the handler's terminating RERAISE, with
+/// the gap's final RETURN pairing with that RERAISE. Used by the
+/// try-region builder's value-return-copy merges (bdb runeval/run).
+fn vrc_mirror_gap(ctx: &Ctx, gap_start: usize, gap_end: usize, fh: usize) -> bool {
+    if gap_start >= gap_end {
+        return false;
+    }
+    let Some(&fhi) = ctx.idx_of.get(&fh) else {
+        return false;
+    };
+    let is_pad = |x: &crate::bytecode::Instruction| {
+        matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+    };
+    let gap_span: Vec<usize> = ctx
+        .instrs
+        .iter()
+        .filter(|x| x.offset >= gap_start && x.offset < gap_end && !is_pad(x))
+        .map(|x| x.offset)
+        .collect();
+    let chain: Vec<usize> = ctx
+        .instrs
+        .iter()
+        .skip(fhi)
+        .skip_while(|x| {
+            matches!(
+                x.op,
+                Op::PUSH_EXC_INFO | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+            )
+        })
+        .map(|x| x.offset)
+        .collect();
+    if gap_span.len() < 5
+        || chain.len() <= gap_span.len()
+        || gap_span.len() > chain.len() + 1
+    {
+        return false;
+    }
+    let gi_of = |off: usize| -> usize { ctx.idx_of.get(&off).copied().unwrap_or(0) };
+    let mut matched = 0usize;
+    for k in 0..chain.len() {
+        let Some(f) = ctx.instrs.get(gi_of(chain[k])) else {
+            return false;
+        };
+        if matches!(f.op, Op::RERAISE | Op::END_FINALLY) {
+            // the gap's sunk tail return pairs with the chain's
+            // RERAISE. The tail may carry the return's value loads
+            // AFTER the copy (bdb 3.12 runcall: copy; LOAD_FAST res;
+            // RETURN_VALUE) or be the 3.14-style LOAD_CONST None;
+            // RETURN_VALUE pair — accept pure-value loads followed by
+            // the final RETURN. Statement material (stores, calls,
+            // jumps) still fails: an else body is not a copy tail.
+            let at = |i: usize| {
+                gap_span
+                    .get(i)
+                    .and_then(|o| ctx.idx_of.get(o))
+                    .map(|&si2| &ctx.instrs[si2])
+            };
+            let n = gap_span.len();
+            let tail_ok = n > matched
+                && at(n - 1).map_or(false, |x| {
+                    matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                })
+                && (matched..n - 1).all(|i| {
+                    at(i).map_or(false, |x| {
+                        (is_pure_value_op(x.op) && x.target.is_none())
+                            || matches!(x.op, Op::TO_BOOL)
+                    })
+                });
+            return tail_ok && matched >= 4;
+        }
+        let Some(&so) = gap_span.get(matched) else {
+            return false;
+        };
+        let sp = &ctx.instrs[gi_of(so)];
+        if !op_family_eq(sp.op, f.op)
+            || (matches!(f.op, Op::LOAD_CONST | Op::LOAD_GLOBAL)
+                && sp.arg != f.arg)
+        {
+            return false;
+        }
+        matched += 1;
+    }
+    false
+}
+
 pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Decompiled> {
     decompile_in_scope(code, version, &[])
 }
@@ -812,6 +900,66 @@ pub fn decompile_in_scope(
                         .all(|x| matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE))
                     {
                         return s <= last.1.saturating_add(16);
+                    }
+                    // a loop back edge inside the with body: 3.12
+                    // leaves the JUMP_BACKWARD itself unprotected,
+                    // splitting the body into fragments around the 2-
+                    // byte edge (bdb 3.12 set_trace: [174,256) +
+                    // [258,290) around JB@256 — unmerged, the With
+                    // closed at 256 and dedented `self.set_step()` out
+                    // of the with). Bridge when EVERY jump in the gap
+                    // is backward and lands inside the already-merged
+                    // region: pure loop-recycling, no forward exit.
+                    // (3.14 set_trace keeps its split: there the gap
+                    // is the whole frame-walk loop, whose forward
+                    // PJIFs exit to the fragment end.)
+                    let back_edge_only = !gap.is_empty()
+                        && gap.iter().all(|x| {
+                            x.target.map_or(true, |t| {
+                                x.is_backward && t >= last.0 && t < last.1
+                            })
+                        })
+                        && gap.iter().any(|x| x.is_backward);
+                    if back_edge_only {
+                        return true;
+                    }
+                    // sunk with-exit gaps: 3.12+ sinks the with's exit
+                    // sequence into EVERY early-return arm, splitting
+                    // the body into same-handler fragments around
+                    // `None×3; CALL; POP_TOP; RETURN` material (bdb
+                    // 3.12 trace_dispatch: nine fragments, each gap a
+                    // sunk exit — the unmerged first fragment closed
+                    // the With after the `if self.quitting: return`
+                    // guard and dedented the whole dispatch chain).
+                    // The gap must be pure exit protocol AND contain a
+                    // RETURN (an arm terminator); loop material (bdb
+                    // 3.14 set_trace's frame walk) never qualifies.
+                    let exit_gap = gap.iter().all(|x| {
+                        matches!(
+                            x.op,
+                            Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE
+                                | Op::SWAP
+                                | Op::COPY
+                                | Op::ROT_TWO
+                                | Op::PRECALL
+                                | Op::PUSH_NULL
+                                | Op::POP_TOP
+                                | Op::CALL
+                                | Op::CALL_FUNCTION
+                                | Op::RETURN_VALUE
+                                | Op::RETURN_CONST
+                        ) || (x.op == Op::LOAD_CONST
+                            && matches!(
+                                code.consts.get(x.arg as usize).map(|o| &**o),
+                                Some(PyObject::None)
+                            ))
+                    }) && gap.iter().any(|x| {
+                        matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                    });
+                    if exit_gap {
+                        return true;
                     }
                     gap.iter().all(|x| {
                         exc_entries
@@ -1511,49 +1659,19 @@ pub fn decompile_in_scope(
                             .map(|h| (ri, h))
                     })
                 {
-                    let gap_ok = match (
-                        ctx.idx_of.get(&regions[ri].region_end),
-                        ctx.idx_of.get(&h),
-                    ) {
-                        (Some(&gi), Some(&hi)) if gi < hi => {
-                            let span = &ctx.instrs[gi..hi];
-                            let last_real = span.iter().rev().find(|x| {
-                                !matches!(
-                                    x.op,
-                                    Op::NOP | Op::NOT_TAKEN | Op::CACHE
-                                )
-                            });
-                            let has_copy_work = span.iter().any(|x| {
-                                matches!(
-                                    x.op,
-                                    Op::STORE_ATTR
-                                        | Op::STORE_FAST
-                                        | Op::STORE_NAME
-                                        | Op::STORE_DEREF
-                                        | Op::STORE_SUBSCR
-                                        | Op::CALL
-                                        | Op::CALL_FUNCTION
-                                        | Op::CALL_METHOD
-                                )
-                            });
-                            let no_chain = !span.iter().any(|x| {
-                                matches!(
-                                    x.op,
-                                    Op::PUSH_EXC_INFO
-                                        | Op::CHECK_EXC_MATCH
-                                        | Op::CHECK_EG_MATCH
-                                        | Op::POP_EXCEPT
-                                        | Op::RERAISE
-                                )
-                            });
-                            let no_loop = !span.iter().any(|x| x.is_backward);
-                            matches!(last_real.map(|x| x.op), Some(Op::RETURN_VALUE))
-                                && has_copy_work
-                                && no_chain
-                                && no_loop
-                        }
-                        _ => false,
-                    };
+                    // the gap must BE the finally copy: opcode-mirror
+                    // the span [region_end, min(e.start, dispatch head))
+                    // against the handler's copy at e.target (a weak
+                    // content check misfired on code 3.12
+                    // showsyntaxerror, where the gap is the inner try's
+                    // ELSE body + epilogue, not a copy — the merge
+                    // swallowed the else arm into the try)
+                    let gap_ok = vrc_mirror_gap(
+                        &ctx,
+                        regions[ri].region_end,
+                        e.start.min(h),
+                        e.target,
+                    );
                     if gap_ok {
                         deep_vrc_idx = Some(ri);
                     }
@@ -1613,6 +1731,44 @@ pub fn decompile_in_scope(
                     r.finally_handler = Some(e.target);
                 }
                 regions.push(r);
+            }
+        }
+        // 3.13+ JBNI-rejoin shapes: the match-path rejoin entry
+        // (POP_EXCEPT; JUMP_BACKWARD_NO_INTERRUPT onto the inline
+        // finally copy) and its trampoline are pure cleanup spans —
+        // exit_frag filters them out of main_entries, so the in-loop
+        // value-return-copy merge never sees a finally donor (bdb
+        // 3.13/3.14 run/runcall: the copies leaked as post-try
+        // siblings and the finally clause vanished). Post-pass: an
+        // except-region without a finally adopts a RAW finally-kind
+        // entry starting inside its own dispatch chain when the
+        // [region_end, chain head) gap opcode-mirrors that handler's
+        // copy with a sunk return at the end.
+        for ri in 0..regions.len() {
+            if regions[ri].finally_handler.is_some() {
+                continue;
+            }
+            let Some(h) = regions[ri].except_handler else {
+                continue;
+            };
+            if h <= regions[ri].region_end {
+                continue;
+            }
+            let ext = ctx.chain_extent(h);
+            let gap_start = regions[ri].region_end;
+            let donor = exc_entries.iter().find(|e2| {
+                e2.start >= h
+                    && e2.start < ext
+                    && e2.target != h
+                    && handler_kind.get(&e2.target) == Some(&false)
+            });
+            let Some(donor) = donor else {
+                continue;
+            };
+            if vrc_mirror_gap(&ctx, gap_start, h, donor.target) {
+                regions[ri].finally_handler = Some(donor.target);
+                regions[ri].region_end =
+                    regions[ri].region_end.max(donor.end.max(donor.start));
             }
         }
         // nested try/except inside a try/finally body: a middle fragment
@@ -4706,7 +4862,7 @@ impl<'a> Ctx<'a> {
         if self.version.at_least(3, 11)
             && tc.except_handler.is_some()
             && tc.finally_handler.is_some()
-            && matches!(body.last(), Some(Stmt::Return(Some(_))))
+            && tc.region_end > tc.body_end
             && !orelse.is_empty()
             && stmts_eq(&orelse, &finalbody)
         {
@@ -28070,6 +28226,21 @@ return None;
         if target != raw_target {
             self.cond_jump_redirect.insert(self.cur_offset, target);
         }
+        // 3.12+ AND-shaped pre-checked rotated while (`while A and B:`)
+        // with PER-LINK SUNK EXITS: the function-tail return is copied
+        // under EVERY cond exit, so the head links and the tail re-eval
+        // links each fly to their OWN `RETURN_CONST` stub instead of one
+        // shared exit (bdb 3.12 set_continue `while frame and frame is
+        // not self.botframe:` rendered `if frame: while frame is not
+        // self.botframe:` — the truth re-check was lost, spinning on
+        // None). The shared-exit recognizers (try_pre_rot_fallthrough,
+        // dup_while) all key on equal targets and miss this.
+        if self.version.at_least(3, 12)
+            && !jump_if_true
+            && self.try_pre_rot_and(&cond, target)
+        {
+            return;
+        }
         // 3.12+ OR-shaped pre-checked rotated while (`while A or B:`):
         // the A link jumps TRUE straight to the body top and only the
         // LAST operand (B) exits to the loop end; the tail re-eval
@@ -36358,6 +36529,227 @@ if split_cond {
     /// OR-shaped pre-checked rotated while detection/conversion. See the
     /// call site in handle_cond_jump. `cond` is this (A-link) jump's
     /// operand, `target` the shared body top.
+    /// 3.12+ AND-shaped pre-checked rotated while with per-link sunk
+    /// exits: `[A run; PJIF->exitA] [B run; PJIF->exitB] body_top: body
+    /// [A' run; PJIF->exitA2] [B' run; PJIF->exitB2] JB->body_top` where
+    /// every exit is its own terminator stub (a function-tail return
+    /// copied under each link). Recognize at the FIRST head link: the
+    /// following links must run right up to the body top, the tail must
+    /// mirror the head op-for-op before a backward jump onto the body
+    /// top, and every exit must terminate. Folds into one While with an
+    /// And cond; the tail re-eval span is skipped via or_rot_revals.
+    fn try_pre_rot_and(&mut self, cond: &ExprRef, exit_a: usize) -> bool {
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let is_false_cj = |x: &crate::bytecode::Instruction| {
+            matches!(
+                x.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) && !x.is_backward
+        };
+        let terminates = |off: usize| -> bool {
+            self.idx_of.get(&off).map_or(false, |&xi| {
+                matches!(
+                    self.instrs[xi].op,
+                    Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS
+                ) || (self.instrs[xi].op == Op::LOAD_CONST
+                    && matches!(
+                        self.code.consts.get(self.instrs[xi].arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    )
+                    && matches!(
+                        self.instrs.get(xi + 1).map(|x| x.op),
+                        Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                    ))
+            })
+        };
+        if !terminates(exit_a) {
+            return false;
+        }
+        // remaining head links: pure-value runs each ending in a
+        // forward false-jump to a terminating stub; collect operand
+        // expressions
+        let mut vals: Vec<ExprRef> = vec![cond.clone()];
+        let mut k = ci + 1;
+        let mut body_top: Option<usize> = None;
+        let mut last_jump_idx = ci;
+        loop {
+            // operand run up to the next false cj
+            let run_start = k;
+            while k < self.instrs.len() {
+                let ins = &self.instrs[k];
+                if is_false_cj(ins) {
+                    break;
+                }
+                if !is_pad(ins) && !is_pure_value_op(ins.op)
+                    && !matches!(ins.op, Op::TO_BOOL)
+                {
+                    return false;
+                }
+                k += 1;
+            }
+            if k >= self.instrs.len() || k == run_start {
+                // no further link: the run must fall through to the
+                // body top only if at least one extra link was seen
+                return false;
+            }
+            let Some(ex) = self.instrs[k].target else {
+                return false;
+            };
+            if ex <= self.instrs[k].offset || !terminates(ex) {
+                return false;
+            }
+            let operand = match self.sim_value_region(run_start, k) {
+                Some(e) => e,
+                None => return false,
+            };
+            vals.push(operand);
+            last_jump_idx = k;
+            k += 1;
+            while k < self.instrs.len() && is_pad(&self.instrs[k]) {
+                k += 1;
+            }
+            if k >= self.instrs.len() {
+                return false;
+            }
+            // decide: does the chain continue (next is a pure run
+            // ending in another false cj BEFORE any non-pure op) or is
+            // the body starting here? Probe forward: if the next
+            // non-pad instruction sequence reaches a false cj through
+            // pure values only, treat it as another link; otherwise
+            // this is the body top.
+            let mut probe = k;
+            let mut link_ahead = false;
+            while probe < self.instrs.len() {
+                let ins = &self.instrs[probe];
+                if is_false_cj(ins) {
+                    link_ahead = true;
+                    break;
+                }
+                if !is_pad(ins) && !is_pure_value_op(ins.op)
+                    && !matches!(ins.op, Op::TO_BOOL)
+                {
+                    break;
+                }
+                probe += 1;
+            }
+            if !link_ahead {
+                body_top = self.instrs.get(k).map(|x| x.offset);
+                break;
+            }
+        }
+        let Some(body_top) = body_top else {
+            return false;
+        };
+        if vals.len() < 2 {
+            return false;
+        }
+        // back edge: backward unconditional jump onto body_top
+        let Some(&bti) = self.idx_of.get(&body_top) else {
+            return false;
+        };
+        let be_idx = self
+            .instrs
+            .iter()
+            .position(|x| {
+                x.offset > self.instrs[last_jump_idx].offset
+                    && x.is_backward
+                    && x.target == Some(body_top)
+                    && matches!(
+                        x.op,
+                        Op::JUMP_BACKWARD
+                            | Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+            });
+        let Some(be_idx) = be_idx else {
+            return false;
+        };
+        // bounded span guard
+        if self.instrs[be_idx].offset - body_top > 4096 {
+            return false;
+        }
+        // the tail between the last head link and the back edge must be
+        // body material: no backward jumps other than nested-loop edges
+        // landing inside the body
+        if self.instrs[bti..be_idx].iter().any(|x| {
+            x.is_backward
+                && !x.target.map_or(false, |t| t >= body_top)
+        }) {
+            return false;
+        }
+        // tail re-eval mirror: the head chain's instruction sequence
+        // (operand runs + false cjs, pads dropped, jumps compared by OP
+        // only since each exit stub differs) must repeat verbatim right
+        // before the back edge
+        let head_seq: Vec<u8> = self.instrs[ci..=last_jump_idx]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(|x| x.op as u8)
+            .collect();
+        let n = head_seq.len();
+        if be_idx < n {
+            return false;
+        }
+        let tail_slice = &self.instrs[be_idx - n..be_idx];
+        let tail_seq: Vec<u8> = tail_slice
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(|x| x.op as u8)
+            .collect();
+        if tail_seq != head_seq {
+            return false;
+        }
+        // every tail exit must terminate too
+        for x in tail_slice.iter() {
+            if is_false_cj(x) {
+                let Some(t) = x.target else {
+                    return false;
+                };
+                if !terminates(t) {
+                    return false;
+                }
+            }
+        }
+        // the mirrored span starts at the A' operand run head: extend
+        // back over its pure-value run so the skip covers the whole
+        // re-eval copy
+        let reval_start = self.instrs[be_idx - n].offset;
+        // build the loop
+        let merged: ExprRef = if vals.len() == 1 {
+            vals.pop().unwrap()
+        } else {
+            let mut flat = Vec::new();
+            for v in vals {
+                flatten_boolop(v, BoolOpKind::And, &mut flat);
+            }
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: flat,
+            })
+        };
+        let exit_end = self
+            .idx_of
+            .get(&exit_a)
+            .map(|&xi| self.instrs[xi].end())
+            .unwrap_or(exit_a);
+        self.while_true_loops.retain(|(t, _)| *t != body_top);
+        let mut blk = Block::new(BlockType::While, body_top, exit_end);
+        blk.cond = Some(merged);
+        blk.cond_set = true;
+        blk.cond_end = self.instrs[ci].end();
+        blk.jump_if_true = false;
+        blk.stack_depth = self.stack.len();
+        self.blocks.push(blk);
+        self.or_rot_revals.push((reval_start, self.instrs[be_idx].end()));
+        self.skip_until = Some(body_top);
+        true
+    }
+
     fn try_pre_rot_or(&mut self, cond: &ExprRef, target: usize) -> bool {
         let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
             return false;
@@ -42481,11 +42873,41 @@ impl<'a> Ctx<'a> {
                 .map_or(false, |tc| {
                     self.cur_offset >= tc.start && self.cur_offset <= tc.region_end + 8
                 });
-            if at_region_edge
+            // bare function-tail variant: the body already holds its
+            // statements and this return is the implicit tail sunk past
+            // the inline finally copy (bdb 3.12 run: `try: exec(..)
+            // except BdbQuit: pass finally: cleanup` — copy +
+            // RETURN_CONST sit unprotected after the body). Flush the
+            // try here and DROP the return; the walked copy statements
+            // land in the orelse capture and the phantom-else dedup in
+            // emit_try_tail clears them against the handler-rendered
+            // finalbody.
+            let bare_tail_flush = at_region_edge
+                && self
+                    .pending_try_ctx
+                    .as_ref()
+                    .map_or(false, |tc| tc.finally_handler.is_some())
                 && self
                     .pending_try_body
                     .last()
+                    .map_or(false, |b| !b.is_empty())
+                && self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&ri| {
+                        self.instrs[ri + 1..]
+                            .iter()
+                            .find(|x| {
+                                !matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                            })
+                    })
+                    .map_or(false, |nx| nx.op == Op::PUSH_EXC_INFO);
+            if at_region_edge
+                && (self
+                    .pending_try_body
+                    .last()
                     .map_or(false, |b| b.is_empty())
+                    || bare_tail_flush)
                 && !(self.code.name == "<module>"
                     && match &e {
                         None => true,
@@ -42501,11 +42923,20 @@ impl<'a> Ctx<'a> {
                         },
                         None => None,
                     };
-                    if let Some(body) = self.pending_try_body.last_mut() {
-                        body.push(Stmt::Return(value));
+                    if !bare_tail_flush {
+                        if let Some(body) = self.pending_try_body.last_mut() {
+                            body.push(Stmt::Return(value.clone()));
+                        }
                     }
                     let exc_h = tc.except_handler;
                     self.emit_try_tail(tc, at);
+                    if bare_tail_flush && !is_none_value {
+                        // the post-finally `return <value>` is a real
+                        // statement AFTER the try (bdb 3.12 runcall
+                        // `return res`) — render it as a sibling. The
+                        // bare None tail stays dropped (implicit).
+                        self.push_stmt(Stmt::Return(value));
+                    }
                     // the chain lies AHEAD with machinery in between
                     // (copy 3.12 _deepcopy_tuple: the listcomp unwind
                     // stub [76,86) separates the body return from the

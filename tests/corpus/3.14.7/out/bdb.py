@@ -266,24 +266,24 @@ The arg parameter depends on the previous event.
         with self.set_enterframe(frame):
             if self.quitting:
                 return
-        if event == 'line':
-            return
-        if event == 'call':
-            return self.dispatch_line(frame)
-        if event == 'return':
-            return self.dispatch_call(frame, arg)
-        if event == 'exception':
-            return self.dispatch_return(frame, arg)
-        if event == 'c_call':
-            return self.dispatch_exception(frame, arg)
-        if event == 'c_exception':
+            if event == 'line':
+                return
+            if event == 'call':
+                return self.dispatch_line(frame)
+            if event == 'return':
+                return self.dispatch_call(frame, arg)
+            if event == 'exception':
+                return self.dispatch_return(frame, arg)
+            if event == 'c_call':
+                return self.dispatch_exception(frame, arg)
+            if event == 'c_exception':
+                return self.trace_dispatch
+            if event == 'c_return':
+                return self.trace_dispatch
+            if event == 'opcode':
+                return self.trace_dispatch
+            print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
             return self.trace_dispatch
-        if event == 'c_return':
-            return self.trace_dispatch
-        if event == 'opcode':
-            return self.trace_dispatch
-        print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
-        return self.dispatch_opcode(frame, arg)
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.
@@ -848,8 +848,9 @@ The arg parameter depends on the previous event.
             exec(cmd, globals, locals)
         except BdbQuit:
             pass
-        self.quitting = True
-        self.stop_trace()
+        finally:
+            self.quitting = True
+            self.stop_trace()
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -890,8 +891,9 @@ The arg parameter depends on the previous event.
             res = func(*args, **kwds)
         except BdbQuit:
             pass
-        self.quitting = True
-        self.stop_trace()
+        finally:
+            self.quitting = True
+            self.stop_trace()
         return res
 
 
