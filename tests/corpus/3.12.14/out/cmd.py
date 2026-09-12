@@ -136,15 +136,6 @@ class Cmd:
                 line = self.precmd(line)
                 stop = self.onecmd(line)
                 stop = self.postcmd(stop, line)
-        finally:
-            if self.use_rawinput:
-                if self.completekey:
-                    try:
-                        import readline
-                        readline.set_completer(self.old_completer)
-                    except ImportError:
-                        pass
-        try:
             self.postloop()
         finally:
             if self.use_rawinput:
@@ -297,7 +288,7 @@ class Cmd:
 
     def complete_help(self, *args):
         commands = set(self.completenames(*args))
-        topics = set((None for a in self.get_names()
+        topics = set((a[5:] for a in self.get_names()
              if a.startswith('help_' + args[0])))
         return list(commands | topics)
 
@@ -406,9 +397,6 @@ class Cmd:
                 texts.append(x)
             while texts and not texts[-1]:
                 del texts[-1]
-                while texts:
-                    if texts[-1]:
-                        break
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])
             self.stdout.write('%s\n' % str('  '.join(texts)))

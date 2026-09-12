@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 30,
-  "AST-PASS": 8,
-  "SIG-DIFF": 2
+  "AST-PASS": 9,
+  "SIG-DIFF": 1
  },
  "results": [
   {
@@ -117,11 +117,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 292: orig  orelse=[]) | dec  orelse=[])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1079,
-   "ntotal": 1382,
-   "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', '#140')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "code",

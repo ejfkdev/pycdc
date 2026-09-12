@@ -1339,6 +1339,46 @@ pub fn decompile_in_scope(
                 _ => false,
             }
         };
+        // loop back-edge gap: a `while` inside a try body rotates — the
+        // body-tail recheck jumps back to the body top and the back edge
+        // itself needs no exception protection, so 3.12+ cuts the
+        // protected range around it (cmd 3.12/3.13 cmdloop: [546,896) +
+        // [898,930) -> 1144 with the gap = the `while not stop` back
+        // edge JUMP_BACKWARD loop_top; 3.13 [716,1084) + [1090,1122) ->
+        // 1362, gap = NOT_TAKEN + JUMP_BACKWARD + pad). Unmerged, the
+        // post-loop tail (`self.postloop()`) opens a phantom second
+        // try/finally duplicating the fall-through finally copy.
+        // Pads + backward unconditional jumps that re-enter the region
+        // being extended: the loop lives entirely inside the one
+        // source-level try.
+        let is_loopback_gap = |from: usize, to: usize, rstart: usize| -> bool {
+            if from >= to {
+                return false;
+            }
+            // region ends can land on decoder-skipped slots (3.11+
+            // CACHE/NOT_TAKEN): snap both bounds to instruction indices
+            let fi = ctx.instrs.partition_point(|x| x.offset < from);
+            let ti = ctx.instrs.partition_point(|x| x.offset < to);
+            if fi >= ti {
+                return false;
+            }
+            let span = &ctx.instrs[fi..ti];
+            let backs: Vec<&Instruction> = span
+                .iter()
+                .filter(|x| !matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE))
+                .collect();
+            !backs.is_empty()
+                && backs.iter().all(|x| {
+                    x.is_backward
+                        && matches!(
+                            x.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                        && x.target.map_or(false, |t| t >= rstart && t < to)
+                })
+        };
         // with-in-try: a `with` inside the try body splits the protected
         // range around BEFORE_WITH / the with body (protected by the
         // with's OWN handler, excluded from main_entries) / the __exit__
@@ -1595,6 +1635,16 @@ pub fn decompile_in_scope(
                         if !ok {
                             break;
                         }
+                        if r2.region_end <= cur {
+                            // a nested region already SWALLOWED by an
+                            // earlier merge of this family (its span
+                            // sits inside the candidate's grown body):
+                            // it cannot tile the gap ahead of cur
+                            // (cmd 3.12/3.13 cmdloop: the EOFError
+                            // region [674,716) vetoed the postloop
+                            // fragment's back-edge merge)
+                            continue;
+                        }
                         if r2.start != cur && !is_pad_gap(cur, r2.start) {
                             ok = false;
                             break;
@@ -1622,7 +1672,12 @@ pub fn decompile_in_scope(
                         && (cur == e.start
                             || (cur < e.start
                                 && (is_pad_gap(cur, e.start)
-                                    || is_term_gap(cur, e.start))))
+                                    || is_term_gap(cur, e.start)
+                                    || is_loopback_gap(
+                                        cur,
+                                        e.start,
+                                        regions[ri].start,
+                                    ))))
                     {
                         deep_exc_idx = Some(ri);
                     } else if ok && cur < e.start {
@@ -1683,6 +1738,16 @@ pub fn decompile_in_scope(
                         if !ok {
                             break;
                         }
+                        if r2.region_end <= cur {
+                            // a nested region already SWALLOWED by an
+                            // earlier merge of this family (its span
+                            // sits inside the candidate's grown body):
+                            // it cannot tile the gap ahead of cur
+                            // (cmd 3.12/3.13 cmdloop: the EOFError
+                            // region [674,716) vetoed the postloop
+                            // fragment's back-edge merge)
+                            continue;
+                        }
                         if r2.start != cur && !is_pad_gap(cur, r2.start) {
                             ok = false;
                             break;
@@ -1697,7 +1762,12 @@ pub fn decompile_in_scope(
                         && (cur == e.start
                             || (cur < e.start
                                 && (is_pad_gap(cur, e.start)
-                                    || is_term_gap(cur, e.start))))
+                                    || is_term_gap(cur, e.start)
+                                    || is_loopback_gap(
+                                        cur,
+                                        e.start,
+                                        regions[ri].start,
+                                    ))))
                     {
                         deep_fin_idx = Some(ri);
                     }
@@ -29863,10 +29933,80 @@ return None;
         // + JABS-to-exit), and an in-body guard's merge lands on the back
         // edge, not past it (asynchat 3.8 find_prefix_at_end rendered
         // guard-break `if endswith: break`, sig-off by the extra JABS)
+        // multi-link tail re-eval chain (cmd 3.13 columnize `while
+        // texts and not texts[-1]:`): the While was claimed at the
+        // LAST head link (the negated tail's PJIT), so the FIRST
+        // re-eval link arrives with the OPPOSITE polarity and the
+        // dup_while gate's polarity clause rejects it — the link
+        // then re-registered a phantom duplicate While via the S6
+        // rotated path (`while texts: if texts[-1]: break` nested
+        // in the body). Signature: this jump's operand run is
+        // pure, the next forward cond jump after it is followed
+        // (pads aside) by a backward jump onto this loop's top —
+        // the span re-evaluates the recorded cond link-by-link.
+        // 3.12+ ONLY: <=3.11 rotates differently (backward cond-jump
+        // re-eval variants) and the extra `a` veto + ignore branch
+        // regressed asynchat 3.10 / base64+_markupbase 3.8/3.9.
+        let multireval_ahead = self.version.at_least(3, 12)
+            && self
+            .blocks
+            .last()
+            .zip(self.idx_of.get(&self.cur_offset).copied())
+            .map_or(false, |(top, ci0)| {
+                matches!(top.kind, BlockType::While) && {
+                    let wtop = top.start;
+                    let mut k = ci0 + 1;
+                    let mut cj2 = None;
+                    while k < self.instrs.len() {
+                        let x = &self.instrs[k];
+                        if matches!(
+                            x.op,
+                            Op::POP_JUMP_IF_FALSE
+                                | Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                        ) && !x.is_backward
+                        {
+                            cj2 = Some(k);
+                            break;
+                        }
+                        if !is_pure_value_op(x.op)
+                            && !matches!(
+                                x.op,
+                                Op::TO_BOOL | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                            )
+                        {
+                            return false;
+                        }
+                        k += 1;
+                    }
+                    let Some(cj2) = cj2 else {
+                        return false;
+                    };
+                    let mut n = cj2 + 1;
+                    while matches!(
+                        self.instrs.get(n).map(|y| y.op),
+                        Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+                    ) {
+                        n += 1;
+                    }
+                    self.instrs.get(n).map_or(false, |y| {
+                        y.is_backward
+                            && y.target == Some(wtop)
+                            && matches!(
+                                y.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP_ABSOLUTE
+                            )
+                    })
+                }
+            });
         let dup_while = self.blocks.last().map_or(false, |top| {
             matches!(top.kind, BlockType::While)
                 && top.cond_set
                 && (top.jump_if_true == jump_if_true
+                    || (self.version.at_least(3, 12) && multireval_ahead)
                     // 3.12+ rotates the whole multi-operand cond into a
                     // post-body re-eval copy claimed by the while-True
                     // prescan (cmd 3.12 columnize) — the opposite-polarity
@@ -30064,7 +30204,8 @@ return None;
                         target,
                         jump_if_true,
                     )
-                    && !(back_edge_follows && (sim_eq || neg_tail_eq));
+                    && !(back_edge_follows && (sim_eq || neg_tail_eq))
+                    && !multireval_ahead;
                 (m, a)
             };
             if mirrored {
@@ -30184,6 +30325,13 @@ return None;
                     })
                     .unwrap_or((false, false));
                 if boolop_cond && past_cond {
+                    return;
+                }
+                if multireval_ahead {
+                    // first link of a multi-operand tail re-eval whose
+                    // polarity opposes the claiming head link: ignore —
+                    // the following same-polarity links are consumed by
+                    // the regular dup path (cmd 3.13 columnize)
                     return;
                 }
                 // opposite polarity without a pure-value operand region:
@@ -36183,8 +36331,36 @@ if split_cond {
                 .filter_map(|ins| ins.target)
                 .collect();
             if !straddle.is_empty() {
+                // fused-store misread veto: 3.13 compiles the body's
+                // `i = i+1` to STORE_FAST_LOAD_FAST and the re-eval's
+                // first operand load rides the store's push — the span
+                // [body_top, re-eval link 1) then reads as a "pure cond
+                // expr" (is_cond_expr_top lets the fused store through
+                // its `_ =>` arm) and the claim blocks the while-True
+                // prescan, starving try_pre_rot_fallthrough's whole-
+                // chain conversion at the last head link (cmd 3.13
+                // parseline rendered `if cond: <body>; while cond:
+                // pass`). A genuine rotated cond head never contains a
+                // fused store, so the veto is shape-based, not a
+                // chain-length guess (the wide multi-link form
+                // regressed _markupbase/base64/asynchat 3.8-3.10).
                 for bt in straddle {
-                    if self.is_cond_expr_top(bt, cj.offset) {
+                    if self.is_cond_expr_top(bt, cj.offset)
+                        && !self
+                            .idx_of
+                            .get(&bt)
+                            .zip(self.idx_of.get(&cj.offset))
+                            .map_or(false, |(&bi2, &ci2)| {
+                                bi2 < ci2
+                                    && self.instrs[bi2..ci2].iter().any(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::STORE_FAST_LOAD_FAST
+                                                | Op::STORE_FAST_STORE_FAST
+                                        )
+                                    })
+                            })
+                    {
                         claimed.push(bt);
                     }
                 }
@@ -36606,7 +36782,35 @@ if split_cond {
                                 Op::POP_JUMP_IF_FALSE
                                     | Op::POP_JUMP_FORWARD_IF_FALSE
                             );
-                                if re_last_cj && re_seq == pre_seq {
+                        // 3.13 store-load fusion: the body's last
+                        // statement `i = i+1` compiles to
+                        // STORE_FAST_LOAD_FAST and the re-eval's first
+                        // operand load rides the store's push — the
+                        // re-eval span opens at the head link's SECOND
+                        // load (cmd 3.13 parseline `while i < n and
+                        // line[i] in self.identchars:` — strict
+                        // equality saw (LOAD_FAST_LOAD_FAST i,n) vs
+                        // (LOAD_FAST n) and the chain never converted).
+                        // Compare the one-shifted window and require
+                        // the fused store in the slot before it, with
+                        // matching store/load var indices.
+                        let fused_store_mirror = bi >= pre_len + 2
+                            && matches!(
+                                self.instrs[bi - pre_len - 1].op,
+                                Op::STORE_FAST_LOAD_FAST
+                                    | Op::STORE_FAST_STORE_FAST
+                            )
+                            && matches!(
+                                self.instrs[chain_lo].op,
+                                Op::LOAD_FAST_LOAD_FAST
+                                    | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+                            )
+                            && self.instrs[bi - pre_len - 1].arg & 0xF
+                                == self.instrs[chain_lo].arg >> 4
+                            && self.instrs[bi - pre_len].arg
+                                == self.instrs[chain_lo].arg & 0xF
+                            && seq(bi - pre_len + 1, bi - 1) == pre_seq[1..];
+                                if re_last_cj && (re_seq == pre_seq || fused_store_mirror) {
                             // the merged pre-check If must be
                             // open on top (split_cond folded the
                             // chain) and start at/before the
@@ -48752,6 +48956,38 @@ fn genexpr_ternary_merge(
                         stop,
                         step,
                     }))));
+                }
+                // 3.12 replaced BUILD_SLICE + BINARY_SUBSCR with
+                // BINARY_SLICE (pops [seq, start, stop], pushes
+                // seq[start:stop]). Inside a comprehension elt the
+                // fall-through left the three operands stacked and
+                // YIELD_VALUE popped the None stop bound as the elt
+                // (cmd 3.12/3.13 complete_help `set(a[5:] for a in
+                // ...)` rendered a None elt). 3.12+ only: py2/<=3.11
+                // comprehensions keep the historic fall-through (see
+                // the BUILD_SLICE note above).
+                Op::BINARY_SLICE if self.version.at_least(3, 12) => {
+                    let none_if = |e: ExprRef| -> Option<ExprRef> {
+                        match &*e {
+                            Expr::Const(o)
+                                if matches!(&**o, PyObject::None) =>
+                            {
+                                None
+                            }
+                            _ => Some(e),
+                        }
+                    };
+                    let stop = stack.pop().and_then(none_if);
+                    let start = stack.pop().and_then(none_if);
+                    let seq = stack.pop();
+                    if let Some(s) = seq {
+                        stack.push(Rc::new(Expr::Subscript {
+                            value: s,
+                            index: Rc::new(Expr::Slice(Box::new(
+                                SliceExpr { start, stop, step: None },
+                            ))),
+                        }));
+                    }
                 }
                 // 3.11+ plain-call marker slot: a non-method callable is
                 // followed by PUSH_NULL, and CALL pops [callable, marker].
