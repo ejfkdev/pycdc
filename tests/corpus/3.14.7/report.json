@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 12,
-  "SIG-DIFF": 4
+  "AST-PASS": 13,
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -81,11 +81,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2439: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 848,
-   "ntotal": 3207,
-   "detail": "line 2145: orig ('FOR_ITER', '#793') | got ('FOR_ITER', '#783')\nline 2294: orig ('POP_JUMP_IF_FALSE', '#414') | got ('POP_JUMP_IF_FALSE', '#408')\nline 2319: orig ('POP_JUMP_IF_FALSE', '#391') | got ('POP_JUMP_IF_FALSE', '#389')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

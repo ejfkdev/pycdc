@@ -3,8 +3,7 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 33,
-  "AST-PASS": 6,
-  "SIG-DIFF": 1
+  "AST-PASS": 7
  },
  "results": [
   {
@@ -73,11 +72,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2456: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 641,
-   "ntotal": 2986,
-   "detail": "line 2058: orig ('FOR_ITER', '#747') | got ('FOR_ITER', '#743')\nline 2195: orig ('POP_JUMP_IF_FALSE', '#385') | got ('POP_JUMP_IF_TRUE', '#332')\nline 2196: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

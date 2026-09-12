@@ -7099,6 +7099,7 @@ impl<'a> Ctx<'a> {
                                     if ok && sees_guard {
                                         let n = self.blocks.len();
                                         self.blocks[n - 1 - k].else_end = Some(t);
+
                                     }
                                 }
                             }
@@ -9547,6 +9548,7 @@ impl<'a> Ctx<'a> {
                                         && b.else_end.is_none()
                                     {
                                         b.else_end = Some(target);
+
                                     }
                                     resume = b.end;
                                     break;
@@ -10892,6 +10894,7 @@ impl<'a> Ctx<'a> {
                             });
                         if no_entry {
                             b.else_end = Some(t);
+
                             attach_pos = Some(recovery_pos);
                         }
                     }
@@ -11523,10 +11526,22 @@ impl<'a> Ctx<'a> {
                     else_blk.is_elif = is_elif;
                     self.pending_then.push(body);
                     self.blocks.push(else_blk);
-                } else if b.folded_exit {
+                } else if b.folded_exit && pos == b.end {
                     // folded chain exit: an elif/else region starts right
                     // here and runs until the next folded exit (or the
-                    // enclosing structure closes it)
+                    // enclosing structure closes it).
+                    // pos MUST equal the block's own end: the folded
+                    // spine marking tags EVERY open branch above a
+                    // folded exit, but an INNER if of the arm (whose
+                    // end lies before the chain's elif head) has an
+                    // empty [end, pos) else span - transitioning it
+                    // here hands the chain to the inner if (its close
+                    // was deferred to this pos) and the arm's guard
+                    // loses it (_strptime 3.13/3.14 ampm chain: the
+                    // `elif ampm == am_pm[1]:` chain and every later
+                    // group sank into `if hour == 12:`'s orelse). The
+                    // inner if closes normally; the arm guard - whose
+                    // end IS pos - transitions right after.
                     let real_end = self.cap_else_at_loop(pos, usize::MAX);
                     // mark the elif head exactly like the unfolded
                     // creation paths: the path-0 close in
@@ -16182,7 +16197,8 @@ impl<'a> Ctx<'a> {
                                 // bounded by the enclosing loop's end
                                 // (every chain arm exits through a back
                                 // edge; there is no earlier merge).
-                                let reopen = self
+                                //
+let reopen = self
                                     .blocks
                                     .last()
                                     .map_or(false, |b| {
@@ -16232,7 +16248,145 @@ impl<'a> Ctx<'a> {
                                             Some(false)
                                         })
                                         .unwrap_or(false);
+                                // 3.14: NOT_TAKEN padding keeps the
+                                // dup-branch's prev non-backward, so the
+                                // folded chain trampoline arrives here
+                                // with the inner guard still OPEN and the
+                                // regular dispatch hangs the chain on it.
+                                // A live else landing (a forward cond
+                                // jump targets the span between the
+                                // previous same-target back edge and this
+                                // jump) makes this edge the chain's folded
+                                // exit: close the blocks whose region
+                                // ended, spine-mark the open guards whose
+                                // end is at/after the chain head, and
+                                // consume - the guard transitions into the
+                                // Else chain region at its end (_strptime
+                                // 3.14 ampm chain).
+                                if self.version.at_least(3, 14) {
+                                    if let Some(&ci4) =
+                                        self.idx_of.get(&inst.offset)
+                                    {
+                                        let prev_back = (0..ci4)
+                                            .rev()
+                                            .find(|&k| {
+                                                let x = &self.instrs[k];
+                                                x.is_backward
+                                                    && matches!(
+                                                        x.op,
+                                                        Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP_BACKWARD
+                                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                    )
+                                                    && x.target == inst.target
+                                            });
+                                        let live_else_landing =
+                                            prev_back.map_or(false, |pk| {
+                                                let po = self.instrs[pk].offset;
+                                                self.instrs.iter().any(|x| {
+                                                    !x.is_backward
+                                                        && matches!(
+                                                            x.op,
+                                                            Op::POP_JUMP_IF_FALSE
+                                                                | Op::POP_JUMP_IF_TRUE
+                                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                        )
+                                                        && x.target.map_or(
+                                                            false,
+                                                            |t| {
+                                                                t > po
+                                                                    && t <= inst.offset
+                                                            },
+                                                        )
+                                                })
+                                            });
+                                        if live_else_landing {
+                                            self.close_blocks_at(
+                                                self.cur_offset,
+                                            );
+                                            let mut seg: Vec<usize> =
+                                                Vec::new();
+                                            for t in self.blocks.iter().rev() {
+                                                if matches!(
+                                                    t.kind,
+                                                    BlockType::If
+                                                        | BlockType::Else
+                                                ) && t.end >= self.cur_next
+                                                    && !t.no_fold
+                                                {
+                                                    seg.push(t.start);
+                                                } else {
+                                                    break;
+                                                }
+                                            }
+                                            for t in self.blocks.iter_mut() {
+                                                if matches!(
+                                                    t.kind,
+                                                    BlockType::If
+                                                        | BlockType::Else
+                                                ) && t.end >= self.cur_next
+                                                    && seg.contains(&t.start)
+                                                {
+                                                    t.folded_exit = true;
+                                                }
+                                            }
+                                            return true;
+                                        }
+                                    }
+                                }
                                 if reopen {
+                                    // re-attachment veto (<=3.13): an
+                                    // OPEN If/Else on top whose end IS
+                                    // the chain head means the popped
+                                    // continue-If is an INNER if of that
+                                    // guard's arm, not the chain guard -
+                                    // re-opening against it hangs the
+                                    // whole chain under the inner if
+                                    // (_strptime 3.13 ampm chain). Mark
+                                    // the contiguous open segment as
+                                    // folded so the guard transitions
+                                    // into the Else chain region at its
+                                    // end; copyreg 3.8 _slotnames keeps
+                                    // the historical re-open (its guard
+                                    // closed at the first fold, the loop
+                                    // is top here).
+                                    let n_blk = self.blocks.len();
+                                    let guard_below = n_blk >= 1
+                                        && matches!(
+                                            self.blocks[n_blk - 1].kind,
+                                            BlockType::If | BlockType::Else
+                                        )
+                                        && self.blocks[n_blk - 1].end
+                                            != usize::MAX
+                                        && self.blocks[n_blk - 1].end
+                                            == self.cur_next;
+                                    if guard_below {
+                                        let mut seg: Vec<usize> = Vec::new();
+                                        for t in self.blocks.iter().rev() {
+                                            if matches!(
+                                                t.kind,
+                                                BlockType::If | BlockType::Else
+                                            ) && t.end >= self.cur_next
+                                                && !t.no_fold
+                                            {
+                                                seg.push(t.start);
+                                            } else {
+                                                break;
+                                            }
+                                        }
+                                        for t in self.blocks.iter_mut() {
+                                            if matches!(
+                                                t.kind,
+                                                BlockType::If | BlockType::Else
+                                            ) && t.end >= self.cur_next
+                                                && seg.contains(&t.start)
+                                            {
+                                                t.folded_exit = true;
+                                            }
+                                        }
+                                        return true;
+                                    }
                                     let loop_end = self
                                         .blocks
                                         .iter()
@@ -16273,6 +16427,7 @@ impl<'a> Ctx<'a> {
                                             self.blocks.push(else_blk);
                                         }
                                     }
+                                    return true;
                                 }
                                 return true;
                             }
@@ -16456,6 +16611,7 @@ impl<'a> Ctx<'a> {
                                     };
                                     if rejoins || merges_at_target {
                                         b.else_end = Some(target);
+
                                     }
                                 }
                             }
@@ -17220,6 +17376,7 @@ impl<'a> Ctx<'a> {
                                 };
                                 if let Some(t) = else_mark {
                                     self.blocks[si].else_end = Some(t);
+
                                 }
                             }
                         }
@@ -18260,6 +18417,7 @@ impl<'a> Ctx<'a> {
                     BoolOpKind::And
                 });
                 blk.else_end = Some(target);
+
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
                 true
@@ -29035,6 +29193,7 @@ return None;
                 blk.cond_set = true;
                 blk.jump_if_true = false;
                 blk.else_end = Some(exit);
+
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
                 self.skip_until = Some(body_start);
@@ -32612,6 +32771,7 @@ if split_cond {
                     && b.end < target
             }) {
                 b.else_end = Some(target);
+
             }
         }
         let mut if_end = target;
@@ -34217,6 +34377,7 @@ if split_cond {
         for i in to_mark {
             if let Some(b) = self.blocks.get_mut(i) {
                 b.else_end = Some(target);
+
             }
         }
     }
@@ -34403,6 +34564,7 @@ if split_cond {
                 && b.end > self.cur_offset
             {
                 b.else_end = Some(target);
+
             }
         }
         // break-over-else: a `break` (forward jump to the enclosing
@@ -34432,6 +34594,7 @@ if split_cond {
             }
             for i in to_mark {
                 self.blocks[i].else_end = Some(target);
+
             }
         }
         // 3.6 elif scaffolding: `if c1: continue elif c2: body2` — the
@@ -34513,6 +34676,7 @@ if split_cond {
                         }
                         if let Some(t) = self.blocks.last_mut() {
                             t.else_end = Some(target);
+
                         }
                         return true;
                     }
@@ -34591,6 +34755,7 @@ if split_cond {
                     // value-merge region: remember where the false path ends
                     if let Some(t) = self.blocks.last_mut() {
                         t.else_end = Some(target);
+
                     }
                     return true;
                 }
@@ -38079,6 +38244,7 @@ if split_cond {
                         }
                         let t = self.blocks.last_mut().unwrap();
                         t.else_end = Some(else_end);
+
                         let end = t.end;
                         self.force_close_top(end);
                         return;
@@ -38463,6 +38629,7 @@ if split_cond {
                             && top.end > self.cur_offset
                         {
                             top.else_end = Some(top.end);
+
                         }
                     }
                     self.close_inner_blocks_to_loop();
@@ -39141,6 +39308,7 @@ if split_cond {
                 && merge > next
             {
                 top.else_end = Some(merge);
+
             }
         }
     }
@@ -39805,18 +39973,30 @@ fn flatten_ex_args(e: ExprRef) -> (Vec<ExprRef>, Option<ExprRef>) {
         // `f(*args)` pushes args directly with no BUILD_TUPLE
         other => return (Vec::new(), Some(Rc::new(other.clone()))),
     };
+    // a single TRAILING Starred is the Call model's star_args slot; a
+    // star with plain items AFTER it (`f(*args, tz)`) must stay inline
+    // in pos - hoisting it to star_args reorders the call (_strptime
+    // 3.14 _strptime_datetime_time rendered `cls(tz, *args)`)
+    let star_count = items
+        .iter()
+        .filter(|x| matches!(&***x, Expr::Starred(_)))
+        .count();
+    let inline_stars = star_count > 1
+        || (star_count == 1
+            && !items
+                .last()
+                .map_or(false, |x| matches!(&**x, Expr::Starred(_))));
+    let mut saw_inline_star = false;
     for it in items {
         match &*it {
-            Expr::Starred(inner) => {
-                if star.is_none() {
-                    star = Some(inner.clone());
-                } else if let Some(prev) = star.take() {
-                    // multiple stars: keep them as positional Starred items
-                    pos.push(Rc::new(Expr::Starred(prev)));
-                    star = Some(inner.clone());
-                }
+            Expr::Starred(inner) if !inline_stars => {
+                star = Some(inner.clone());
             }
-            Expr::Tuple(inner) if star.is_none() => {
+            Expr::Starred(inner) => {
+                saw_inline_star = true;
+                pos.push(Rc::new(Expr::Starred(inner.clone())));
+            }
+            Expr::Tuple(inner) if star.is_none() && !saw_inline_star => {
                 // BUILD_TUPLE group of plain positional args
                 pos.extend(inner.iter().cloned());
             }
@@ -40544,6 +40724,37 @@ impl<'a> Ctx<'a> {
                     if n == WITH_RESULT_PLACEHOLDER || n == "/*generator*/" {
                         return;
                     }
+                }
+                // 3.14 threaded break cleanup: a `break` inside a for
+                // body compiles to POP_TOP (drop the iterator) + a
+                // JUMP_BACKWARD threaded onto the enclosing loop top;
+                // the iterator slot models as Const(None) once the
+                // target store swallowed the iterable, so the generic
+                // pop leaked a bare `None` statement ahead of the Break
+                // (_strptime 3.14 timezone loop `tz = value; break`)
+                if matches!(&*e, Expr::Const(o)
+                    if matches!(&**o, PyObject::None))
+                    && self.version.at_least(3, 14)
+                    && self
+                        .blocks
+                        .iter()
+                        .any(|b| matches!(b.kind, BlockType::For))
+                    && self
+                        .idx_of
+                        .get(&self.cur_offset)
+                        .and_then(|&pi| self.instrs.get(pi + 1))
+                        .map_or(false, |nx| {
+                            nx.is_backward
+                                && matches!(
+                                    nx.op,
+                                    Op::JUMP_BACKWARD
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP
+                                )
+                        })
+                {
+                    return;
                 }
                 self.push_stmt(Stmt::Expr(e));
             }
@@ -43987,6 +44198,7 @@ impl<'a> Ctx<'a> {
                 if matches!(top.kind, BlockType::If) && top.else_end.is_none() {
                     let code_end = self.instrs.last().map(|i| i.end()).unwrap_or(0);
                     top.else_end = Some(code_end);
+
                 }
             }
             return;
