@@ -161,7 +161,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 244: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='ttype'",
+   "ast_detail": "diff at token 250: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='ttype'",
    "verdict": "SIG-DIFF",
    "ndiff": 1263,
    "ntotal": 1544,

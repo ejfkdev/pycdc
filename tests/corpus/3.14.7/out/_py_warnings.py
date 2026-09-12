@@ -257,7 +257,7 @@ def resetwarnings():
     '''Clear the list of warning filters, so that no filters are active.'''
 
     with _wm._lock:
-        del _wm._get_filters()[slice(None, None, None)]
+        del _wm._get_filters()[:]
         _wm._filters_mutated_lock_held()
 
 class _OptionError(Exception):

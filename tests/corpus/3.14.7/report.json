@@ -65,11 +65,11 @@
   },
   {
    "module": "_py_warnings",
-   "ast_detail": "diff at token 523: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
+   "ast_detail": "diff at token 1626: orig  values=[Call(func=Attribute(value=Name(id='mod' | dec  values=[BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1941,
+   "ndiff": 1532,
    "ntotal": 3152,
-   "detail": "line 1121: orig ('LOAD_CONST', 'slice(None, None, None)') | got ('LOAD_GLOBAL', 'slice + NULL')\nline 1122: orig ('DELETE_SUBSCR', '') | got ('LOAD_CONST', 'None')\nline 1123: orig ('LOAD_GLOBAL', '_wm') | got ('LOAD_CONST', 'None')"
+   "detail": "line 1583: orig ('POP_JUMP_IF_NONE', '#27') | got ('POP_JUMP_IF_NONE', '#29')\nline 1593: orig ('POP_JUMP_IF_TRUE', '#23') | got ('POP_JUMP_IF_TRUE', '#25')\nline 1599: orig ('POP_JUMP_IF_FALSE', '#27') | got ('POP_JUMP_IF_TRUE', '#25')"
   },
   {
    "module": "_pylong",

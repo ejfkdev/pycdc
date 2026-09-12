@@ -1409,6 +1409,78 @@ def split_tail_ternary_return(stmts):
     return stmts
 
 
+def _sink_tail_into_nested_guard(stmts, ret):
+    """Make the trailing guard chain of `stmts` end in `return V` at
+    every arm, where V is the function-tail return the arms fall
+    through to. Mirrors the 3.14 compiler's per-arm sinking of the
+    function-tail return for guards at the effective end of control
+    flow; complements flatten_terminating_else, which needs the
+    terminator in the SAME statement list (_py_warnings 3.14
+    _formatwarnmsg_impl: the `if tb is not None: ... elif
+    suggest_tracemalloc: ...` pair sits inside `if msg.source is not
+    None:` one level above the tail `return s`). After the sink the
+    enclosing guard ends in a bare return at every arm, the
+    released-orelse forms converge, and _strip_tail_bare_returns /
+    flatten_terminating_else absorb the copies on both sides."""
+    if not stmts:
+        return False
+    last = stmts[-1]
+    if not isinstance(last, ast.If) or not last.body or not last.orelse:
+        return False
+    # sink the THEN arm only: once it terminates, the standard
+    # flatten_terminal_else releases the orelse as siblings whose
+    # continuation IS the function tail - sinking the orelse too would
+    # leave a duplicate return inside the released arm
+    return _sink_arm(last.body, ret)
+
+
+def _sink_arm(arm, ret):
+    """Append/propagate `return V` so the arm's end returns V. Returns
+    False when the arm already terminates differently (a valued return,
+    raise, break, continue) - sinking there would change semantics."""
+    if not arm:
+        return False
+    e = arm[-1]
+    if isinstance(e, ast.Return):
+        return (e.value is not None and ret.value is not None
+                and ast.dump(e.value) == ast.dump(ret.value))
+    if isinstance(e, (ast.Raise, ast.Break, ast.Continue)):
+        return False
+    if isinstance(e, ast.If) and e.body and e.orelse:
+        return _sink_arm(e.body, ret) and _sink_arm(e.orelse, ret)
+    arm.append(ast.Return(value=copy.deepcopy(ret.value)))
+    return True
+
+
+def _sink_func_tail_into_guard_arms(node):
+    """When a function body's LAST statement is an If whose arms BOTH
+    end in a bare `return V` (V matching the function's own tail
+    return value), append a copy of `return V` to every arm. The 3.14
+    compiler sinks the function-tail return into each arm of guards
+    sitting at the effective end of control flow; when such a guard is
+    nested inside an outer arm, no single statement list holds both the
+    guard and the tail, so flatten_terminating_else cannot converge the
+    two shapes (_py_warnings 3.14 _formatwarnmsg_impl: the inner
+    `if tb is not None: ... elif suggest_tracemalloc: ...` inside
+    `if msg.source is not None:` got the sunk `return s` only in the
+    decompile). After the append, the outer list ends in a bare
+    `return V` and the regular tail-sinking canonicalization matches."""
+    body = getattr(node, 'body', None)
+    if not (isinstance(body, list) and body):
+        return False
+    tail = body[-1]
+    if not (isinstance(tail, ast.Return) and tail.value is not None):
+        return False
+    td = ast.dump(tail.value)
+    last = body[-2] if len(body) >= 2 else None
+    if not isinstance(last, ast.If):
+        return False
+    ch = _sink_tail_into_nested_guard(last.body, tail)
+    if last.orelse:
+        ch = _sink_tail_into_nested_guard(last.orelse, tail) or ch
+    return ch
+
+
 def _expr_ternary_to_if(node):
     """An expression-statement ternary `A if c else B` (the value is
     discarded) is semantically identical to `if c: A else: B` -- the
@@ -1428,6 +1500,26 @@ def _expr_ternary_to_if(node):
                         body=[ast.Expr(value=ie.body)],
                         orelse=[ast.Expr(value=ie.orelse)])
     return node
+
+
+def _flatten_node_list(stmts):
+    return [_flatten_node(x) for x in stmts]
+
+
+def _flatten_terminal_else_deep(stmts):
+    """flatten_terminal_else at EVERY nesting level (the flat pass in
+    normalize_body and the _flatten_node fixpoint only reach the lists
+    they are handed)."""
+    out = flatten_terminal_else(list(stmts))
+    for st in out:
+        for fld in ('body', 'orelse', 'finalbody'):
+            v = getattr(st, fld, None)
+            if isinstance(v, list) and v and isinstance(v[0], ast.stmt):
+                setattr(st, fld, _flatten_terminal_else_deep(v))
+        for h in getattr(st, 'handlers', None) or []:
+            if getattr(h, 'body', None):
+                h.body = _flatten_terminal_else_deep(h.body)
+    return out
 
 
 def _flatten_node(s):
@@ -3042,6 +3134,20 @@ def dump(src):
             _normalize_func_tail_handler_return(node)
             _strip_dup_tail_returns(node)
             node.body = _strip_tail_bare_returns(node.body)
+            if _sink_func_tail_into_guard_arms(node):
+                # the sink can make nested guard arms terminal - give
+                # the existing tail-sinking machinery the chance to
+                # release their orelse arms into the sibling form the
+                # decompiler renders (rebuilds the tree top-down
+                # through _flatten_node). ONLY when the sink fired:
+                # an unconditional re-flatten here re-runs the
+                # loop-tail if/else canonicalization ahead of
+                # fold_guard_continue_else and derails the else-break
+                # guard fold (configparser 3.8/3.9 before_get,
+                # _markupbase 3.8/3.9 parse_declaration regressed
+                # under the wide form)
+                node.body = _flatten_node_list(_flatten_terminal_else_deep(
+                    list(node.body)))
             # function-tail loop: a handler-tail `break` and the
             # loop-tail `continue` (or the source's stripped bare
             # `return`) all leave the function with None when the

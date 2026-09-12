@@ -13932,6 +13932,12 @@ impl<'a> Ctx<'a> {
             Op::DELETE_SUBSCR => {
                 let idx = self.pop_expr();
                 let obj = self.pop_expr();
+                // 3.14 constant-folded `del x[:]`: the index arrives as
+                // the same marshalled slice const / slice() call the
+                // load and store paths normalize (_py_warnings 3.14
+                // resetwarnings `del _wm._get_filters()[:]` rendered
+                // `[slice(None, None, None)]`)
+                let idx = normalize_slice_call(idx);
                 let target = Rc::new(Expr::Subscript { value: obj, index: idx });
                 self.emit_delete(target);
                 true
