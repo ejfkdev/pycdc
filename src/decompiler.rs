@@ -23941,7 +23941,10 @@ impl<'a> Ctx<'a> {
                         }
                         if matches!(
                             ins.op,
-                            Op::SETUP_FINALLY | Op::SETUP_WITH | Op::SETUP_ASYNC_WITH
+                            Op::SETUP_FINALLY
+                                | Op::SETUP_EXCEPT
+                                | Op::SETUP_WITH
+                                | Op::SETUP_ASYNC_WITH
                         ) {
                             if let Some(h) = ins.target {
                                 if h > bs && h < body_bound {
@@ -31132,7 +31135,19 @@ if split_cond {
                                 x.op,
                                 Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP
                             )
-                            && self.is_loop_top_target(x.target.unwrap_or(0))
+                            && x.target.map_or(false, |t| {
+                                self.is_loop_top_target(t)
+                                    // SETUP_LOOP-era back edges target the
+                                    // EXTENDED_ARG prefix feeding the loop's
+                                    // recorded start (base64 3.6: JABS->122
+                                    // prefixing FOR_ITER@124)
+                                    || self.blocks.iter().any(|b| {
+                                        matches!(
+                                            b.kind,
+                                            BlockType::While | BlockType::For
+                                        ) && self.is_loop_top_prefix(t, b.start)
+                                    })
+                            })
                     })
             };
             let arm = self
@@ -31146,10 +31161,45 @@ if split_cond {
                         && b.end > self.cur_next
                 });
             let escapes = arm
-                .map(|b| (b.kind, b.start, b.end))
-                .map_or(false, |(kind, astart, aend)| {
+                .map(|b| (b.kind, b.start, b.end, b.cond.clone()))
+                .map_or(false, |(kind, astart, aend, acond)| {
                     if_end > aend
                         && (kind == BlockType::Else
+                            // a merged CHAINED-COMPARISON arm (`33 <= x
+                            // <= 117`, cond is a multi-op Compare) whose
+                            // end is entered by the chain's own link
+                            // jumps: its `end` IS the next elif arm head,
+                            // so a nested guard merging PAST it to the
+                            // loop-tail trampoline is never this arm's
+                            // own else confluence — the If-only veto
+                            // (plain guards' shared if/else merge) does
+                            // not apply (base64 3.6 a85decode: the
+                            // `len(curr)==5` guard flew to the loop-tail
+                            // trampoline, its If spanned the arm-end
+                            // back edge and routed the Continue one level
+                            // too deep — the digit arm fell through into
+                            // the z/y chain and raised on every valid
+                            // digit)
+                            || (kind == BlockType::If
+                                && acond.as_ref().map_or(false, |c| {
+                                    matches!(
+                                        &**c,
+                                        Expr::Compare { ops, .. }
+                                            if ops.len() >= 2
+                                    )
+                                })
+                                && self.instrs.iter().any(|x| {
+                                    x.target == Some(aend)
+                                        && x.offset < aend
+                                        && !x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                        )
+                                }))
                             || self.blocks.iter().any(|e| {
                                 e.kind == BlockType::Else
                                     && e.end != usize::MAX
@@ -31193,6 +31243,49 @@ if split_cond {
                                 && self.targets.contains(&x.offset)
                         })
                         .map(|x| x.offset);
+                    // SCC chain arm: the arm-end trampoline (a back edge
+                    // filling the arm's tail) is the guard body's natural
+                    // exit even when UNTARGETED — clamping at the arm end
+                    // instead would leave the trampoline inside the inner
+                    // guard and route its Continue into the inner arm
+                    // (base64 3.6 a85decode)
+                    let arm_is_chain_cmp = b
+                        .cond
+                        .as_ref()
+                        .map_or(false, |c| {
+                            matches!(&**c, Expr::Compare { ops, .. } if ops.len() >= 2)
+                        });
+                    let merge = match merge {
+                        Some(m) => Some(m),
+                        None if arm_is_chain_cmp => self
+                            .instrs
+                            .iter()
+                            .find(|x| {
+                                x.offset > self.cur_next
+                                    && x.offset < b.end
+                                    && x.end() == b.end
+                                    && x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP
+                                    )
+                                    && x.target.map_or(false, |t| {
+                                        self.is_loop_top_target(t)
+                                            || self.blocks.iter().any(|bl| {
+                                                matches!(
+                                                    bl.kind,
+                                                    BlockType::While
+                                                        | BlockType::For
+                                                ) && self
+                                                    .is_loop_top_prefix(t, bl.start)
+                                            })
+                                    })
+                            })
+                            .map(|x| x.offset),
+                        None => None,
+                    };
                     chain_exit_clamp = Some(if_end);
                     if_end = merge.unwrap_or(b.end);
                 }

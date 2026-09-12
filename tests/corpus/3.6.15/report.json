@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
   "PASS": 33,
-  "AST-PASS": 5,
-  "SIG-DIFF": 2
+  "AST-PASS": 6,
+  "SIG-DIFF": 1
  },
  "results": [
   {
@@ -81,11 +81,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1498: orig  orelse=[If(test=Compare(left=Name(id='x' | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 773,
-   "ntotal": 1949,
-   "detail": "line 1157: orig ('SETUP_LOOP', '#187') | got ('SETUP_LOOP', '#185')\nline 1162: orig ('EXTENDED_ARG', '') | got ('FOR_ITER', '#184')\nline 1163: orig ('FOR_ITER', '#186') | got ('STORE_FAST', 'x')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bdb",
