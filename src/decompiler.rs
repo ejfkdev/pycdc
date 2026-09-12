@@ -635,13 +635,104 @@ struct Ctx<'a> {
 /// skipped) op-for-op up to the handler's terminating RERAISE, with
 /// the gap's final RETURN pairing with that RERAISE. Used by the
 /// try-region builder's value-return-copy merges (bdb runeval/run).
+/// The handler's inline-copy op sequence: from `fh` (PUSH_EXC_INFO head
+/// skipped) to its terminating RERAISE/END_FINALLY (exclusive). The
+/// cleanup stub after the RERAISE has no inline counterpart.
+fn fin_copy_chain(ctx: &Ctx, fh: usize) -> Option<Vec<usize>> {
+    let Some(&fhi) = ctx.idx_of.get(&fh) else {
+        return None;
+    };
+    let mut copy_chain: Vec<usize> = Vec::new();
+    for x in ctx.instrs.iter().skip(fhi) {
+        if matches!(
+            x.op,
+            Op::PUSH_EXC_INFO | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+        ) && copy_chain.is_empty()
+        {
+            continue;
+        }
+        if matches!(x.op, Op::RERAISE | Op::END_FINALLY) {
+            break;
+        }
+        copy_chain.push(x.offset);
+    }
+    Some(copy_chain)
+}
+
+/// Match `gap_span[offsets]` as a run of per-exit inline finally copies:
+/// each chunk is the copy op sequence, an optional value-load run, and a
+/// RETURN; the WHOLE span must be consumed. 3.14 sinks the finally copy
+/// into EVERY return arm of a try (bdb 3.14 wrapper: `return DISABLE`
+/// and `return ret` each carry their own `_disable_current_event =
+/// False` copy), so one chain mirrors SEVERAL times.
+fn vrc_chunked_mirror(
+    ctx: &Ctx,
+    gap_span: &[usize],
+    copy_chain: &[usize],
+) -> bool {
+    if copy_chain.len() < 3 || gap_span.len() < copy_chain.len() + 1 {
+        return false;
+    }
+    let gi_of = |off: usize| -> usize {
+        ctx.idx_of.get(&off).copied().unwrap_or(0)
+    };
+    let at = |i: usize| -> Option<&crate::bytecode::Instruction> {
+        gap_span
+            .get(i)
+            .and_then(|o| ctx.idx_of.get(o))
+            .map(|&si| &ctx.instrs[si])
+    };
+    let ops_eq = |g: &crate::bytecode::Instruction,
+                  f: &crate::bytecode::Instruction|
+     -> bool {
+        op_family_eq(g.op, f.op)
+            && !(matches!(f.op, Op::LOAD_CONST | Op::LOAD_GLOBAL)
+                && g.arg != f.arg)
+    };
+    let mut i = 0usize;
+    let mut copies = 0usize;
+    while i < gap_span.len() {
+        for (j, &co) in copy_chain.iter().enumerate() {
+            let (Some(g), Some(f)) =
+                (at(i + j), ctx.instrs.get(gi_of(co)))
+            else {
+                return false;
+            };
+            if !ops_eq(g, f) {
+                return false;
+            }
+        }
+        i += copy_chain.len();
+        let mut saw_ret = false;
+        while i < gap_span.len() {
+            let Some(g) = at(i) else {
+                return false;
+            };
+            if matches!(g.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                i += 1;
+                saw_ret = true;
+                break;
+            }
+            if (is_pure_value_op(g.op) && g.target.is_none())
+                || matches!(g.op, Op::TO_BOOL)
+            {
+                i += 1;
+                continue;
+            }
+            return false;
+        }
+        if !saw_ret {
+            return false;
+        }
+        copies += 1;
+    }
+    copies >= 1
+}
+
 fn vrc_mirror_gap(ctx: &Ctx, gap_start: usize, gap_end: usize, fh: usize) -> bool {
     if gap_start >= gap_end {
         return false;
     }
-    let Some(&fhi) = ctx.idx_of.get(&fh) else {
-        return false;
-    };
     let is_pad = |x: &crate::bytecode::Instruction| {
         matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
     };
@@ -651,70 +742,10 @@ fn vrc_mirror_gap(ctx: &Ctx, gap_start: usize, gap_end: usize, fh: usize) -> boo
         .filter(|x| x.offset >= gap_start && x.offset < gap_end && !is_pad(x))
         .map(|x| x.offset)
         .collect();
-    let chain: Vec<usize> = ctx
-        .instrs
-        .iter()
-        .skip(fhi)
-        .skip_while(|x| {
-            matches!(
-                x.op,
-                Op::PUSH_EXC_INFO | Op::NOP | Op::NOT_TAKEN | Op::CACHE
-            )
-        })
-        .map(|x| x.offset)
-        .collect();
-    if gap_span.len() < 5
-        || chain.len() <= gap_span.len()
-        || gap_span.len() > chain.len() + 1
-    {
+    let Some(copy_chain) = fin_copy_chain(ctx, fh) else {
         return false;
-    }
-    let gi_of = |off: usize| -> usize { ctx.idx_of.get(&off).copied().unwrap_or(0) };
-    let mut matched = 0usize;
-    for k in 0..chain.len() {
-        let Some(f) = ctx.instrs.get(gi_of(chain[k])) else {
-            return false;
-        };
-        if matches!(f.op, Op::RERAISE | Op::END_FINALLY) {
-            // the gap's sunk tail return pairs with the chain's
-            // RERAISE. The tail may carry the return's value loads
-            // AFTER the copy (bdb 3.12 runcall: copy; LOAD_FAST res;
-            // RETURN_VALUE) or be the 3.14-style LOAD_CONST None;
-            // RETURN_VALUE pair — accept pure-value loads followed by
-            // the final RETURN. Statement material (stores, calls,
-            // jumps) still fails: an else body is not a copy tail.
-            let at = |i: usize| {
-                gap_span
-                    .get(i)
-                    .and_then(|o| ctx.idx_of.get(o))
-                    .map(|&si2| &ctx.instrs[si2])
-            };
-            let n = gap_span.len();
-            let tail_ok = n > matched
-                && at(n - 1).map_or(false, |x| {
-                    matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
-                })
-                && (matched..n - 1).all(|i| {
-                    at(i).map_or(false, |x| {
-                        (is_pure_value_op(x.op) && x.target.is_none())
-                            || matches!(x.op, Op::TO_BOOL)
-                    })
-                });
-            return tail_ok && matched >= 4;
-        }
-        let Some(&so) = gap_span.get(matched) else {
-            return false;
-        };
-        let sp = &ctx.instrs[gi_of(so)];
-        if !op_family_eq(sp.op, f.op)
-            || (matches!(f.op, Op::LOAD_CONST | Op::LOAD_GLOBAL)
-                && sp.arg != f.arg)
-        {
-            return false;
-        }
-        matched += 1;
-    }
-    false
+    };
+    vrc_chunked_mirror(ctx, &gap_span, &copy_chain)
 }
 
 pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Decompiled> {
@@ -1574,6 +1605,19 @@ pub fn decompile_in_scope(
                         }
                         cur = r2.region_end;
                     }
+                    // 3.14 per-exit sunk finally copies split the
+                    // protected range around EVERY return arm: the gap
+                    // between same-handler fragments is a run of inline
+                    // finally copies each ending in the arm's RETURN
+                    // (bdb 3.14 wrapper: [458,474) = the then arm's
+                    // `_disable_current_event = False` copy + RETURN,
+                    // separating the body from the else arm's narrowed
+                    // value-load fragment [474,476)). Unmerged, the
+                    // fragment opened a phantom sibling try that
+                    // re-parsed the shared chain. Mirror the gap
+                    // against the try's own finally handler — known
+                    // from the entries already scanned (they precede
+                    // the chain in offset order).
                     if ok
                         && (cur == e.start
                             || (cur < e.start
@@ -1581,6 +1625,38 @@ pub fn decompile_in_scope(
                                     || is_term_gap(cur, e.start))))
                     {
                         deep_exc_idx = Some(ri);
+                    } else if ok && cur < e.start {
+                        let donor = regions[ri]
+                            .except_handler
+                            .and_then(|h0| {
+                                exc_entries.iter().find_map(|e2| {
+                                    (e2.start >= h0
+                                        && e2.target != e.target
+                                        && handler_kind.get(&e2.target)
+                                            == Some(&false))
+                                        .then_some(e2.target)
+                                })
+                            });
+                        if let Some(fh) = donor {
+                            if let Some(copy_chain) = fin_copy_chain(&ctx, fh) {
+                                let is_pad2 = |x: &crate::bytecode::Instruction| {
+                                    matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                                };
+                                let span: Vec<usize> = ctx
+                                    .instrs
+                                    .iter()
+                                    .filter(|x| {
+                                        x.offset >= cur
+                                            && x.offset < e.start
+                                            && !is_pad2(x)
+                                    })
+                                    .map(|x| x.offset)
+                                    .collect();
+                                if vrc_chunked_mirror(&ctx, &span, &copy_chain) {
+                                    deep_exc_idx = Some(ri);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1646,8 +1722,17 @@ pub fn decompile_in_scope(
             // entry must start INSIDE the region's own dispatch chain.
             let mut deep_vrc_idx: Option<usize> = None;
             if !extends && !is_exc && deep_idx.is_none() && deep_fin_idx.is_none() {
-                if let Some((ri, h)) =
-                    regions.iter().enumerate().rev().find_map(|(ri, r)| {
+                // collect ALL candidate regions (not just the last):
+                // the value-load split fragment of a narrowed range
+                // must not steal the donor from the main region — try
+                // each candidate's mirror and keep the first that
+                // passes, front-most preferred (bdb 3.14 wrapper: the
+                // [474,476) ret-load fragment won the naive rev()
+                // search and the main region kept fin=None)
+                let cands: Vec<(usize, usize)> = regions
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(ri, r)| {
                         r.finally_handler
                             .is_none()
                             .then_some(())
@@ -1658,23 +1743,14 @@ pub fn decompile_in_scope(
                             }))
                             .map(|h| (ri, h))
                     })
-                {
-                    // the gap must BE the finally copy: opcode-mirror
-                    // the span [region_end, min(e.start, dispatch head))
-                    // against the handler's copy at e.target (a weak
-                    // content check misfired on code 3.12
-                    // showsyntaxerror, where the gap is the inner try's
-                    // ELSE body + epilogue, not a copy — the merge
-                    // swallowed the else arm into the try)
-                    let gap_ok = vrc_mirror_gap(
-                        &ctx,
-                        regions[ri].region_end,
-                        e.start.min(h),
-                        e.target,
-                    );
-                    if gap_ok {
-                        deep_vrc_idx = Some(ri);
-                    }
+                    .collect();
+                let picked = cands.into_iter().find(|(ri, h)| {
+                    let gap_start = regions[*ri].region_end;
+                    let gap_end = (*h).min(e.start);
+                    vrc_mirror_gap(&ctx, gap_start, gap_end, e.target)
+                });
+                if let Some((ri, _h)) = picked {
+                    deep_vrc_idx = Some(ri);
                 }
             }
             if let Some(ri) = deep_exc_idx {

@@ -70,6 +70,7 @@ class _MonitoringTracer:
         def wrapper(*args):
             if self._tracing_thread != threading.current_thread():
                 return
+            self._disable_current_event = False
             try:
                 frame = sys._getframe().f_back
                 ret = func(frame, *args)
@@ -82,13 +83,8 @@ class _MonitoringTracer:
                 self.stop_trace()
                 sys._getframe().f_back.f_trace = None
                 raise
-            try:
-                pass
-            except BaseException:
-                self.stop_trace()
-                sys._getframe().f_back.f_trace = None
-                raise
-            self._disable_current_event = False
+            finally:
+                self._disable_current_event = False
             return ret
 
         return wrapper
