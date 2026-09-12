@@ -2,9 +2,9 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 34,
+  "PASS": 35,
   "AST-PASS": 2,
-  "SIG-DIFF": 4
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -137,11 +137,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1057,
-   "ntotal": 1329,
-   "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', '#190') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('EXTENDED_ARG', '')"
+   "verdict": "PASS"
   },
   {
    "module": "code",

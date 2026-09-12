@@ -8890,6 +8890,37 @@ impl<'a> Ctx<'a> {
                 }
                 if let Some(l) = self.legacy_try.as_mut() {
                     if l.has_finally {
+                        // region-scoped lexical wrappers still open at
+                        // the END_FINALLY close their statements into
+                        // the finalbody first (same cascade as the
+                        // inline-copy terminal-JF flush; cmd 3.8
+                        // cmdloop flushes through HERE - without the
+                        // close the wrapper outlived the flush and the
+                        // chain degenerated to `unrecovered`)
+                        let es_bound = l.else_start.unwrap_or(0);
+                        while self.blocks.len() > 1
+                            && self
+                                .blocks
+                                .last()
+                                .map_or(false, |b| {
+                                    b.start >= es_bound
+                                        && matches!(
+                                            b.kind,
+                                            BlockType::If
+                                                | BlockType::Else
+                                                | BlockType::While
+                                                | BlockType::For
+                                                | BlockType::With
+                                        )
+                                })
+                        {
+                            let e = self
+                                .blocks
+                                .last()
+                                .map(|b| b.end.min(pos))
+                                .unwrap_or(pos);
+                            self.force_close_top(e.max(es_bound));
+                        }
                         // the inline finally body's trailing stores are
                         // still pending at the END_FINALLY — flush them
                         // INTO the finalbody (redirect is live while the
@@ -8976,6 +9007,42 @@ impl<'a> Ctx<'a> {
                                     resume = b.end;
                                     break;
                                 }
+                            }
+                            // region-scoped lexical wrappers (an
+                            // if-guard around part of the finally body)
+                            // may still be OPEN here - their recorded
+                            // end is the function-tail merge the guard's
+                            // PJF fused with the copy exit (cmd 3.9
+                            // cmdloop: If[324,444] outlived this flush
+                            // at 378, so the nested readline-restore
+                            // Try never cascaded into the finalbody and
+                            // the main chain flushed degenerate).
+                            // Close them NOW, while the redirect is
+                            // live, so their statements land in the
+                            // finalbody before the chain is taken.
+                            let es_bound = lt.else_start.unwrap_or(0);
+                            while self.blocks.len() > 1
+                                && self
+                                    .blocks
+                                    .last()
+                                    .map_or(false, |b| {
+                                        b.start >= es_bound
+                                            && matches!(
+                                                b.kind,
+                                                BlockType::If
+                                                    | BlockType::Else
+                                                    | BlockType::While
+                                                    | BlockType::For
+                                                    | BlockType::With
+                                            )
+                                    })
+                            {
+                                let e = self
+                                    .blocks
+                                    .last()
+                                    .map(|b| b.end.min(pos))
+                                    .unwrap_or(pos);
+                                self.force_close_top(e.max(es_bound));
                             }
                             self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
@@ -19872,10 +19939,38 @@ impl<'a> Ctx<'a> {
                 }
             }
             if let Some(i) = target_idx {
-                if let Some(o) = self.legacy_nest[i].outer_try.as_mut() {
-                    o.finalbody.push(try_stmt);
+                // same wrapper rule as the active path: an open
+                // lexical wrapper inside the stashed chain's inline
+                // copy owns the nested Try (fin1 repro: the
+                // `if raw and key:` guard around the nested try
+                // flattened without this)
+                let wrapper_open = self
+                    .legacy_nest
+                    .get(i)
+                    .and_then(|n| n.outer_try.as_ref())
+                    .map_or(false, |o| {
+                        self.cur_offset < o.handler_start
+                            && o.else_start.map_or(false, |es| {
+                                self.blocks.iter().any(|b| {
+                                    b.start >= es
+                                        && b.end > self.cur_offset
+                                        && matches!(
+                                            b.kind,
+                                            BlockType::If
+                                                | BlockType::Else
+                                                | BlockType::While
+                                                | BlockType::For
+                                                | BlockType::With
+                                        )
+                                })
+                            })
+                    });
+                if !wrapper_open {
+                    if let Some(o) = self.legacy_nest[i].outer_try.as_mut() {
+                        o.finalbody.push(try_stmt);
+                    }
+                    return;
                 }
-                return;
             }
         }
         // a nested chain flushed while the ACTIVE outer chain is a
@@ -20008,7 +20103,30 @@ impl<'a> Ctx<'a> {
                     } else {
                         self.cur_offset >= es && self.cur_offset <= lt.else_stop
                     };
-                    if in_window {
+                    // a lexical wrapper of the finally body still open
+                    // at the emission point (inside the INLINE copy -
+                    // cur_offset < handler_start) owns the nested Try:
+                    // the wrapper's close cascades it into the
+                    // finalbody, and the inline-copy terminal-JF flush
+                    // closes region wrappers before taking the chain.
+                    // A bare push here inverts the nesting (cmd 3.9
+                    // cmdloop: restore-try rendered BEFORE its
+                    // `if use_rawinput and completekey:` guard, the
+                    // guard closing as `pass`).
+                    let wrapper_open = self.cur_offset < lt.handler_start
+                        && self.blocks.iter().any(|b| {
+                            b.start >= es
+                                && b.end > self.cur_offset
+                                && matches!(
+                                    b.kind,
+                                    BlockType::If
+                                        | BlockType::Else
+                                        | BlockType::While
+                                        | BlockType::For
+                                        | BlockType::With
+                                )
+                        });
+                    if in_window && !wrapper_open {
                         lt.finalbody.push(try_stmt);
                         return;
                     }

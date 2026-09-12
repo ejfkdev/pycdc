@@ -131,9 +131,9 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1060,
+   "ndiff": 1065,
    "ntotal": 1305,
-   "detail": "line 219: orig ('SETUP_FINALLY', '#160') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')"
+   "detail": "line 219: orig ('SETUP_FINALLY', '#160') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '#75')"
   },
   {
    "module": "code",
