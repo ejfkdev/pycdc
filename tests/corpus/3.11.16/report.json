@@ -81,7 +81,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 819: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 817: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1546,
    "ntotal": 2319,

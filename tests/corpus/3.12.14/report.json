@@ -3,8 +3,7 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 30,
-  "AST-PASS": 9,
-  "SIG-DIFF": 1
+  "AST-PASS": 10
  },
  "results": [
   {
@@ -73,11 +72,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 1840: orig  value=Constant(value=2))] | dec  value=Constant(value=2))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1664,
-   "ntotal": 3362,
-   "detail": "line 1173: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1174: orig ('POP_JUMP_IF_TRUE', '#13') | got ('POP_JUMP_IF_FALSE', '#13')\nline 1521: orig ('POP_JUMP_IF_FALSE', '#171') | got ('POP_JUMP_IF_FALSE', '#179')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "base64",

@@ -1494,6 +1494,123 @@ def split_tail_ternary_return(stmts):
     return stmts
 
 
+def _strip_redundant_tail_bare_returns(stmts):
+    """Drop bare returns that sit between an arm whose last statement
+    already returns and the arm's end - both forms return None there.
+    Runs bottom-up so nested arms normalize before their parents
+    (aifc 3.12 _read_comm_chunk: orig keeps a trailing `return` after
+    the inner guard (whose body ends in a sunk return), dec does not)."""
+    for s in stmts:
+        for fld in ('body', 'orelse', 'finalbody'):
+            v = getattr(s, fld, None)
+            if isinstance(v, list) and v and isinstance(v[0], ast.stmt):
+                _strip_redundant_tail_bare_returns(v)
+        for h in getattr(s, 'handlers', None) or []:
+            if getattr(h, 'body', None):
+                _strip_redundant_tail_bare_returns(h.body)
+    out = []
+    for s in stmts:
+        if _is_bare_return(s) and out:
+            prev = out[-1]
+            if isinstance(prev, ast.Return) or (
+                    isinstance(prev, ast.If) and prev.body
+                    and not prev.orelse
+                    and isinstance(prev.body[-1], ast.Return)):
+                continue
+        out.append(s)
+    if not out:
+        out = [ast.Pass()]
+    stmts[:] = out
+    return stmts
+
+
+def _strip_tail_bare_return_chain(body):
+    """Pop the trailing bare-return terminator(s) of a then-arm about
+    to be refolded: the arm's last statement is a bare return, and the
+    statement before it may itself be a no-else If whose arm ends in a
+    bare return - 3.12+ compilers route each guard level's fall-through
+    to the function epilogue, so the dec form cascades returns down the
+    guard chain (aifc 3.12 _read_comm_chunk: `if comptype != NONE:
+    ...; return` + `return`). Only call when the released siblings move
+    into the guard's orelse: the popped returns sent those paths to the
+    function tail, and after the refold the released paths still fall
+    to the (now else-gated) tail - same None."""
+    changed = False
+    while body:
+        last = body[-1]
+        if _is_bare_return(last):
+            body.pop()
+            changed = True
+            continue
+        if isinstance(last, ast.If) and last.body and not last.orelse \
+                and _is_bare_return(last.body[-1]):
+            _strip_tail_bare_return_chain(last.body)
+            if not last.body:
+                last.body = [ast.Pass()]
+            changed = True
+            continue
+        break
+    return changed
+
+
+def _arm_all_bare_returns(body):
+    """True when the arm holds nothing but bare returns - stripping its
+    trailing bare-return chain would empty it. Such a guard is a plain
+    early bail-out (`if c: return`) whose released siblings are
+    ordinary following code; refolding those into an else arm leaves a
+    Pass-filled arm that baits the function-tail sink into duplicating
+    the tail return (bdb 3.14 callback_wrapper)."""
+    return all(_is_bare_return(s) for s in body)
+
+
+def _refold_tail_flat_else(stmts):
+    """At the effective function tail, `if c: B; return` followed by
+    siblings S equals `if c: B else: S`: the bare return skips S
+    exactly like the else gate, and falling off either form returns
+    None. 3.12+ compilers sink the implicit tail return into if-arms
+    and the decompiler then flattens the else to siblings (aifc 3.12
+    _read_comm_chunk rendered `if comptype != NONE: ...; return` +
+    `return` + the else assignments). Checked BEFORE recursing into
+    the arm so the outer guard sees its intact bare-return chain (the
+    recursion's lone-return rule would otherwise consume it first).
+    Descends through arm-tail Ifs; never into loops (a bare return
+    inside a loop body may be the canonicalized form of a break -
+    _normalize_func_tail_loop owns that) and never into try bodies
+    (succeeding there skips the orelse - not equivalent)."""
+    i = 0
+    while i < len(stmts):
+        s = stmts[i]
+        if isinstance(s, ast.If) and s.body and not s.orelse \
+                and i + 1 < len(stmts) and _is_bare_return(s.body[-1]) \
+                and not _arm_all_bare_returns(s.body):
+            rest = stmts[i + 1:]
+            # a lone bare return as the whole released tail is the
+            # function's implicit end, not an else arm - drop it
+            # (orig's flattened form keeps it as a sibling after
+            # the guard; both sides then hold no return there)
+            if len(rest) == 1 and _is_bare_return(rest[0]):
+                _strip_tail_bare_return_chain(s.body)
+                if not s.body:
+                    s.body = [ast.Pass()]
+                del stmts[i + 1:]
+                return stmts
+            _strip_tail_bare_return_chain(s.body)
+            if not s.body:
+                s.body = [ast.Pass()]
+            s.orelse = rest
+            del stmts[i + 1:]
+            return stmts
+        if isinstance(s, ast.If) and s.body:
+            _refold_tail_flat_else(s.body)
+            if s.orelse:
+                _refold_tail_flat_else(s.orelse)
+        elif isinstance(s, ast.With) or (hasattr(ast, 'AsyncWith')
+                                         and isinstance(s, ast.AsyncWith)):
+            _refold_tail_flat_else(s.body)
+        i += 1
+    return stmts
+
+
 def _sink_tail_into_nested_guard(stmts, ret):
     """Make the trailing guard chain of `stmts` end in `return V` at
     every arm, where V is the function-tail return the arms fall
@@ -3219,6 +3336,8 @@ def dump(src):
             _normalize_func_tail_handler_return(node)
             _strip_dup_tail_returns(node)
             node.body = _strip_tail_bare_returns(node.body)
+            _refold_tail_flat_else(node.body)
+            _strip_redundant_tail_bare_returns(node.body)
             if _sink_func_tail_into_guard_arms(node):
                 # the sink can make nested guard arms terminal - give
                 # the existing tail-sinking machinery the chance to

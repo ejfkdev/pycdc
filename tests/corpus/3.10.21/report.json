@@ -81,7 +81,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 831: orig  value=Constant(value=False))] | dec  value=Constant(value=False))",
+   "ast_detail": "diff at token 829: orig  value=Constant(value=False))] | dec  value=Constant(value=False))",
    "verdict": "SIG-DIFF",
    "ndiff": 1776,
    "ntotal": 2188,
