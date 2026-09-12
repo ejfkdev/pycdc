@@ -1378,6 +1378,27 @@ def split_tail_ternary_return(stmts):
     return stmts
 
 
+def _expr_ternary_to_if(node):
+    """An expression-statement ternary `A if c else B` (the value is
+    discarded) is semantically identical to `if c: A else: B` -- the
+    compiler emits the same branch shape and a decompiler cannot tell
+    them apart (configparser 3.14 _read: the source's bare
+    `self._handle_header(...) if mo else self._handle_option(...)`
+    renders as a statement If). Canonicalize Expr(IfExp) statements to
+    the statement form on both sides."""
+    for field, value in ast.iter_fields(node):
+        if isinstance(value, list):
+            for i, s in enumerate(value):
+                if isinstance(s, ast.Expr) \
+                        and isinstance(s.value, ast.IfExp):
+                    ie = s.value
+                    value[i] = ast.If(
+                        test=ie.test,
+                        body=[ast.Expr(value=ie.body)],
+                        orelse=[ast.Expr(value=ie.orelse)])
+    return node
+
+
 def _flatten_node(s):
     """Recurse into statement-holding fields (the walk-based passes in
     dump() never reach nested If bodies)."""
@@ -1946,6 +1967,34 @@ def _normalize_func_tail_loop(node):
                 _bare_return_to_break(s.body)
                 _bare_return_to_break(getattr(s, 'orelse', []) or [])
             break
+
+
+def merge_adjacent_guard_breaks(stmts):
+    """`if c1: break` immediately followed by `if c2: break` (both
+    orelse-empty) collapses to `if c1 or c2: break`: the decompiler
+    renders a multi-link loop-tail guard whose else-break folded onto
+    the loop exit as PER-LINK breaks, while the source's single
+    `if A and B: ... else: break` normalizes (via the tail-else fold +
+    DeMorgan) to ONE Or-guard break (configparser 3.8/3.9 before_get
+    `if value and "%(" in value:`). The merged test goes through
+    canonical_bool so operand order matches the already-canonicalized
+    single-guard side."""
+    out = []
+    for s in stmts:
+        if (isinstance(s, ast.If) and not s.orelse
+                and len(s.body) == 1 and isinstance(s.body[0], ast.Break)
+                and out):
+            prev = out[-1]
+            if (isinstance(prev, ast.If) and not prev.orelse
+                    and len(prev.body) == 1
+                    and isinstance(prev.body[0], ast.Break)):
+                out[-1] = ast.If(
+                    test=canonical_bool(ast.BoolOp(
+                        op=ast.Or(), values=[prev.test, s.test])),
+                    body=[ast.Break()], orelse=[])
+                continue
+        out.append(s)
+    return out
 
 
 def fold_while_head_guard(node):
@@ -2771,10 +2820,13 @@ def dump(src):
     # `if chars>=0: if len>=chars: break` tail-sink diverged from the
     # decompiler's merged `if chars>=0 and len>=chars: break`).
     for node in ast.walk(tree):
+        _expr_ternary_to_if(node)
+    for node in ast.walk(tree):
         for field, value in ast.iter_fields(node):
             if (isinstance(value, list) and value
                     and isinstance(value[0], ast.stmt)):
-                setattr(node, field, merge_nested_ifs(value))
+                setattr(node, field,
+                        merge_adjacent_guard_breaks(merge_nested_ifs(value)))
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):

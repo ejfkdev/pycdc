@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
   "PASS": 35,
-  "AST-PASS": 3,
-  "SIG-DIFF": 2
+  "AST-PASS": 4,
+  "SIG-DIFF": 1
  },
  "results": [
   {
@@ -157,11 +157,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1316: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2826,
-   "ntotal": 4333,
-   "detail": "line 1446: orig ('POP_JUMP_IF_FALSE', '#70') | got ('POP_JUMP_IF_FALSE', '#26')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1452: orig ('POP_JUMP_IF_FALSE', '#70') | got ('LOAD_ATTR', 'partial')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "contextlib",

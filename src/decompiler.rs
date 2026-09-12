@@ -10445,7 +10445,24 @@ impl<'a> Ctx<'a> {
                             && b.kind == BlockType::If
                             && b.else_end.is_some()
                             && top.kind == BlockType::If
-                            && top.else_end.is_some()))
+                            // top's else may be UNMARKED when its own
+                            // end IS the ancestor's else-tail merge: the
+                            // marking pass only tags Ifs strictly below
+                            // the jump target (configparser 3.5-3.7
+                            // _read: the inner And-chain If[400,463]
+                            // overhung the guard's else landing at 454
+                            // and trapped `indent_level = sys.maxsize`
+                            // in the then arm)
+                            // top's else may be UNMARKED when its own
+                            // end IS the ancestor's else-tail merge: the
+                            // marking pass only tags Ifs strictly below
+                            // the jump target (configparser 3.5-3.7
+                            // _read: the inner And-chain If overhung the
+                            // guard's else landing and trapped
+                            // `indent_level = sys.maxsize` in the then
+                            // arm)
+                            && (top.else_end.is_some()
+                                || b.else_end == Some(top.end))))
             })?;
         let e = anc.end;
         let clear_else = !is_else_top && e == pos && anc.else_end.is_some();
@@ -17969,8 +17986,42 @@ impl<'a> Ctx<'a> {
                     if in_branch {
                         return self.handle_jump_forward(target);
                     }
-                    self.close_blocks_at(self.cur_offset);
-                                        self.skip_until = Some(target);
+                    // a pending legacy try whose UNPARSED handler chain
+                    // lies between this success-path jump and its target:
+                    // the out-of-line copy is the ONLY source of the
+                    // chain's clauses - skipping strands the lt dangling
+                    // (dropped silently at function end) and loses the
+                    // whole try (configparser 3.8/3.9 before_get: the
+                    // JABS over the KeyError handler dropped `try: value
+                    // %= vars except KeyError: raise ...`; the
+                    // JUMP_FORWARD arm walks such handlers linearly -
+                    // mirror that here)
+                    let over_pending_chain = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            l.handlers.is_empty()
+                                && !l.chain_done
+                                // the common jump pre-pass marks the else
+                                // region for a body-end forward jump when
+                                // the target is a real merge; a marked
+                                // chain keeps the historical skip (py2.6
+                                // audiodev AudioDev: JABS->147 skips the
+                                // nested handler and the chain machinery
+                                // emits at the else landing). Only an
+                                // UNMARKED chain - target is a continue
+                                // stub / loop-top edge the else-marker
+                                // vetoes - must be walked linearly or it
+                                // is lost (configparser 3.8/3.9
+                                // before_get).
+                                && l.else_start.is_none()
+                                && l.handler_start > self.cur_offset
+                                && l.handler_start < target
+                        });
+                    if !over_pending_chain {
+                        self.close_blocks_at(self.cur_offset);
+                        self.skip_until = Some(target);
+                    }
                     return true;
                 }
                 self.handle_jump_backward(target);
@@ -21828,7 +21879,20 @@ impl<'a> Ctx<'a> {
         self.blocks.iter().any(|b| {
             matches!(b.kind, BlockType::While | BlockType::For)
                 && (b.start == t
-                    || (b.cond_end != usize::MAX && b.start <= t && t < b.cond_end))
+                    || (b.cond_end != usize::MAX && b.start <= t && t < b.cond_end)
+                    // 3.6/3.7 wordcode for-loops record start = the BODY
+                    // top while back edges / continue stubs target the
+                    // FOR_ITER itself (configparser 3.6/3.7 _read: the
+                    // JABS->46 is the FOR_ITER feeding For.start=48; the
+                    // else-marking pass read the target as a non-loop
+                    // top, the guard's else_end stayed unmarked and the
+                    // overhang clamp never fired on the inner And-chain
+                    // If)
+                    // the EXTENDED_ARG prefix feeding the loop's
+                    // FOR_ITER (3.6/3.7 wordcode: the JABS target 46
+                    // is the prefix, the For block records start=48)
+                    || (matches!(b.kind, BlockType::For)
+                        && self.is_loop_top_prefix(t, b.start)))
         })
     }
 
@@ -30303,8 +30367,98 @@ return None;
                     }
                     // not a pure-value And continuation (e.g. a walrus tail
                     // re-eval carrying its STORE): historical behavior —
-                    // treat as the rotated duplicate and ignore
-                    return;
+                    // treat as the rotated duplicate and ignore.
+                    // DIFFERENT-OPERAND veto: a same-polarity cond jump
+                    // to the loop exit whose operand run does not end
+                    // with a verbatim copy of the loop cond's head
+                    // operand run is a nested guard's exit, not a
+                    // rotated duplicate (configparser 3.8/3.9
+                    // before_get: the `if value and "%(" in value:`
+                    // guard — its else-break folded onto the loop exit
+                    // — was swallowed whole, leaving the body
+                    // unconditional and dropping the try/except that
+                    // followed). Genuine walrus re-eval copies re-load
+                    // the cond's own operands op-for-op.
+                    let cond_dup = self.blocks.last().map_or(true, |t| {
+                        let ce = if t.cond_end != usize::MAX {
+                            t.cond_end
+                        } else {
+                            t.start
+                        };
+                        let (Some(&si), Some(&ci2), Some(&ui)) = (
+                            self.idx_of.get(&t.start),
+                            self.idx_of.get(&ce),
+                            self.idx_of.get(&self.cur_offset),
+                        ) else {
+                            return true;
+                        };
+                        if ci2 <= si || ui <= ci2 {
+                            return true;
+                        }
+                        let is_pad2 = |x: &crate::bytecode::Instruction| {
+                            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                        };
+                        // head = the cond's OPERAND run: [start,
+                        // cond_end) minus its own terminating cond jump
+                        // (the span before the current jump never
+                        // includes that jump, so comparing it would
+                        // always mismatch - _pylong 3.13 `while ws:`
+                        // re-eval vetoed itself and leaked
+                        // `if not ws: break`)
+                        let mut cej = ci2;
+                        while cej > si + 1 {
+                            cej -= 1;
+                            let x = &self.instrs[cej];
+                            if is_pad2(x) {
+                                continue;
+                            }
+                            if matches!(
+                                x.op,
+                                Op::POP_JUMP_IF_FALSE
+                                    | Op::POP_JUMP_IF_TRUE
+                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                    | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                    | Op::JUMP_IF_FALSE_OR_POP
+                                    | Op::JUMP_IF_TRUE_OR_POP
+                            ) {
+                                break;
+                            }
+                            // no trailing jump: keep the full span
+                            cej = ci2;
+                            break;
+                        }
+                        let head: Vec<(u8, u32)> = self.instrs[si..cej]
+                            .iter()
+                            .filter(|x| !is_pad2(x))
+                            .map(|x| (x.op as u8, x.arg))
+                            .collect();
+                        if head.is_empty() {
+                            return true;
+                        }
+                        let run: Vec<(u8, u32)> = self.instrs[ci2..ui]
+                            .iter()
+                            .filter(|x| !is_pad2(x))
+                            // jumps compare by absolute TARGET, not the
+                            // raw arg (3.13 relative deltas / py2
+                            // absolute args differ between the head and
+                            // its re-eval copy even for identical code)
+                            .map(|x| {
+                                (
+                                    x.op as u8,
+                                    x.target.map(|t| t as u32).unwrap_or(x.arg),
+                                )
+                            })
+                            .collect();
+                        if run.len() < head.len() {
+                            return false;
+                        }
+                        run[run.len() - head.len()..] == head[..]
+                    });
+                    if cond_dup {
+                        return;
+                    }
                 }
                 // a rotated MULTI-operand cond re-evaluates every operand
                 // after the body: an opposite-polarity jump to the exit

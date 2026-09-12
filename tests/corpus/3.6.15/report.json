@@ -3,8 +3,7 @@
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
   "PASS": 33,
-  "AST-PASS": 6,
-  "SIG-DIFF": 1
+  "AST-PASS": 7
  },
  "results": [
   {
@@ -145,11 +144,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 4063: orig  body=[If(test=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1057,
-   "ntotal": 4337,
-   "detail": "line 3131: orig ('SETUP_LOOP', '#398') | got ('SETUP_LOOP', '#392')\nline 3139: orig ('FOR_ITER', '#397') | got ('FOR_ITER', '#391')\nline 3253: orig ('POP_JUMP_IF_TRUE', '#175') | got ('POP_JUMP_IF_TRUE', '#170')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "contextlib",

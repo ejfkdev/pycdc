@@ -467,8 +467,16 @@ class LegacyInterpolation(Interpolation):
         depth = MAX_INTERPOLATION_DEPTH
         while depth:
             depth -= 1
+            if not value:
+                break
+            if '%(' not in value:
+                break
             replace = functools.partial(self._interpolation_replace, parser=parser)
             value = self._KEYCRE.sub(replace, value)
+            try:
+                value = value % vars
+            except KeyError as e:
+                raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value

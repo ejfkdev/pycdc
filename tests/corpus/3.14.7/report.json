@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 10,
-  "SIG-DIFF": 6
+  "AST-PASS": 11,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -173,11 +173,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3361: orig  Expr(value=IfExp(test=Name(id='mo' | dec  If(test=Name(id='mo'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3264,
-   "ntotal": 5081,
-   "detail": "line 1709: orig ('LOAD_FAST', '__classdict__') | got ('LOAD_CONST', '<code __annotate_func__>')\nline 1710: orig ('BUILD_TUPLE', '') | got ('MAKE_FUNCTION', '')\nline 1711: orig ('LOAD_CONST', '<code __annotate__>') | got ('STORE_NAME', '__annotate_func__')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "contextlib",
