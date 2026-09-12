@@ -119,6 +119,12 @@ struct Block {
     /// merged to `and`, recompiling the second PJIF to the chain tail
     /// instead of the local merge)
     clamp_from: Option<usize>,
+    /// 3.11+ with blocks: the WITH_EXCEPT_START handler target of the
+    /// exception-table region this with adopted (None when no region
+    /// matched). Lets the inline-exit recognizer tell an exit that
+    /// belongs to THIS with (same handler as the region ending at the
+    /// exit offset) from a NESTED with's exit (different handler)
+    with_handler: Option<usize>,
 }
 
 impl Block {
@@ -151,6 +157,7 @@ impl Block {
             no_fold: false,
             merge_pos: false,
             clamp_from: None,
+            with_handler: None,
         }
     }
 }
@@ -386,6 +393,10 @@ struct Ctx<'a> {
     chain_heads: std::collections::HashSet<usize>,
     /// with-body regions from the exception table (3.11+): start -> end
     with_regions: HashMap<usize, usize>,
+    /// region start -> WITH_EXCEPT_START handler target (parallel to
+    /// with_regions; used by the inline-exit recognizer to attribute an
+    /// exit at a region boundary to the right with)
+    with_region_handlers: HashMap<usize, usize>,
     /// try context whose body block is currently open
     active_try: Option<TryCtx>,
     /// enclosing active_try contexts saved when a genuinely NESTED region
@@ -697,6 +708,7 @@ pub fn decompile_in_scope(
     // `with` cleanup handlers (WITH_EXCEPT_START) are tracked separately.
     let mut handler_kind: HashMap<usize, bool> = HashMap::new();
     let mut with_regions: HashMap<usize, usize> = HashMap::new(); // body start -> end
+    let mut with_region_handlers: HashMap<usize, usize> = HashMap::new(); // body start -> handler
     let mut with_frags: Vec<(usize, usize, usize)> = Vec::new(); // (start, end, handler target)
     let mut all_handler_targets: Vec<usize> = Vec::new();
     for e in &exc_entries {
@@ -757,42 +769,72 @@ pub fn decompile_in_scope(
     // body (_ast_unparse 3.14 _write_interpolation: the delimit block
     // closed after the first guard and the tail dedented out of the
     // with). Merge same-target fragments across small padding gaps.
+    // NESTED withs split the outer body the same way, but the gap is the
+    // inner with's own protected region (covered by a DIFFERENT handler
+    // entry), not padding (_ast_unparse 3.14 visit_Lambda: outer
+    // require_parens fragments [L1,L2) [L3,L5) [L6,L8) around inner
+    // buffered()'s [L2,L3)->L9 — truncating the outer region at L2
+    // dedented the `if buffer:` tail out of the outer with). Merge across
+    // a gap when every instruction in it is covered by some other
+    // exception entry: a fully-protected gap is nested-scope code that
+    // still belongs to the outer body. Unprotected gaps (bdb 3.14
+    // set_trace's frame-walk loop) stay split. NOTE: fragments must be
+    // grouped BY TARGET before merging — the inner with's fragment sits
+    // between the outer's in offset order, so a linear pass over the
+    // mixed list never sees two outer fragments adjacent.
     {
-        with_frags.sort_by_key(|f| f.0);
-        let mut merged: Vec<(usize, usize, usize)> = Vec::new();
+        let mut by_target: std::collections::BTreeMap<usize, Vec<(usize, usize)>> =
+            std::collections::BTreeMap::new();
         for (s, e, t) in with_frags {
-            // merge ONLY across pure padding gaps: a gap holding real
-            // instructions is separately-scoped code (bdb 3.14 set_trace:
-            // the post-with-statement fragments sit on either side of the
-            // frame-walk loop — merging across it dragged the after-loop
-            // `set_stepinstr()` into the loop body)
-            let gap_pad = merged.last().map_or(false, |last| {
-                last.2 == t
-                    && s >= last.1
-                    && s <= last.1.saturating_add(16)
-                    && instrs
+            by_target.entry(t).or_default().push((s, e));
+        }
+        for (t, mut frags) in by_target {
+            frags.sort_by_key(|f| f.0);
+            let mut merged: Vec<(usize, usize)> = Vec::new();
+            for (s, e) in frags {
+                // merge across pure padding gaps (capped) or gaps fully
+                // covered by other exception entries; a gap holding
+                // unprotected real instructions is separately-scoped code
+                // (bdb 3.14 set_trace: the post-with-statement fragments
+                // sit on either side of the frame-walk loop — merging
+                // across it dragged the after-loop `set_stepinstr()` into
+                // the loop body)
+                let gap_ok = merged.last().map_or(false, |last: &(usize, usize)| {
+                    if s < last.1 {
+                        return false;
+                    }
+                    let gap: Vec<_> = instrs
                         .iter()
                         .filter(|x| x.offset >= last.1 && x.offset < s)
-                        .all(|x| {
-                            matches!(
-                                x.op,
-                                Op::NOP | Op::NOT_TAKEN | Op::CACHE
-                            )
-                        })
-            });
-            if gap_pad {
-                let last = merged.last_mut().unwrap();
-                if e > last.1 {
-                    last.1 = e;
+                        .collect();
+                    if gap
+                        .iter()
+                        .all(|x| matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE))
+                    {
+                        return s <= last.1.saturating_add(16);
+                    }
+                    gap.iter().all(|x| {
+                        exc_entries
+                            .iter()
+                            .any(|en| en.start <= x.offset && x.offset < en.end && en.target != t)
+                    })
+                });
+                if gap_ok {
+                    let last = merged.last_mut().unwrap();
+                    if e > last.1 {
+                        last.1 = e;
+                    }
+                    continue;
                 }
-                continue;
+                merged.push((s, e));
             }
-            merged.push((s, e, t));
-        }
-        for (s, e, _) in merged {
-            with_regions.insert(s, e);
+            for (s, e) in merged {
+                with_regions.insert(s, e);
+                with_region_handlers.insert(s, t);
+            }
         }
     }
+    let with_region_handlers = with_region_handlers;
     // handler zone: everything from the first handler target that covers
     // MAIN-FLOW code to the end is out-of-line handler code. Chains that
     // protect only handler-zone code (nested tries inside an except body)
@@ -847,6 +889,7 @@ pub fn decompile_in_scope(
         handler_zone,
         chain_heads,
         with_regions: with_regions.clone(),
+        with_region_handlers: with_region_handlers.clone(),
         active_try: None,
         active_try_stack: Vec::new(),
         last_try_body_end: None,
@@ -10234,7 +10277,6 @@ impl<'a> Ctx<'a> {
     }
 
     fn force_close_top(&mut self, pos: usize) {
-
         // stores that happened inside this block must land in it, not in
         // whatever block is open after closing
         self.flush_pending_stores();
@@ -12586,11 +12628,49 @@ impl<'a> Ctx<'a> {
                         // the with/if open so the following RETURN
                         // renders inside the arm and the walk stays
                         // alive; the with closes at its own end or at
-                        // the next success-path exit
-                        if matches!(
-                            self.blocks.last().map(|b| b.kind),
-                            Some(BlockType::With)
-                        ) {
+                        // the next success-path exit.
+                        // NESTED withs need one refinement: the inner
+                        // with's exit sequence starts exactly at its own
+                        // region's end, and the inner With block has just
+                        // closed by position, leaving the OUTER With
+                        // topmost — closing there tears the outer down
+                        // early and dedents its remaining body
+                        // (_ast_unparse 3.14 visit_Lambda: inner
+                        // buffered() exit at 222 = inner region end,
+                        // outer require_parens region continues to 466).
+                        // The region ending at the exit identifies its
+                        // owner by HANDLER: a region ending here whose
+                        // handler differs from the top With's handler is
+                        // a nested with's exit (don't close); same
+                        // handler (or no region ends here) means this is
+                        // the top with's own exit (_strptime 3.12: the
+                        // with's last body fragment (626,644) ends at
+                        // its own exit 644 with the SAME handler 4048 —
+                        // still must close). No with_exits bookkeeping
+                        // here (matches historical behavior): handler
+                        // sub-walks share the counter and draining it
+                        // starves later folds (codeop 3.13: the chain
+                        // sub-walk's sunk exit drained the slot the main
+                        // walk's own exit needs; bdb 3.14
+                        // trace_dispatch: draining at a sunk arm exit
+                        // broke the late with-return fold).
+                        let nested_end_here = self.with_regions.iter().any(
+                            |(k, v)| {
+                                *v == self.cur_offset
+                                    && match (
+                                        self.with_region_handlers.get(k).copied(),
+                                        self.blocks.last().and_then(|b| b.with_handler),
+                                    ) {
+                                        (Some(rh), Some(th)) => rh != th,
+                                        _ => false,
+                                    }
+                            },
+                        );
+                        let top_is_own_with = match self.blocks.last() {
+                            Some(b) if b.kind == BlockType::With => !nested_end_here,
+                            _ => false,
+                        };
+                        if top_is_own_with {
                             self.close_with_blocks(self.cur_offset);
                         }
                         if self.skip_until.map_or(true, |s| s < after) {
@@ -13137,6 +13217,7 @@ impl<'a> Ctx<'a> {
                     let mut wb = Block::new(BlockType::With, start, end);
                     wb.is_async = is_async;
                     wb.with_item = Some(item);
+                    wb.with_handler = self.with_region_handlers.get(&frag_key).copied();
                     self.blocks.push(wb);
                     self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
                     // skip the SWAPs, enter special + CALL, and (async) the
@@ -18158,6 +18239,25 @@ impl<'a> Ctx<'a> {
                 let end = self.extend_with_frag_end(start, end);
                 let mut wb = Block::new(BlockType::With, start, end);
                 wb.is_async = false;
+                wb.with_handler = self
+                    .with_region_handlers
+                    .get(&start)
+                    .copied()
+                    .or_else(|| {
+                        self.exc_entries
+                            .iter()
+                            .find(|e| {
+                                (e.start == start || e.start == inst.end())
+                                    && e.end == end.min(e.end.max(start))
+                            })
+                            .map(|e| e.target)
+                    })
+                    .or_else(|| {
+                        self.exc_entries
+                            .iter()
+                            .find(|e| e.start == start || e.start == inst.end())
+                            .map(|e| e.target)
+                    });
                 self.blocks.push(wb);
                 true
             }
@@ -37918,6 +38018,11 @@ if split_cond {
         let mut wb = Block::new(BlockType::With, start, end);
         wb.is_async = is_async;
         wb.with_item = Some(item);
+        wb.with_handler = self
+            .with_region_handlers
+            .get(&start)
+            .copied()
+            .or(handler_target);
         self.blocks.push(wb);
         // The interpreter pushes __exit__ bound methods plus the __enter__
         // result; model the result with a placeholder expression: the

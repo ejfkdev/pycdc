@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 8,
-  "AST-PASS": 8
+  "AST-PASS": 9,
+  "SIG-DIFF": 7
  },
  "results": [
   {
@@ -29,11 +29,7 @@
   },
   {
    "module": "_ast_unparse",
-   "ast_detail": "diff at token 4995: orig  ctx=Load())]))]) | dec  ctx=Load())]))])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3130,
-   "ntotal": 7138,
-   "detail": "line 3870: orig ('FOR_ITER', '#110') | got ('FOR_ITER', '#109')\nline 3876: orig ('POP_JUMP_IF_FALSE', '#45') | got ('POP_JUMP_IF_FALSE', '#44')\nline 3880: orig ('LOAD_FAST', 'value') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'value, quote_types')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_collections_abc",

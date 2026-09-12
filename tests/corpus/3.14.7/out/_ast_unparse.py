@@ -939,11 +939,11 @@ class Unparser(NodeVisitor):
             self.write('lambda')
             with self.buffered() as buffer:
                 self.traverse(node.args)
-        if buffer:
-            self.write(' ', *buffer)
-        self.write(': ')
-        self.set_precedence(_Precedence.TEST, node.body)
-        self.traverse(node.body)
+            if buffer:
+                self.write(' ', *buffer)
+            self.write(': ')
+            self.set_precedence(_Precedence.TEST, node.body)
+            self.traverse(node.body)
 
     def visit_alias(self, node):
         self.write(node.name)
