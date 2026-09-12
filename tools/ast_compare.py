@@ -1370,6 +1370,100 @@ def _bare_return_to_break(body):
             _bare_return_to_break(getattr(s, 'finalbody', []) or [])
 
 
+def _flatten_tail_elses(stmts):
+    """In function-tail position (falling off the end == return None),
+    `if c: B else: X` equals `if c: B` followed by X: B ends the
+    function so it never falls through to X. Applied to the else arm of
+    a function-tail loop after _strip_orelse_tail_breaks removed the
+    sunk tail returns/breaks (base64 3.11 main: the source's
+    `if args...: with... else: func(stdin)` vs the decompile's flattened
+    `if args...: with...` + `func(stdin)` sibling)."""
+    out = list(stmts)
+    changed = True
+    while changed:
+        changed = False
+        for idx, s in enumerate(out):
+            if isinstance(s, ast.If) and s.orelse:
+                if idx == len(out) - 1 or ends_terminal(s.body):
+                    tail = s.orelse
+                    s.orelse = []
+                    out[idx + 1:idx + 1] = tail
+                    changed = True
+                    break
+                before = ast.dump(s)
+                s.body = _flatten_tail_elses(s.body)
+                s.orelse = _flatten_tail_elses(s.orelse)
+                if ast.dump(s) != before:
+                    changed = True
+                    break
+            elif idx == len(out) - 1:
+                if isinstance(s, (ast.With,
+                                  getattr(ast, 'AsyncWith', ast.With))):
+                    before = ast.dump(s)
+                    s.body = _flatten_tail_elses(s.body)
+                    if ast.dump(s) != before:
+                        changed = True
+                        break
+                elif _TRY_TYPES and isinstance(s, _TRY_TYPES):
+                    before = ast.dump(s)
+                    s.body = _flatten_tail_elses(s.body)
+                    if getattr(s, 'orelse', None):
+                        s.orelse = _flatten_tail_elses(s.orelse)
+                    if ast.dump(s) != before:
+                        changed = True
+                        break
+    return out
+
+
+def _count_bare_returns(body):
+    """Count bare `return`/`return None` statements belonging to THIS
+    function scope, recursing like _bare_return_to_break (through
+    if/loop/with/try, NOT through nested function/class scopes)."""
+    n = 0
+    for s in body:
+        if isinstance(s, ast.Return) and s.value is None:
+            n += 1
+        elif isinstance(s, (ast.If, ast.With,
+                            getattr(ast, 'AsyncWith', ast.With))):
+            n += _count_bare_returns(s.body)
+            n += _count_bare_returns(getattr(s, 'orelse', []) or [])
+        elif isinstance(s, _LOOP_TYPES):
+            n += _count_bare_returns(s.body)
+            n += _count_bare_returns(getattr(s, 'orelse', []) or [])
+        elif isinstance(s, _TRY_TYPES):
+            n += _count_bare_returns(s.body)
+            for h in getattr(s, 'handlers', []) or []:
+                n += _count_bare_returns(h.body)
+            n += _count_bare_returns(getattr(s, 'orelse', []) or [])
+            n += _count_bare_returns(getattr(s, 'finalbody', []) or [])
+    return n
+
+
+def _strip_orelse_tail_breaks(body):
+    """A bare Break in tail position of a FUNCTION-TAIL loop's else arm
+    (or any arm nested inside it) is a no-op: the loop already finished
+    and nothing follows it in the function. Dropped after
+    _bare_return_to_break converted sunk function-tail returns (base64
+    3.11 main: the with arm's doubled tail `return; return` became
+    `break; break` where the source arm simply ends)."""
+    while body and isinstance(body[-1], ast.Break):
+        body.pop()
+    for s in body:
+        if isinstance(s, (ast.If, ast.With,
+                          getattr(ast, 'AsyncWith', ast.With))):
+            _strip_orelse_tail_breaks(s.body)
+            _strip_orelse_tail_breaks(getattr(s, 'orelse', []) or [])
+        elif isinstance(s, _TRY_TYPES):
+            _strip_orelse_tail_breaks(s.body)
+            for h in getattr(s, 'handlers', []) or []:
+                _strip_orelse_tail_breaks(h.body)
+            _strip_orelse_tail_breaks(getattr(s, 'orelse', []) or [])
+            _strip_orelse_tail_breaks(getattr(s, 'finalbody', []) or [])
+        # nested loops: their breaks belong to themselves - skip
+    if not body:
+        body.append(ast.Pass())
+
+
 def _is_const_true(test):
     if isinstance(test, ast.Name) and test.id == 'True':
         return True
@@ -1472,8 +1566,32 @@ def _normalize_func_tail_loop(node):
     last = body[-1]
     if isinstance(last, _LOOP_TYPES):
         _bare_return_to_break(last.body)
-        _bare_return_to_break(getattr(last, 'orelse', []) or [])
+        _orelse = getattr(last, 'orelse', None) or []
+        if _orelse:
+            _bare_return_to_break(_orelse)
+            _strip_orelse_tail_breaks(_orelse)
+            last.orelse = _flatten_tail_elses(_orelse)
         return
+    # a loop FOLLOWED BY a tail T: `for/while: B(bare returns, no own
+    # breaks)` + T equals `loop: B(breaks) else: T` - a bare return
+    # leaves the function skipping T exactly as a break skips the else
+    # arm, and exhaustion runs T in both forms. The decompiler sinks the
+    # function tail into the loop else and renders the returns as breaks
+    # (base64 3.11 main: source `if o == '-t': test(); return` + the
+    # post-loop dispatch tail vs the decompile's `break` + for-else).
+    # No own Break may exist in B: an original break would fall INTO T
+    # while the transformed one skips the else.
+    for i, s in enumerate(body):
+        if (isinstance(s, _LOOP_TYPES)
+                and not getattr(s, 'orelse', None)
+                and i + 1 < len(body)
+                and _count_breaks(s.body) == 0
+                and _count_bare_returns(s.body) > 0):
+            _bare_return_to_break(s.body)
+            s.orelse = [copy.deepcopy(t) for t in body[i + 1:]]
+            del body[i + 1:]
+            s.orelse = _flatten_tail_elses(s.orelse)
+            break
     # descend through trailing If arms: a loop ending the last arm of
     # a function-tail if/elif/else chain is still a function-tail loop
     # (every loop exit falls to the function end), so bare returns
@@ -1493,7 +1611,11 @@ def _normalize_func_tail_loop(node):
     if loops:
         for lp in loops:
             _bare_return_to_break(lp.body)
-            _bare_return_to_break(getattr(lp, 'orelse', []) or [])
+            _o = getattr(lp, 'orelse', None) or []
+            if _o:
+                _bare_return_to_break(_o)
+                _strip_orelse_tail_breaks(_o)
+                lp.orelse = _flatten_tail_elses(_o)
         return
     for i, s in enumerate(body):
         if (isinstance(s, ast.While) and _is_const_true(s.test)
