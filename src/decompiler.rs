@@ -28377,7 +28377,15 @@ return None;
             }
             m += 1;
         }
-        if q_vals.is_empty() || region_start != ti {
+        // 3.12+ pads each POP_JUMP with a NOT_TAKEN hint: after the last
+        // or-group link the gap may hold padding up to the and-continuation
+        // (compileall 3.14 compile_path). Only padding may trail - any real
+        // op still bails.
+        if q_vals.is_empty()
+            || !self.instrs[region_start..ti].iter().all(|x| {
+                matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+            })
+        {
             return None;
         }
         // merge: Or(!P, Q...) And R
@@ -28399,7 +28407,14 @@ return None;
         });
         // open the merged If at R's fall-through (the body head); E is
         // the else start - the walk's normal else machinery takes over
-        let body_start = self.instrs.get(k + 1).map(|x| x.offset)?;
+        let mut bsi = k + 1;
+        while matches!(
+            self.instrs.get(bsi).map(|x| x.op),
+            Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+        ) {
+            bsi += 1;
+        }
+        let body_start = self.instrs.get(bsi).map(|x| x.offset)?;
         if body_start >= e {
             return None;
         }

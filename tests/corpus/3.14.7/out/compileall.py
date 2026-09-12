@@ -244,10 +244,7 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
 
     success = True
     for dir in sys.path:
-        if dir:
-            if dir == os.curdir:
-                pass
-        if skip_curdir:
+        if (not dir or dir == os.curdir) and skip_curdir:
             if quiet < 2:
                 print('Skipping current directory')
         else:
