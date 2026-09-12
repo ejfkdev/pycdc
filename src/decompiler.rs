@@ -37796,7 +37796,12 @@ if split_cond {
                 let mut blk = Block::new(BlockType::While, target, exit);
                 blk.cond = Some(merged);
                 blk.cond_set = true;
-                blk.cond_end = self.instrs[ci].end();
+                // cond_end = the LAST head link's end (the B jump whose
+                // target IS the loop exit) - loop_exit_offset derives
+                // the rotated while's exit from the cond jump ending at
+                // cond_end, and the OR head's A link jumps to the BODY
+                // top (see the 3.11 hybrid variant's note)
+                blk.cond_end = self.instrs[jb].end();
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
@@ -37950,7 +37955,14 @@ if split_cond {
                 let mut blk = Block::new(BlockType::While, target, exit);
                 blk.cond = Some(merged);
                 blk.cond_set = true;
-                blk.cond_end = self.instrs[ci].end();
+                // cond_end = the LAST head link's end (the B jump whose
+                // target IS the loop exit): loop_exit_offset derives a
+                // rotated while's exit from the cond jump ending exactly
+                // at cond_end, and the A link of an OR head jumps to the
+                // BODY top - keying on A made find_loop_exit miss the
+                // exit and the clause trail's `except IndexError: break`
+                // degraded to `pass` (_collections_abc 3.11 index)
+                blk.cond_end = self.instrs[jb].end();
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);

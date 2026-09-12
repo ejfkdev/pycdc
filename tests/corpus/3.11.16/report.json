@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 34,
-  "SIG-DIFF": 3,
-  "AST-PASS": 3
+  "AST-PASS": 4,
+  "SIG-DIFF": 2
  },
  "results": [
   {
@@ -25,11 +25,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 3647: orig  body=[Break()])] | dec  body=[Pass()])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2849,
-   "ntotal": 3874,
-   "detail": "line 958: orig ('LOAD_GLOBAL', 'NULL + RuntimeError') | got ('JUMP_FORWARD', '#22')\nline 959: orig ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\") | got ('PUSH_EXC_INFO', '')\nline 960: orig ('PRECALL', '') | got ('LOAD_GLOBAL', 'GeneratorExit')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_compat_pickle",
