@@ -184,8 +184,8 @@ hardlink_dupes: hardlink duplicated pyc files
                     for cfile in opt_cfiles.values():
                         with open(cfile, 'rb') as chandle:
                             actual = chandle.read(12)
-                        if not expect != actual:
-                            continue
+                        if expect != actual:
+                            break
                     else:
                         return success
                     return
@@ -314,9 +314,8 @@ def main():
             for dest in compile_dests:
                 if os.path.isfile(dest):
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                        pass
-                    success = False
-                    continue
+                        success = False
+                        continue
                     continue
                 if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
                     continue

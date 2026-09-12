@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 30,
-  "SIG-DIFF": 6,
-  "AST-PASS": 4
+  "AST-PASS": 5,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -37,11 +37,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 360: orig  finalbody=[])] | dec  finalbody=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 939,
-   "ntotal": 1481,
-   "detail": "line 529: orig ('LOAD_CONST', 'False') | got ('RETURN_CONST', 'False')\nline 530: orig ('RETURN_VALUE', '') | got ('_supports_arm64_builds', 0)\nline 531: orig ('_supports_arm64_builds', 0) | got ('RESUME', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_py_abc",
@@ -153,7 +149,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1105: orig  keywords=[]))]) | dec  keywords=[]))",
+   "ast_detail": "diff at token 1207: orig  Name(id='skip_curdir' | dec  Compare(left=Name(id='quiet'",
    "verdict": "SIG-DIFF",
    "ndiff": 593,
    "ntotal": 1484,

@@ -27182,7 +27182,19 @@ return None;
                     // ending on the fused edge) rely on the threading
                     // to keep their skip jumps aligned (_strptime
                     // 3.13/3.14 LC_alt_digits elif broke when the
-                    // guard applied there)
+                    // guard applied there). 3.11+ EXCEPTION: when the
+                    // span between this guard and the edge holds REAL
+                    // STATEMENTS, the edge is a fall-through arm's
+                    // natural iteration end, not a chain spine link —
+                    // threading the guard to the loop top made its
+                    // target < cur_offset and the generic opener grew a
+                    // degenerate If[end<start]: the arm body ejected
+                    // flat and the guard rendered `if not X: pass`
+                    // (compileall 3.13 main `if not compile_file(...):
+                    // success = False` — success=False ran
+                    // UNCONDITIONALLY). The or-continue operand runs
+                    // this idiom threads are pure-value spans, so the
+                    // statement test never vetoes them.
                     // and only when the back edge's target is NOT a
                     // recognizable loop top: the ampm guard's landing
                     // edge targets the for's GET_ITER (one instruction
@@ -27366,8 +27378,53 @@ return None;
                                             })
                                 })
                             });
+                    // 3.11+ JUMP_BACKWARD edge with REAL STATEMENTS in
+                    // the span and NO inner backward loop-top jump: the
+                    // span is a fall-through arm whose natural iteration
+                    // end IS the edge — not a continue landing and not a
+                    // chain-spine link (those either hold pure operand
+                    // runs or their own explicit continue back edge, and
+                    // rely on the threading: _strptime 3.13/3.14
+                    // LC_alt_digits, compileall 3.11 _walk_dir).
+                    // Threading the guard to the loop top drops its
+                    // target below cur_offset and the generic opener
+                    // grows a degenerate If[end<start] (compileall 3.13
+                    // main `if not compile_file(...): success = False`
+                    // rendered `if not ...: pass` + an UNCONDITIONAL
+                    // success=False).
+                    let stmt_span_311 = span_stmts
+                        && self.version.at_least(3, 11)
+                        && ins.op != Op::JUMP_ABSOLUTE
+                        && !self
+                            .idx_of
+                            .get(&cj_end)
+                            .copied()
+                            .map_or(false, |si| {
+                                self.instrs[si..ti].iter().any(|x| {
+                                    x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_ABSOLUTE
+                                                | Op::JUMP_BACKWARD
+                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        )
+                                        && x.target.map_or(false, |t| {
+                                            self.is_loop_top_target(t)
+                                                || self.blocks.iter().any(|bl| {
+                                                    matches!(
+                                                        bl.kind,
+                                                        BlockType::While
+                                                            | BlockType::For
+                                                    ) && self.is_loop_top_prefix(
+                                                        t, bl.start,
+                                                    )
+                                                })
+                                        })
+                                })
+                            });
                     let span_pure = !dedicated_tramp
                         && !nested_guard_tail
+                        && !stmt_span_311
                         && (ins.op != Op::JUMP_ABSOLUTE
                         || ins.target
                             .map_or(false, |bt| self.is_loop_top_target(bt))
@@ -27941,7 +27998,55 @@ return None;
                                             t > ins.offset
                                                 && self.find_loop_exit(t).is_some()
                                         })
+                                })
+                            // 3.12+ for-loop BREAK STUB: the pass jump
+                            // lands on [POP_TOP(iterator drop); JF->M]
+                            // with M past the loop's exhaustion exit —
+                            // find_loop_exit's clauses miss M (the stub's
+                            // own JF targets it, and loop_else_end is not
+                            // marked yet at guard time), so the stub was
+                            // walked as glue and the break silently lost:
+                            // the loop always exhausted into its else
+                            // (compileall 3.12/3.13 compile_file `if
+                            // expect != actual: break` rendered as the
+                            // inverted continue — a stale pyc NEVER
+                            // recompiled, `else: return success` ran
+                            // unconditionally)
+                            || self
+                                .for_break_stub_exit(target)
+                                .map_or(false, |_| {
+                                    // sole-targeter dominance: a break
+                                    // chunk shared by SEVERAL chain-link
+                                    // guards is a fused and/or chain's
+                                    // tail (`(ln == 0 or lineno == ln)`
+                                    // both hopping to one [POP_TOP; JF]
+                                    // chunk, _py_warnings 3.14
+                                    // warn_explicit) — keep the
+                                    // historical per-link inverted
+                                    // rendering there; a genuine
+                                    // `if cond: break` is the chunk's
+                                    // only entry (compileall
+                                    // 3.12/3.13 compile_file)
+                                    self.instrs
+                                        .iter()
+                                        .filter(|x| {
+                                            x.target == Some(target)
+                                                && matches!(
+                                                    x.op,
+                                                    Op::POP_JUMP_IF_FALSE
+                                                        | Op::POP_JUMP_IF_TRUE
+                                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                )
+                                        })
+                                        .count()
+                                        == 1
                                 }));
+                    let stub = if pass_is_break {
+                        self.for_break_stub_exit(target)
+                    } else {
+                        None
+                    };
                     if pass_is_break {
                         let c = simplify_not(merged.clone());
                         self.push_stmt(Stmt::If {
@@ -27949,13 +28054,33 @@ return None;
                             body: vec![Stmt::Break],
                             orelse: Vec::new(),
                         });
-                        // resume past the break block's exit jump
-                        let after = self
-                            .idx_of
-                            .get(&target)
-                            .and_then(|&ti| self.instrs.get(ti))
-                            .and_then(|ins| ins.target)
-                            .unwrap_or(body_start);
+                        // resume past the break block's exit jump. For
+                        // the 3.12+ break STUB: resume AT the stub JF's
+                        // end (the loop's exhaustion exit) and pre-mark
+                        // the loop's else end with the stub's merge —
+                        // skipping straight to the merge would bypass the
+                        // END_FOR close and strand the else arm
+                        // (compileall: `else: return success` lost).
+                        let after = match stub {
+                            Some((m, jf_end)) => {
+                                if let Some(lb) =
+                                    self.blocks.iter_mut().rev().find(|b| {
+                                        matches!(b.kind, BlockType::For)
+                                    })
+                                {
+                                    if lb.loop_else_end.is_none() {
+                                        lb.loop_else_end = Some(m);
+                                    }
+                                }
+                                jf_end
+                            }
+                            None => self
+                                .idx_of
+                                .get(&target)
+                                .and_then(|&ti| self.instrs.get(ti))
+                                .and_then(|ins| ins.target)
+                                .unwrap_or(body_start),
+                        };
                                                 self.skip_until = Some(after);
                         return;
                     }
@@ -33574,6 +33699,72 @@ if split_cond {
                                 ))
                     })
         })
+    }
+
+    /// 3.12+ FOR-loop break stub: `[POP_TOP*; JUMP_FORWARD -> M]` where M
+    /// lies past the innermost open for loop's end and the span between
+    /// (the loop's exhaustion exit + else arm) holds no backward edge to
+    /// the loop top. Returns M (the stub's merge / resume point).
+    fn for_break_stub_exit(&self, target: usize) -> Option<(usize, usize)> {
+        if !self.version.at_least(3, 12) {
+            return None;
+        }
+        let lb = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::For))?;
+        let mut k = *self.idx_of.get(&target)?;
+        loop {
+            let ins = self.instrs.get(k)?;
+            if matches!(
+                ins.op,
+                Op::POP_TOP | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+            ) {
+                k += 1;
+                continue;
+            }
+            break;
+        }
+        let jf = self.instrs.get(k)?;
+        if !matches!(jf.op, Op::JUMP_FORWARD | Op::JUMP) || jf.is_backward {
+            return None;
+        }
+        let m = jf.target?;
+        if m <= jf.offset || m <= lb.end {
+            return None;
+        }
+        // the stub must sit between the guard and the exhaustion exit:
+        // a guard whose pass jump flies PAST the END_FOR to a later
+        // [POP_TOP; JF] chunk is a chain link, not a break — treating
+        // it as one hoisted the chain's shared break out of its nested
+        // guards (_py_warnings 3.14 warn_explicit: the fused 4-link
+        // and-chain's `lineno == ln` link rendered a flat body-level
+        // `break` that ran for every item)
+        let exit_i = self
+            .instrs
+            .iter()
+            .position(|x| {
+                x.offset >= lb.end
+                    && matches!(x.op, Op::END_FOR | Op::POP_BLOCK)
+            })?;
+        if k > exit_i {
+            return None;
+        }
+        // the span [lb.end, m) is the exhaustion exit + else arm: it must
+        // hold no backward edge onto the loop top (that would be body)
+        let top = self.effective_offset(lb.start);
+        let back = self.instrs.iter().any(|x| {
+            x.offset >= lb.end
+                && x.offset < m
+                && x.is_backward
+                && x.target
+                    .map_or(false, |t| self.effective_offset(t) == top)
+        });
+        if back {
+            return None;
+        }
+        Some((m, jf.end()))
     }
 
     fn find_loop_exit(&self, target: usize) -> Option<usize> {

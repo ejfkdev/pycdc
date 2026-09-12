@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 32,
-  "SIG-DIFF": 6,
-  "AST-PASS": 2
+  "AST-PASS": 4,
+  "SIG-DIFF": 4
  },
  "results": [
   {
@@ -57,11 +57,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 293: orig  ctx=Load())]))])])]) | dec  ctx=Load())]))])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 994,
-   "ntotal": 1567,
-   "detail": "line 560: orig ('LOAD_CONST', 'False') | got ('RETURN_CONST', 'False')\nline 561: orig ('RETURN_VALUE', '') | got ('_supports_arm64_builds', 0)\nline 562: orig ('_supports_arm64_builds', 0) | got ('RESUME', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_py_abc",
@@ -157,11 +153,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 831: orig  ops=[NotEq()] | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 634,
-   "ntotal": 1551,
-   "detail": "line 179: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 180: orig ('POP_JUMP_IF_TRUE', '#79') | got ('POP_JUMP_IF_FALSE', '#79')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "configparser",

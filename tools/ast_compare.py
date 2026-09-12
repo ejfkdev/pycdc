@@ -253,6 +253,82 @@ def _sunk_bare_return_tail(stmts):
     return stmts
 
 
+def _sunk_valued_return_tail(stmts):
+    """Valued-return variant of the sunk re-attachment:
+    [Try(orelse=[], EVERY handler ends with the same `return V`),
+    M..., return V] becomes [Try(orelse=[M...], handlers minus the
+    return), return V]. The decompiler emits the compiler's sunk
+    function-tail return inside each handler exit and flattens the
+    try's else clause to siblings; the source lets the handlers fall
+    through to the shared tail return (compileall 3.12/3.13
+    compile_file: the PyCompileError/SyntaxError handlers'
+    `print(msg); return success` vs fall-through, with the else clause
+    `if ok == 0: success = False` flattened after the try)."""
+    if not (TRY_TYPES and stmts):
+        return stmts
+    for i, s in enumerate(stmts):
+        if not (TRY_TYPES and isinstance(s, TRY_TYPES)):
+            continue
+        handlers = getattr(s, 'handlers', None) or []
+        if not handlers or getattr(s, 'orelse', None) \
+                or getattr(s, 'finalbody', None):
+            continue
+        rets = []
+        ok = True
+        for h in handlers:
+            if not h.body or not isinstance(h.body[-1], ast.Return) \
+                    or h.body[-1].value is None:
+                ok = False
+                break
+            rets.append(ast.dump(h.body[-1]))
+        if not ok or len(set(rets)) != 1:
+            continue
+        rest = stmts[i + 1:]
+        if not rest or not isinstance(rest[-1], ast.Return) \
+                or rest[-1].value is None:
+            continue
+        if ast.dump(rest[-1]) != rets[0]:
+            continue
+        mid = rest[:-1]
+        if any(isinstance(x, (ast.Raise, ast.Break, ast.Continue))
+               for x in mid):
+            continue
+        for h in handlers:
+            h.body = h.body[:-1] or [ast.Pass()]
+        if mid:
+            s.orelse = list(mid)
+        return stmts[:i + 1] + [rest[-1]]
+    # fallback: a prior normalization (_sunk_return_orelse) may have
+    # already re-attached the flattened else using the LAST handler's
+    # sunk return -- strip the identical sunk tail return from the
+    # OTHER handlers too. Shape: [Try(orelse set, some handlers end
+    # with `return V`), return V, ...] -- each handler-tail copy of the
+    # IMMEDIATELY-following sibling return is the same function-tail
+    # exit (the compiler sinks/duplicates it into every handler exit);
+    # falling off the handler skips the orelse and reaches the sibling
+    # return identically (compileall 3.12/3.13 compile_file: the
+    # PyCompileError handler kept its sunk `return success` after the
+    # re-attachment consumed the SyntaxError handler's copy)
+    for i, s in enumerate(stmts):
+        if not (TRY_TYPES and isinstance(s, TRY_TYPES)):
+            continue
+        handlers = getattr(s, 'handlers', None) or []
+        if len(handlers) < 2:
+            continue
+        if getattr(s, 'orelse', None) or getattr(s, 'finalbody', None):
+            continue
+        nxt = stmts[i + 1] if i + 1 < len(stmts) else None
+        if not isinstance(nxt, ast.Return) or nxt.value is None:
+            continue
+        want = ast.dump(nxt)
+        for h in handlers:
+            if h.body and isinstance(h.body[-1], ast.Return) \
+                    and ast.dump(h.body[-1]) == want:
+                h.body = h.body[:-1] or [ast.Pass()]
+    return stmts
+    return stmts
+
+
 def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
     """When every handler ends terminally (return/raise/break/continue),
     'try: B else: O' followed by S is the same as 'try: B' with O and S
@@ -1546,6 +1622,60 @@ def _normalize_func_tail_handler_return(node):
             h.body = [ast.Pass()]
 
 
+def _strip_dup_tail_returns(node):
+    """A valued `return V` at the END of a tail-position if-arm that
+    duplicates the function's own trailing `return V` is a sunk copy
+    (3.12+ compilers duplicate the function tail into arm exits and
+    the decompiler emits the copy inline): dropping it lets the arm
+    fall through to the identical tail return. Tail position = reached
+    by walking last-statements through orelse-less If arms from the
+    function body (compileall 3.12/3.13 compile_file: `if tail ==
+    '.py': ... return success` + the function-level `return success`;
+    the source has only the tail return)."""
+    body = getattr(node, 'body', None)
+    if not (isinstance(body, list) and body):
+        return
+    tail = body[-1]
+    if not (isinstance(tail, ast.Return) and tail.value is not None):
+        return
+    want = ast.dump(tail.value)
+    cur = body[:-1]
+    for _ in range(16):
+        if not cur:
+            return
+        last = cur[-1]
+        if isinstance(last, ast.If) and not last.orelse and last.body:
+            arm = last.body
+            # handler-tail copies of the tail return inside this arm's
+            # tries: a handler's `return V` is the same function exit as
+            # falling off the arm to the tail return (the try's else
+            # clause, when present, is skipped by handler exits in both
+            # forms). Safe only when nothing follows the try in the arm.
+            for ai, a_s in enumerate(arm):
+                # only the duplicated tail Return may follow the try
+                tail_ok = all(
+                    isinstance(x, ast.Return) and x.value is not None
+                    and ast.dump(x.value) == want
+                    for x in arm[ai + 1:])
+                if (TRY_TYPES and isinstance(a_s, TRY_TYPES)
+                        and tail_ok
+                        and not getattr(a_s, 'finalbody', None)
+                        and len(getattr(a_s, 'handlers', None) or []) >= 2):
+                    for h in a_s.handlers:
+                        if (h.body and isinstance(h.body[-1], ast.Return)
+                                and h.body[-1].value is not None
+                                and ast.dump(h.body[-1].value) == want):
+                            h.body = h.body[:-1] or [ast.Pass()]
+            if (len(arm) > 1 and isinstance(arm[-1], ast.Return)
+                    and arm[-1].value is not None
+                    and ast.dump(arm[-1].value) == want):
+                arm.pop()
+                return
+            cur = arm
+            continue
+        return
+
+
 def _normalize_func_tail_loop(node):
     """If a function/method body's LAST statement is a loop, a bare
     `return` inside that loop is observationally identical to a `break`
@@ -2406,6 +2536,7 @@ def dump(src):
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
             _normalize_func_tail_loop(node)
             _normalize_func_tail_handler_return(node)
+            _strip_dup_tail_returns(node)
             # function-tail loop: a handler-tail `break` and the
             # loop-tail `continue` (or the source's stripped bare
             # `return`) all leave the function with None when the
@@ -2552,7 +2683,8 @@ def dump(src):
                                      ast.FunctionDef))):
                         val = flatten_tail_if_else(val)
                     val = _sunk_bare_return_tail(
-                        _sunk_return_orelse(val))
+                        _sunk_valued_return_tail(
+                            _sunk_return_orelse(val)))
                     _lat = ('loop' if is_loop_body
                             else _in_loop_arm.get(id(node), False))
                     if _lat:

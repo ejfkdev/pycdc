@@ -193,9 +193,9 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 831: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 836: orig  ctx=Load()))])] | dec  ctx=Load()))])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1239,
+   "ndiff": 1233,
    "ntotal": 1660,
    "detail": "line 348: orig ('POP_JUMP_IF_FALSE', '#152') | got ('POP_JUMP_IF_FALSE', '#149')\nline 351: orig ('POP_JUMP_IF_NONE', '#152') | got ('POP_JUMP_IF_NONE', '#149')\nline 399: orig ('LOAD_FAST', 'legacy') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'legacy, optimize')"
   },
