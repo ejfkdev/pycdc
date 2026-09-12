@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 9,
-  "AST-PASS": 7
+  "SIG-DIFF": 8,
+  "AST-PASS": 8
  },
  "results": [
   {
@@ -125,11 +125,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1693: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Compare(left=Call(func=Name(id='len'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 962,
-   "ntotal": 2151,
-   "detail": "line 1155: orig ('POP_JUMP_IF_FALSE', '#134') | got ('POP_JUMP_IF_FALSE', '#135')\nline 1180: orig ('FOR_ITER', '#105') | got ('FOR_ITER', '#106')\nline 1182: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'result, i') | got ('LOAD_FAST', 'result')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bdb",

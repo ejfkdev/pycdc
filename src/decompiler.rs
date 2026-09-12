@@ -29520,6 +29520,90 @@ return None;
                 .map_or(false, |t| t.jump_if_true == jump_if_true);
             if !and_chain {
                 if same_pol {
+                    // 3.14 dropped the rotated while's tail re-eval
+                    // copies (the back edge is a plain JUMP_BACKWARD
+                    // onto the head checks), so a walrus and-link
+                    // arriving here is the HEAD chain's second operand,
+                    // not a duplicate to ignore: merge the Named cond
+                    // into the open While (base64 3.14 encode:
+                    // `while len(s) < MAXBINSIZE and (ns :=
+                    // input.read(...)):` lost the walrus link — the
+                    // body referenced an unbound ns). Scoped to 3.14+
+                    // Named-expression conds: <=3.13 keep the ignore
+                    // (their post-body re-eval copies carry the same
+                    // STORE shape and merge via the dup machinery).
+                    if self.version.at_least(3, 14) {
+                        let has_named = {
+                            let mut found = false;
+                            let mut stk = vec![&cond];
+                            while let Some(e) = stk.pop() {
+                                match &**e {
+                                    Expr::Named { .. } => {
+                                        found = true;
+                                        break;
+                                    }
+                                    Expr::BoolOp { values, .. } => {
+                                        for v in values {
+                                            stk.push(v);
+                                        }
+                                    }
+                                    Expr::Unary { operand, .. } => {
+                                        stk.push(operand);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            found
+                        };
+                        let no_back_edge = self
+                            .blocks
+                            .last()
+                            .zip(self.idx_of.get(&self.cur_offset).copied())
+                            .map_or(false, |(top, ci)| {
+                                top.cond_end != usize::MAX
+                                    && self
+                                        .idx_of
+                                        .get(&top.cond_end)
+                                        .map_or(true, |&fi| {
+                                            self.instrs[fi..ci]
+                                                .iter()
+                                                .all(|x| !x.is_backward)
+                                        })
+                            });
+                        if has_named && no_back_edge {
+                            let new_cond_end = self
+                                .idx_of
+                                .get(&self.cur_offset)
+                                .and_then(|&ci| self.instrs.get(ci))
+                                .map(|x| x.end())
+                                .unwrap_or(self.cur_offset);
+                            if let Some(top) = self.blocks.last_mut() {
+                                if let Some(prev) = top.cond.take() {
+                                    let c2 = if jump_if_true {
+                                        negate_cond(cond)
+                                    } else {
+                                        cond
+                                    };
+                                    let mut values = Vec::new();
+                                    flatten_boolop(
+                                        prev,
+                                        BoolOpKind::And,
+                                        &mut values,
+                                    );
+                                    flatten_boolop(c2, BoolOpKind::And, &mut values);
+                                    top.cond = Some(Rc::new(Expr::BoolOp {
+                                        op: BoolOpKind::And,
+                                        values,
+                                    }));
+                                    top.cond_end = new_cond_end;
+                                }
+                            }
+                            if self.try_pre_rot_fallthrough(target, jump_if_true) {
+                                return;
+                            }
+                            return;
+                        }
+                    }
                     // not a pure-value And continuation (e.g. a walrus tail
                     // re-eval carrying its STORE): historical behavior —
                     // treat as the rotated duplicate and ignore
