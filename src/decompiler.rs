@@ -8970,15 +8970,130 @@ impl<'a> Ctx<'a> {
                             if pops >= 1 {
                                 ok = true;
                                 // handler body ends at its POP_EXCEPT /
-                                // END_FINALLY / RERAISE
-                                for e in self.instrs[k..].iter() {
-                                    if matches!(
+                                // END_FINALLY / RERAISE. An ARM-MERGE
+                                // POP_EXCEPT (directly after a forward
+                                // cond jump, the arm running into a
+                                // terminator) is MID-BODY only when the
+                                // arm's false path continues INSIDE the
+                                // handler: its target must lie before the
+                                // next cleanup past the terminator run
+                                // (contextlib 3.8 __exit__ bare clause:
+                                // PJIF 236->244, hend 246 - skipping 238
+                                // collects `if sys.exc_info()[1] is
+                                // value: return False; raise` as the
+                                // clause body; atexit's arm targets past
+                                // the cleanup keep their POP_EXCEPT as
+                                // the real clause end)
+                                let mut ci = k;
+                                while ci < self.instrs.len() {
+                                    let e = &self.instrs[ci];
+                                    if !matches!(
                                         e.op,
-                                        Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE
+                                        Op::POP_EXCEPT
+                                            | Op::END_FINALLY
+                                            | Op::RERAISE
                                     ) {
-                                        hend = e.offset;
-                                        break;
+                                        ci += 1;
+                                        continue;
                                     }
+                                    if e.op == Op::POP_EXCEPT {
+                                        let arm_target = ci
+                                            .checked_sub(1)
+                                            .and_then(|p| {
+                                                let mut p = p;
+                                                while p > 0
+                                                    && matches!(
+                                                        self.instrs[p].op,
+                                                        Op::NOP
+                                                            | Op::NOT_TAKEN
+                                                            | Op::CACHE
+                                                    )
+                                                {
+                                                    p -= 1;
+                                                }
+                                                matches!(
+                                                    self.instrs[p].op,
+                                                    Op::POP_JUMP_IF_FALSE
+                                                        | Op::POP_JUMP_IF_TRUE
+                                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                        | Op::POP_JUMP_IF_NONE
+                                                        | Op::POP_JUMP_IF_NOT_NONE
+                                                        | Op::POP_JUMP_FORWARD_IF_NONE
+                                                        | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                                )
+                                                .then(|| self.instrs[p].target)
+                                            })
+                                            .flatten();
+                                        if let Some(Some(t)) = arm_target.map(Some) {
+                                            let mut m = ci + 1;
+                                            let mut terminator = false;
+                                            while m < self.instrs.len() {
+                                                let x = &self.instrs[m];
+                                                if matches!(
+                                                    x.op,
+                                                    Op::ROT_TWO
+                                                        | Op::ROT_THREE
+                                                        | Op::ROT_FOUR
+                                                        | Op::POP_TOP
+                                                        | Op::SWAP
+                                                        | Op::COPY
+                                                        | Op::NOP
+                                                        | Op::NOT_TAKEN
+                                                        | Op::CACHE
+                                                ) {
+                                                    m += 1;
+                                                    continue;
+                                                }
+                                                if matches!(
+                                                    x.op,
+                                                    Op::RETURN_VALUE
+                                                        | Op::RETURN_CONST
+                                                ) {
+                                                    terminator = true;
+                                                    break;
+                                                }
+                                                // the return's own value
+                                                // loads (`return False` =
+                                                // LOAD_CONST False; RETURN)
+                                                if x.target.is_none()
+                                                    && is_pure_value_op(x.op)
+                                                {
+                                                    m += 1;
+                                                    continue;
+                                                }
+                                                break;
+                                            }
+                                            if terminator {
+                                                // next cleanup past the run
+                                                let mut next_cleanup =
+                                                    None;
+                                                for x in self.instrs[m..]
+                                                    .iter()
+                                                {
+                                                    if matches!(
+                                                        x.op,
+                                                        Op::POP_EXCEPT
+                                                            | Op::END_FINALLY
+                                                            | Op::RERAISE
+                                                    ) {
+                                                        next_cleanup =
+                                                            Some(x.offset);
+                                                        break;
+                                                    }
+                                                }
+                                                if let Some(nc) = next_cleanup
+                                                {
+                                                    if t < nc {
+                                                        ci += 1;
+                                                        continue;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    hend = e.offset;
+                                    break;
                                 }
                             }
                             break;
@@ -8986,6 +9101,9 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if ok {
+                    if std::env::var("PYCDC_BH_DBG").is_ok() {
+                        eprintln!("BH midchain pos={} hend={}", pos, hend);
+                    }
                     self.legacy_handler = Some(LegacyHandler {
                         type_: None,
                         name: None,
