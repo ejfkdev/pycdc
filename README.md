@@ -21,14 +21,31 @@ cargo build --release
 ## 使用
 
 ```sh
-# 反编译为源码
+# 单个 pyc：输出到标准输出
 pycdc program.pyc > program.py
+
+# 单个 pyc：导出到文件（-o 指向已存在的目录或以 / 结尾时写入该目录下 <名字>.py）
+pycdc program.pyc -o program.py
+pycdc program.pyc -o ./outdir/
+
+# 批量反编译文件夹（递归收集 .pyc/.pyo）：目录结构镜像到输出目录
+pycdc ./pyc-corpus -o ./src-out
+
+# 批量反编译文件夹：未指定 -o 时，默认输出目录与输入目录平级，命名为 <输入名>-decompiled
+pycdc ./pyc-corpus        # 生成 ./pyc-corpus-decompiled/（内部结构一致）
+
+# 多个文件输入：未指定 -o 时写到各文件旁边的 <名字>.py
+pycdc a.pyc b.pyc         # 生成 a.py、b.py
+
+# 其他
+pycdc version             # 版本信息（也可用 -V / --version）
+pycdc --help              # 完整帮助（-h / help）
 
 # 反汇编（含异常表、行号、嵌套 code object）
 pycdas program.pyc
 
 # 直接处理 marshal 数据（无 pyc 头），指定版本
-pycdc -c -v 3.8 payload.marshal
+pycdc -v 3.8 payload.marshal
 
 # 使用外部 opcode 配置（如为新出的 Python 版本添加支持）
 pycdc --opcodes ./my-configs program.pyc
