@@ -9987,6 +9987,17 @@ impl<'a> Ctx<'a> {
                     // the merge (3.3 fileinput readline).
                     && !self.version.at_least(3, 8)
                     && lt.else_start.is_some()
+                    // the bounding jump must ORIGINATE BEFORE the else
+                    // region: it is the handler's normal-exit jump
+                    // flying over the else arm to the merge. A forward
+                    // jump from INSIDE the region is the else arm's own
+                    // inner structure (a nested try's merge trampoline)
+                    // and truncates the region mid-flow (SimpleXMLRPC
+                    // 2.7 do_POST: the gzip try's JABS 526->532 capped
+                    // else_stop at 532, the chain flushed there with
+                    // the if-q guard's Else block open and the whole
+                    // Try landed inside `if q:`'s else arm)
+                    && lt.else_start.map_or(false, |es| pos < es)
                     && lt.else_stop == usize::MAX
                     && inst.target.map_or(false, |t| {
                         t > pos
@@ -10341,14 +10352,69 @@ impl<'a> Ctx<'a> {
                                         // the else arm's own end-of-arm jump
                                         // to the merge point (code 3.3
                                         // showsyntaxerror `JUMP_FORWARD 0`)
+                                        // - UNLESS real statements follow
+                                        // the merge inside the region: an
+                                        // inner guard's false-merge jump
+                                        // (SimpleXMLRPC 2.7 do_POST: the
+                                        // `if q:` JF 529->532 with the
+                                        // Content-length tail living in
+                                        // [532,586)) is mid-region glue,
+                                        // not the arm end; emitting there
+                                        // sealed the guard early and shoved
+                                        // the Try into its then arm
                                         lands_inside
-                                            && self.blocks.iter().any(|b| {
+                                            && (self.blocks.iter().any(|b| {
                                                 matches!(
                                                     b.kind,
                                                     BlockType::While | BlockType::For
                                                 ) && b.start >= es
                                                     && b.start <= pos
-                                            })
+                                            }) || (lt.else_stop != usize::MAX
+                                                && self
+                                                .idx_of
+                                                .get(&target)
+                                                .map_or(false, |&ti2| {
+                                                    self.instrs[ti2..]
+                                                        .iter()
+                                                        .take_while(|x| {
+                                                            x.offset < lt.else_stop
+                                                        })
+                                                        .any(|x| {
+                                                            // statement-
+                                                            // material ops:
+                                                            // calls and
+                                                            // stores (loads
+                                                            // and CALL are
+                                                            // pure-value
+                                                            // classified,
+                                                            // but a CALL
+                                                            // executes the
+                                                            // region's
+                                                            // statements)
+                                                            matches!(
+                                                                x.op,
+                                                                Op::CALL_FUNCTION
+                                                                    | Op::CALL_FUNCTION_KW
+                                                                    | Op::CALL_FUNCTION_VAR
+                                                                    | Op::CALL_FUNCTION_VAR_KW
+                                                                    | Op::CALL_FUNCTION_EX
+                                                                    | Op::CALL_METHOD
+                                                                    | Op::CALL
+                                                                    | Op::PRECALL
+                                                                    | Op::STORE_FAST
+                                                                    | Op::STORE_NAME
+                                                                    | Op::STORE_ATTR
+                                                                    | Op::STORE_SUBSCR
+                                                                    | Op::STORE_GLOBAL
+                                                                    | Op::STORE_DEREF
+                                                                    | Op::PRINT_ITEM
+                                                                    | Op::PRINT_NEWLINE
+                                                                    | Op::PRINT_ITEM_TO
+                                                                    | Op::PRINT_NEWLINE_TO
+                                                                    | Op::RAISE_VARARGS
+                                                            )
+                                                        })
+                                                })))
                                     }
                                 })
                         {
