@@ -2734,6 +2734,33 @@ def flatten_tail_if_else(stmts):
     return stmts
 
 
+def _has_named_expr(node):
+    """True when the expression tree contains a walrus (NamedExpr)."""
+    if hasattr(ast, 'NamedExpr') and isinstance(node, getattr(ast, 'NamedExpr')):
+        return True
+    for ch in ast.iter_child_nodes(node):
+        if _has_named_expr(ch):
+            return True
+    return False
+
+
+def _is_walrus_neg_guard(s):
+    """A `if not A or not (b := ...): break` merged guard whose negative
+    Or contains a walrus operand - the signature of the decompiler's
+    De Morgan'd guard-break chain over a source `if (b := ...) and A:`
+    (annotationlib 3.14 get_annotations unwrap loop)."""
+    if not (isinstance(s, ast.If) and not s.orelse
+            and len(s.body) == 1 and isinstance(s.body[0], ast.Break)):
+        return False
+    t = s.test
+    if (isinstance(t, ast.BoolOp) and isinstance(t.op, ast.Or)
+            and t.values
+            and all(isinstance(x, ast.UnaryOp) and isinstance(x.op, ast.Not)
+                    for x in t.values)):
+        return any(_has_named_expr(x.operand) for x in t.values)
+    return False
+
+
 def merge_guard_continues(stmts):
     """Canonicalize loop-tail guard-continue chains back to the source
     if/elif form. At the TAIL of a loop body, falling off the end ==
@@ -2747,6 +2774,14 @@ def merge_guard_continues(stmts):
     abbr_indices: return None, None`, cmd 3.7 complete_help)."""
     n = len(stmts)
     if n < 2:
+        return stmts
+    # a walrus negative guard-break in the run: leave the chain to the
+    # fixpoint's fold_guard_continue_else + the late walrus inversion -
+    # canon_arm here would strip the preceding arm's tail continue one
+    # stage too early and the dec side could no longer fold into the
+    # source side's nested-orelse canonical (annotationlib 3.14
+    # get_annotations unwrap loop)
+    if any(_is_walrus_neg_guard(s) for s in stmts):
         return stmts
 
     def is_cont_guard(s):
@@ -2853,9 +2888,30 @@ def merge_guard_continues(stmts):
         else:
             out.extend(canon_arm(rest) if rest else [ast.Pass()])
         # rebuild as a proper if/elif chain (the last element may be a
-        # plain statement run - wrap it as the final else arm)
+        # plain statement run - wrap it as the final else arm). Only If
+        # nodes can carry an orelse: when a plain statement sits in the
+        # run, everything from it on is the chain's final else arm -
+        # attaching `.orelse` to an Assign/Expr sets a phantom attribute
+        # that ast.dump silently drops, LOSING the statements
+        # (annotationlib 3.14 get_annotations: the unwrap loop's
+        # if-id-break/add/store tail vanished past the merged Or guard)
         if len(out) == 1:
             return out
+        # chain ONLY an all-If run: a plain statement in the run cannot
+        # carry an orelse - the historical rebuild attached a phantom
+        # .orelse attribute that ast.dump silently dropped, LOSING every
+        # statement past the first non-If (annotationlib 3.14
+        # get_annotations: the unwrap loop's if-id-break/add/store tail
+        # vanished past the merged Or guard). Return the mixed run flat;
+        # the late negative-guard canonicalization folds it instead.
+        if not all(isinstance(x, ast.If) for x in out):
+            # mixed run: keep the historical chain UNLESS the run holds a
+            # walrus negative guard-break - its statement tail must not be
+            # phantom-dropped (the late walrus canonicalization below
+            # needs the intact siblings to converge with the source's
+            # merged positive And form)
+            if any(_is_walrus_neg_guard(x) for x in out):
+                return out
         chain = out[-1]
         for g in reversed(out[:-1]):
             g.orelse = [chain] if isinstance(chain, ast.stmt) else chain
@@ -3681,6 +3737,77 @@ def dump(src):
                 and isinstance(ore[0], ast.Pass)
                 and isinstance(node, ELSE_PASS_TYPES)):
             node.orelse = []
+    # final guard-break polarity canonicalization (runs LAST - the
+    # fixpoint's merge_guard_continues case-2 and fold_guard_continue_else
+    # pull this shape in opposite directions and oscillate): an If whose
+    # body is a lone Break and carries an orelse equals the negated test
+    # with swapped arms (`if c: break else: S` == `if not c: S else:
+    # break`). The source side's merged positive guards land in the
+    # swapped form; canonical_bool then DeMorgans Not(Or(Nots)) to the
+    # sorted positive And (annotationlib 3.14 get_annotations unwrap
+    # loop: dec `elif not isinstance or not (functools := ...): break
+    # else: work` vs orig `elif isinstance and (functools := ...): work
+    # else: break`).
+    def _is_negative_test(t):
+        # an all-negative Or, or a Not wrapping a BoolOp - the De Morgan
+        # duals of the source side's positive And merges. Plain positive
+        # tests keep the guard-break shape that merge_guard_continues'
+        # case-2 canonicalizes to (swapping those regressed 35 modules)
+        if (isinstance(t, ast.BoolOp) and isinstance(t.op, ast.Or)
+                and t.values
+                and all(isinstance(x, ast.UnaryOp)
+                        and isinstance(x.op, ast.Not)
+                        for x in t.values)):
+            return True
+        return (isinstance(t, ast.UnaryOp) and isinstance(t.op, ast.Not)
+                and isinstance(t.operand, ast.BoolOp))
+
+    def _final_break_guard_swap(stmts):
+        for s in stmts:
+            for fld in ('body', 'orelse', 'finalbody'):
+                v = getattr(s, fld, None)
+                if isinstance(v, list) and v and isinstance(v[0], ast.stmt):
+                    _final_break_guard_swap(v)
+            for h in getattr(s, 'handlers', None) or []:
+                if getattr(h, 'body', None):
+                    _final_break_guard_swap(h.body)
+            if (isinstance(s, ast.If) and s.orelse
+                    and len(s.body) == 1
+                    and isinstance(s.body[0], ast.Break)
+                    and _is_negative_test(s.test)
+                    and _has_named_expr(s.test)):
+                s.test = ast.UnaryOp(op=ast.Not(), operand=s.test)
+                s.body, s.orelse = s.orelse, s.body
+        # sibling form: a negative guard-break followed by statements
+        # absorbs them as the positive arm (the break skips them exactly
+        # like the else gate) - converges with the source side's merged
+        # positive And + else:[Break] canonical
+        i = 0
+        while i < len(stmts):
+            s = stmts[i]
+            if (_is_walrus_neg_guard(s) and i + 1 < len(stmts)):
+                # invert to the positive arm with the break as its ELSE:
+                # `if not A or not (b := ...): break; S` == `if A and
+                # (b := ...): S else: break` - the source side's canonical
+                # after its arm-end continue folds (canon_arm turns the
+                # merged And arm's tail continue into orelse=[Break], and
+                # fold_guard_continue_else nests the chain in the enclosing
+                # arm's orelse). The decompiler side loses its arm continue
+                # to canon_arm one stage earlier and stays flat, so the
+                # forms only converge here (annotationlib 3.14
+                # get_annotations unwrap loop).
+                s.test = ast.UnaryOp(op=ast.Not(), operand=s.test)
+                s.body = stmts[i + 1:]
+                s.orelse = [ast.Break()]
+                del stmts[i + 1:]
+                return stmts
+            i += 1
+        return stmts
+    for node in ast.walk(tree):
+        for field, value in ast.iter_fields(node):
+            if (isinstance(value, list) and value
+                    and isinstance(value[0], ast.stmt)):
+                _final_break_guard_swap(value)
     # merge_nested_ifs builds fresh BoolOps that were never canonicalized
     # (merge order leaves them nested and unordered) - one final pass
     tree = BoolCanonicalizer().visit(tree)
