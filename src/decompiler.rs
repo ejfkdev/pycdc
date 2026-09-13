@@ -43773,6 +43773,52 @@ impl<'a> Ctx<'a> {
         if l.has_finally || ret_offset >= l.handler_start {
             return false;
         }
+        // the try sits mid-function: dropping the body's tail return
+        // makes the enclosing arm non-terminal, flattening a following
+        // else arm to sibling statements that then RUN on the
+        // no-exception path (asyncore 3.10 dispatcher.__init__:
+        // `if sock:`'s else arm `self.socket = None` executed for a
+        // truthy sock). Only a function-tail try - the main flow after
+        // the chain holds nothing but the implicit tail-return pair -
+        // may lose the sunk return (cmd 3.10 kept-return regression
+        // under the wider pending-branch gate).
+        let chain_end = self
+            .instrs
+            .iter()
+            .filter(|x| x.offset >= l.handler_start)
+            .filter(|x| {
+                matches!(x.op, Op::RERAISE | Op::END_FINALLY)
+            })
+            .map(|x| x.end())
+            .max();
+        if let Some(ce) = chain_end {
+            let mut real_after = false;
+            for x in self.instrs.iter() {
+                if x.offset < ce {
+                    continue;
+                }
+                if matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                    continue;
+                }
+                if matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                    continue;
+                }
+                if x.op == Op::LOAD_CONST
+                    && matches!(
+                        self.code.consts.get(x.arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    )
+                {
+                    continue;
+                }
+                real_after = true;
+                break;
+            }
+            if real_after {
+                // real statements follow the chain: keep the sunk return
+                return false;
+            }
+        }
         // next meaningful instruction after this return must be the
         // handler head (a truly last statement is followed by code end)
         let mut k = match self.idx_of.get(&ret_offset) {
