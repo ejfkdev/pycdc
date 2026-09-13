@@ -309,13 +309,7 @@ class dispatcher:
                 self.handle_close()
                 return b''
             raise
-        try:
-            return data
-        except OSError as why:
-            if why.errno in _DISCONNECTED:
-                self.handle_close()
-                return b''
-            raise
+        return data
 
     def close(self):
         self.connected = False

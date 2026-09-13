@@ -81,10 +81,9 @@ def dump(node, annotate_fields=True, include_attributes=False):
         if isinstance(node, AST):
             fields = [(a, _format(b)) for a, b in iter_fields(node)]
             rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a, b in fields)))
-            if include_attributes:
-                if node._attributes:
-                    rv += fields and ', ' or ' '
-                    rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
+            if include_attributes and node._attributes:
+                rv += fields and ', ' or ' '
+                rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
             return rv + ')'
         if isinstance(node, list):
             return '[%s]' % ', '.join((_format(x) for x in node))
@@ -184,13 +183,11 @@ def get_docstring(node, clean=True):
 
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body:
-        if isinstance(node.body[0], Expr):
-            if isinstance(node.body[0].value, Str):
-                if clean:
-                    import inspect
-                    return inspect.cleandoc(node.body[0].value.s)
-                return node.body[0].value.s
+    if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str):
+        if clean:
+            import inspect
+            return inspect.cleandoc(node.body[0].value.s)
+        return node.body[0].value.s
 
 def walk(node):
     """

@@ -3,8 +3,7 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 29,
-  "AST-PASS": 10,
-  "SIG-DIFF": 1
+  "AST-PASS": 11
  },
  "results": [
   {
@@ -49,11 +48,7 @@
   },
   {
    "module": "SimpleXMLRPCServer",
-   "ast_detail": "diff at token 1091: orig  TryExcept(body=[Assign(targets=[Name(id='max_chunk_size' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1400,
-   "ntotal": 1550,
-   "detail": "line 66: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 110: orig ('POP_JUMP_IF_FALSE', '#140') | got ('POP_JUMP_IF_FALSE', '#138')\nline 115: orig ('LOAD_CONST', \"'localhost'\") | got ('LOAD_CONST', \"('localhost', 8000)\")"
+   "verdict": "AST-PASS"
   },
   {
    "module": "SocketServer",

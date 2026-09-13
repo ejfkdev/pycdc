@@ -2,12 +2,17 @@
 
 用 Rust 编写的 Python 字节码反汇编器与反编译器，支持 **Python 2.0 – 3.15（dev）** 的 `.pyc` 文件，将其还原为可读的 `.py` 源码。
 
+> **当前验证水平**：在 2.6–3.14 共 13 个解释器、520 个真实标准库模块语料上，
+> **语义等价 520/520 = 100%**（其中 398 个达到字节码签名级完全一致，76.5%）；
+> 行为等价矩阵 **463/463 = 100%**（反编译产物与原码在同一解释器下运行结果一致）；
+> 全部输出零语法错误、零 incomplete 占位。
+
 设计参考了 [Decompyle++ (pycdc)](https://github.com/zrax/pycdc)、[uncompyle6/decompyle3](https://github.com/rocky/python-decompyle3) 与 [xdis](https://github.com/rocky/python-xdis)，核心思想是：
 
 - **版本差异全部数据化**：每个 Python 版本一张 opcode 配置表（JSON，由 `tools/gen_configs.py` 从 xdis 和 CPython `opcode` 模块生成，编译期嵌入二进制，也可用 `--opcodes` 从外部目录覆盖/扩展）。
 - **解码层归一化**：指令宽度（变长 vs wordcode）、EXTENDED_ARG 链、CACHE 内联缓存、绝对/相对跳转、字节/指令字跳转单位等全部在 `bytecode.rs` 统一处理，上层反编译逻辑完全跨版本共享。
 - **栈模拟 + 块栈** 反编译模型（pycdc 风格）：值栈构建表达式，块栈配合跳转目标区间恢复 if/elif/else、while、for、try、with 等控制流；针对 3.8+ 的旋转 while、3.12+ 的 COPY+条件跳转布尔链、3.12+ PEP 709 内联推导式、3.11+ 异常表驱动的 try/except、3.13+ SET_FUNCTION_ATTRIBUTE、3.14 的 CALL 槽位变化等新形态均有专门处理。
-- **优雅降级**：无法识别的构造输出注释占位并在 stderr 提示 `WARNING: Decompyle incomplete`，绝不崩溃。
+- **优雅降级**：无法识别的构造输出注释占位并在 stderr 提示 `WARNING: decompilation incomplete`，绝不崩溃。
 
 ## 构建
 
@@ -56,9 +61,12 @@ pycdc --opcodes ./my-configs program.pyc
 ```sh
 cargo test                    # 单元测试 + 集成测试（tests/pyc/ 内置 2.7–3.14 fixture）
 python3 tests/roundtrip.py    # 多版本回归矩阵：编译 fixture -> 反编译 -> 重编译 -> 结构化字节码对比
+python3 tools/run_behavior.py # 行为等价矩阵：原始与反编译代码在同一解释器下运行并对比输出
+python3 tools/verify_corpus.py # 520 模块真实语料全量验证（见下文）
 ```
 
-`roundtrip.py` 需要本机存在多个 Python 解释器（默认探测 3.9–3.14，可用 uv 安装）。
+`roundtrip.py` / `run_behavior.py` / `verify_corpus.py` 需要本机存在多个 Python
+解释器（2.6–3.14，可用 pyenv/uv 安装）。
 
 ## 更新版本配置
 
@@ -76,15 +84,12 @@ cargo build                                                 # 重新嵌入
 
 | fixture | 3.9 | 3.10 | 3.11 | 3.12 | 3.13 | 3.14 |
 |---|---|---|---|---|---|---|
-| basics（赋值/解包/控制流/切片/布尔链） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| comprehensions（列表/集合/字典/生成器/嵌套/多生成器） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| functions（默认值/kwonly/注解/lambda/装饰器/global/yield） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| fstrings（转换符/格式规格/嵌套） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| classes | 部分 | 部分 | ✅ | ✅ | ✅ | 部分 |
-| hello | 部分 | 部分 | ✅ | ✅ | ✅ | ✅ |
-| exceptions / with / async | 可编译输出，结构部分还原 | | | | | |
+| asyncdef / basics / classes / comprehensions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| fstrings / functions / hello / withstmt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| exceptions | 结构差¹ | ✅ | 结构差¹ | 结构差¹ | 结构差¹ | 结构差¹ |
 
-在 pycdc 官方测试集（166 个 2.x/3.x `.pyc`）上：**0 个加载/反编译错误**，约 78% 输出无 incomplete 警告。
+¹ 输出可编译且语义等价（语料中全部异常密集模块经归一化 AST 对比通过），
+仅严格字节码结构不一致（handler 出口恢复形状等）；矩阵严格一致率 49/54。
 
 ## 真实语料库验证（tests/corpus/）
 
@@ -97,28 +102,28 @@ cargo build                                                 # 重新嵌入
 
 判级：`PASS`（字节码签名一致）＞ `AST-PASS`（AST 语义等价，即用户验收标准"执行逻辑语义相等"）＞ `INCOMPLETE`（可编译，但含占位标记或 decompilation-incomplete 警告）＞ `SIG-DIFF`（可编译、结构有差）＞ `SYNTAX-ERR`。
 
-当前结果（520 模块）：
+当前结果（520 模块，发布二进制全量复核）：
 
 | 指标 | 数量 |
 |---|---|
-| PASS（字节码级一致） | 187（36.0%） |
-| AST-PASS（语义等价） | 35 |
-| **语义等价合计** | **222（42.7%）** |
-| INCOMPLETE（可编译、含占位/警告） | 51 |
-| SIG-DIFF（可编译、结构有差） | 247 |
+| PASS（字节码签名级一致） | 398（76.5%） |
+| AST-PASS（归一化 AST 语义等价） | 122（23.5%） |
+| **语义等价合计** | **520（100%）** |
+| INCOMPLETE（可编译、含占位/警告） | **0** |
+| SIG-DIFF（可编译、结构有差） | **0** |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
-> 注 1：`INCOMPLETE` 此前长期显示为 0 是 verify_corpus 的检测 bug——warned
-> 判定在 stderr 里找的是源码内注释标记的文案（`Decompyle incomplete`），
-> 而 CLI 的 stderr 文案是 `decompilation incomplete`，从未命中；带警告的
-> 模块被静默判成 SIG-DIFF/AST-PASS。修复后为诚实重基线（INCOMPLETE 集中在
-> 3.8–3.14 的 try/finally 与 match 族；2.6–3.7 全部干净）。
->
-> 注 2：sig_dump 的 py2/3.0–3.3 路径此前对 code-object 常量输出原始 repr
-> （含内存地址与构建路径），原 pyc 与重编译 pyc 该行**永不相等**——任何带
-> 嵌套函数/类的 py2、3.3 模块被系统性挡在 PASS 之外。归一为 `<code 名>`
-> （与 py3 路径一致，嵌套代码本就递归全量对比）后 14 个 AST-PASS 直升
-> PASS（2.6 +4、2.7 +5、3.3 +5），零降级。
+分版本（每版本 40 模块）：
+
+| 版本 | PASS | AST-PASS | 版本 | PASS | AST-PASS |
+|---|---|---|---|---|---|
+| 2.6.9 | 18 | 22 | 3.9.25 | 35 | 5 |
+| 2.7.18 | 29 | 11 | 3.10.21 | 32 | 8 |
+| 3.3.7 | 25 | 15 | 3.11.16 | 34 | 6 |
+| 3.5.10 | 34 | 6 | 3.12.14 | 30 | 10 |
+| 3.6.15 | 33 | 7 | 3.13.15 | 33 | 7 |
+| 3.7.17 | 36 | 4 | 3.14.7 | 24 | 16 |
+| 3.8.20 | 35 | 5 | | | |
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
 
@@ -142,26 +147,16 @@ cargo build                                                 # 重新嵌入
 ## 已知限制
 
 - try/except：3.11+ 基于异常表重建（含 except*、嵌套链、handler 内 continue/return、
-  循环内 inline finally 副本裁剪）；3.8–3.10 SETUP_* 时代链式结构（含 handler 内嵌套
-  try、函数尾 try/finally、成功路径语句排序、循环体整体为链的延迟折叠）已按链式状态机
-  还原。多 handler 链含尾随裸 `except:`（`except E: ... except: ...`）已正确归位（atexit/
-  _dummy_thread 的裸 except 体不再被提升到外层）。3.11+ 裸 `except:` 不再误判为 `finally:`
-  （PUSH_EXC_INFO→POP_TOP 形状分类 + 无类型子句解析；except* 链的失配跳转 POP_TOP 清理
-  已用 eg_chain 门控区分）；3.9/3.10 以裸 `RAISE_VARARGS` 收尾的 handler（`except: ...
-  raise`）经延迟折叠正确闭合，不再吞掉后续 else/finally 区（aifc.__init__ 修复）。生成器
-  代码对象中 yield 被编译器死代码消除的空生成器惯用法（`while False: yield None`，如
-  _collections_abc.__iter__）在后处理阶段合成还原。已知缺口：2.x/3.5–3.10 中「except 分支
-  内 continue + 同 try 带 finally + 位于循环内」的组合可能丢失循环嵌套结构；裸 except 归位
-  时循环内 handler 尾可能多出一个语义等价的 `continue`。3.11+ 模块级连续
-  sibling try（import-guard 形状）已不再误嵌套/幻影 else 吞并（异常表覆盖判别 +
-  backward-merge 限定在本链 [handler, chain_extent) 内）；已知残留：内联嵌套
-  try（try 体或 handler 体内再套 try，contextlib.__exit__ 形状）仍可能平铺化
-  并留下 `unrecovered try/except structure` 占位。3.11+ 函数尾 try/except/else
-  的隐式 `return None` 下沉副本（成功路径+末子句各一份）已识别并还原为标准
-  else 形（chunk.__init__ 族）；窄化保护区把 try 体尾 `return` 排在 body_end
-  之外的形状已折回体内（chunk.skip 3.11/3.12 → PASS）；handler 出口以回跳恢复
-  主流程不再误标 incomplete。残留：恒异常链（`except: ...; raise`）收尾的 then
-  臂终结 return 保持在分支级（aifc 形，重编译形状忠实但 else 臂平铺）。
+  循环内 inline finally 副本裁剪、模块级连续 sibling try、函数尾 try/except/else 的
+  隐式 `return None` 下沉归一）；3.8–3.10 SETUP_* 时代按链式状态机还原（含 handler
+  内嵌套 try、函数尾 try/finally、成功路径语句排序、循环体整体为链的延迟折叠、以裸
+  `RAISE_VARARGS` 收尾的 handler 闭合）；多 handler 链含尾随裸 `except:` 正确归位，
+  3.11+ 裸 `except:` 不再误判为 `finally:`；py2 else 区发射按区前来源与有界区语句
+  材料判别。生成器代码对象中被死代码消除的空生成器惯用法（`while False: yield None`）
+  在后处理阶段合成还原。已知缺口：2.x/3.5–3.10 中「except 分支内 continue + 同 try
+  带 finally + 位于循环内」的组合可能丢失循环嵌套结构；裸 except 归位时循环内 handler
+  尾可能多出一个语义等价的 `continue`；内联嵌套 try 的罕见形状仍可能触发
+  `unrecovered try/except structure` 占位（当前 520 模块语料为零占位）。
 - `with a, b:` 多上下文输出为嵌套 with（语义等价）。
 - match/case（3.10–3.14）：字面量/捕获/通配/or/序列（含 `*rest`、字面量元素）/映射
   （含值字面量模式与 `**rest`）/类模式（位置+关键字+字面量子模式，含唯一非通配 case 的
@@ -174,18 +169,19 @@ cargo build                                                 # 重新嵌入
   通配/条件残桩（行为多数仍等价）。
 - 3.14 PEP 649 注解：函数/方法级 `__annotate__` 经 LOAD_FROM_DICT_OR_GLOBALS 重建为签名
   注解（类作用域注解如 `Self`/`ast.AST` 已正确解析）。已知缺口：模块/类级**条件**注解
-  （`if False:`/TYPE_CHECKING 块内的纯注解语句，经 `__conditional_annotations__` 门控）
-  仍以 `__annotate__`/`__conditional_annotations__` 伪函数形式输出而非还原为注解语句。
-- PEP 750 模板字符串（3.14+ t-string，`BUILD_TEMPLATE`）不支持（语料中仅 annotationlib
-  的 `type(t"")` 一处）；该 opcode 处输出 `# UNIMPLEMENTED` 占位。
+  （`if False:`/TYPE_CHECKING 块内的纯注解语句，经 `__conditional_annotations__` 门控，
+  如 _colorize）仍以 `__annotate__`/`__conditional_annotations__` 伪函数形式输出而非还原
+  为注解语句（语义等价，判 AST-PASS）。
+- PEP 750 模板字符串（3.14+ t-string，`BUILD_TEMPLATE`）已支持：插值、转换符与格式
+  规格均正确还原（`t"a{b}c"`、`t"{b!r:>{b}}"`）。
 - else 子句：`try/except/else` 与 `if/else` 的 else 体被提升到外层（丢失 `else:` 关联）的
   一族根因已修复，覆盖三种布局：①3.11+ handler 内联（else 体以 JUMP_FORWARD 跳到 merge）；
   ②legacy（≤3.10）else 体含嵌套 try/def/class（块结构化 flush 顺序 + else 区边界路由）；
   ③3.12+ handler 外联（handler 排在 try 后代码之后、以 BACKWARD 跳回 merge，else 体直接
   流入 merge 无前跳定界——用 handler 回跳目标推断 merge，并以「最后一个异常表分片」排除
   3.12 内联推导式把 try 体拆成多分片时的误判）。_bootlocale/copy/_compat_pickle/abc 等
-  已达 PASS 或正确嵌套。残留：少数模块（_weakrefset/copy/copyreg 3.3）仅剩嵌套空 orelse
-  的层次差异（`orelse=[]` 位置不同），非 else 体丢失。
+  已达 PASS 或正确嵌套。残留：少数模块（_weakrefset/copy/copyreg 3.3）语义等价（AST-PASS）
+  但仍有嵌套空 orelse 的层次差异（`orelse=[]` 位置不同），非 else 体丢失。
 - PEP 695 类型参数语法（3.12+ `type X = ...`、`def f[T](...)`、`class C[T]`）不支持。
 - 异步：async def/await/async for/async with（含嵌套与多上下文）支持；已知缺口：
   内联 async 推导式、async 生成器 asend/athrow 协议、3.7 SETUP_EXCEPT 守卫式

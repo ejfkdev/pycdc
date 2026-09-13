@@ -93,7 +93,7 @@ class Bdb:
             if self.stoplineno == -1:
                 return False
             return frame.f_lineno >= self.stoplineno
-        while frame is not None:
+        while frame is not None and frame is not self.stopframe:
             if frame is self.botframe:
                 return True
             frame = frame.f_back
@@ -259,9 +259,7 @@ class Bdb:
 
     def get_breaks(self, filename, lineno):
         filename = self.canonic(filename)
-        if filename in self.breaks and lineno in self.breaks[filename]:
-            pass
-        return Breakpoint.bplist[filename, lineno] if Breakpoint.bplist[filename, lineno] else []
+        return filename in self.breaks and lineno in self.breaks[filename] and Breakpoint.bplist[filename, lineno] or []
 
     def get_file_breaks(self, filename):
         filename = self.canonic(filename)

@@ -3,8 +3,7 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 34,
-  "AST-PASS": 5,
-  "SIG-DIFF": 1
+  "AST-PASS": 6
  },
  "results": [
   {
@@ -81,11 +80,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 817: orig  keywords=[]))] | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1546,
-   "ntotal": 2319,
-   "detail": "line 711: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', '#35') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', '#33')\nline 713: orig ('POP_JUMP_FORWARD_IF_FALSE', '#33') | got ('POP_JUMP_FORWARD_IF_FALSE', '#31')\nline 725: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST', 'map')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "base64",

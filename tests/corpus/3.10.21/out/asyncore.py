@@ -81,6 +81,7 @@ def readwrite(obj, flags):
         if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
             obj.handle_close()
         return
+        return
     except OSError as e:
         if e.errno not in _DISCONNECTED:
             obj.handle_error()
@@ -189,6 +190,7 @@ class dispatcher:
             self.connected = True
             try:
                 self.addr = sock.getpeername()
+                return
             except OSError as err:
                 if err.errno in (ENOTCONN, EINVAL):
                     self.connected = False

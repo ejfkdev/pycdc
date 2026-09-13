@@ -2,9 +2,8 @@
  "version": "2.6.9",
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
-  "PASS": 17,
-  "AST-PASS": 21,
-  "SIG-DIFF": 2
+  "PASS": 18,
+  "AST-PASS": 22
  },
  "results": [
   {
@@ -57,7 +56,7 @@
   },
   {
    "module": "StringIO",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "UserDict",
@@ -133,11 +132,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 534: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='frame'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1632,
-   "ntotal": 2247,
-   "detail": "line 537: orig ('SETUP_LOOP', '#49') | got ('SETUP_LOOP', '#43')\nline 541: orig ('JUMP_IF_FALSE', '#47') | got ('JUMP_IF_FALSE', '#41')\nline 545: orig ('LOAD_ATTR', 'stopframe') | got ('LOAD_ATTR', 'botframe')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "binhex",
@@ -161,11 +156,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 250: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='ttype'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1263,
-   "ntotal": 1544,
-   "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#128')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#127')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#123')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "chunk",

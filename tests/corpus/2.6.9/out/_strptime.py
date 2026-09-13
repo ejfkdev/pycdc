@@ -343,11 +343,9 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                     tz = value
                                     break
                         continue
-    if julian == -1:
-        if week_of_year != -1:
-            if weekday != -1:
-                week_starts_Mon = True if week_of_year_start == 0 else False
-                julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+    if julian == -1 and week_of_year != -1 and weekday != -1:
+        week_starts_Mon = True if week_of_year_start == 0 else False
+        julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
     if julian == -1:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

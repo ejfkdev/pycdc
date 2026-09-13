@@ -2,9 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 34,
-  "AST-PASS": 4,
-  "SIG-DIFF": 2
+  "PASS": 35,
+  "AST-PASS": 5
  },
  "results": [
   {
@@ -125,11 +124,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1065,
-   "ntotal": 1305,
-   "detail": "line 219: orig ('SETUP_FINALLY', '#160') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '#75')"
+   "verdict": "PASS"
   },
   {
    "module": "code",
@@ -157,11 +152,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 523: orig  Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='sys'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 936,
-   "ntotal": 1825,
-   "detail": "line 472: orig ('JUMP_FORWARD', '#128') | got ('JUMP_FORWARD', '#127')\nline 480: orig ('SETUP_FINALLY', '#46') | got ('LOAD_GLOBAL', 'sys')\nline 481: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'exc_info')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "copy",

@@ -106,9 +106,6 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         else:
             if value is None:
                 value = type()
-            if sys.exc_info()[1] is value:
-                return False
-            raise
             try:
                 self.gen.throw(type, value, traceback)
             except StopIteration as exc:
@@ -120,7 +117,9 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                     return False
                 raise
             except:
-                pass
+                if sys.exc_info()[1] is value:
+                    return False
+                raise
             raise RuntimeError("generator didn't stop after throw()")
 
 

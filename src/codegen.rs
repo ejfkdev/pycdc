@@ -1546,7 +1546,7 @@ impl Printer {
             // with whitespace: that docstring carried a non-uniform
             // deeper indent whose exact margin is unrecoverable —
             // re-padding would corrupt the relative indentation.
-            let mut text;
+            let text;
             let mut reindented = false;
             let s: &str = if self.version.at_least(3, 13) {
                 let lines: Vec<&str> = s.split('\n').collect();

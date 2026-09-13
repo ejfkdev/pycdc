@@ -3,4 +3,8 @@ __pycache__/
 *.pyc.bak
 .DS_Store
 *.pyc
+# 测试语料与 fixture 是刻意提交的 .pyc（out/ 下的重编译产物除外）
+!tests/corpus/*/*.pyc
+!tests/pyc/*.pyc
+!tests/fixtures/*.pyc
 tools/ast_compare.pyc

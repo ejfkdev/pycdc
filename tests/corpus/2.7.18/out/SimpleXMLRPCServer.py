@@ -400,44 +400,43 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.is_rpc_path_valid():
             self.report_404()
             return
-        if self.encode_threshold is not None and len(response) > self.encode_threshold:
-            q = self.accept_encodings().get('gzip', 0)
-            if q:
-                try:
-                    response = xmlrpclib.gzip_encode(response)
-                    self.send_header('Content-Encoding', 'gzip')
-                except NotImplementedError:
-                    pass
-            else:
-                try:
-                    max_chunk_size = 10485760
-                    size_remaining = int(self.headers['content-length'])
-                    L = []
-                    while size_remaining:
-                        chunk_size = min(size_remaining, max_chunk_size)
-                        chunk = self.rfile.read(chunk_size)
-                        if not chunk:
-                            break
-                        L.append(chunk)
-                        size_remaining -= len(L[-1])
-                    data = ''.join(L)
-                    data = self.decode_request_content(data)
-                    if data is None:
-                        return
-                    response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None), self.path)
-                except Exception, e:
-                    self.send_response(500)
-                    if hasattr(self.server, '_send_traceback_header') and self.server._send_traceback_header:
-                        self.send_header('X-exception', str(e))
-                        self.send_header('X-traceback', traceback.format_exc())
-                    self.send_header('Content-length', '0')
-                    self.end_headers()
-                else:
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/xml')
-        self.send_header('Content-length', str(len(response)))
-        self.end_headers()
-        self.wfile.write(response)
+        try:
+            max_chunk_size = 10485760
+            size_remaining = int(self.headers['content-length'])
+            L = []
+            while size_remaining:
+                chunk_size = min(size_remaining, max_chunk_size)
+                chunk = self.rfile.read(chunk_size)
+                if not chunk:
+                    break
+                L.append(chunk)
+                size_remaining -= len(L[-1])
+            data = ''.join(L)
+            data = self.decode_request_content(data)
+            if data is None:
+                return
+            response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None), self.path)
+        except Exception, e:
+            self.send_response(500)
+            if hasattr(self.server, '_send_traceback_header') and self.server._send_traceback_header:
+                self.send_header('X-exception', str(e))
+                self.send_header('X-traceback', traceback.format_exc())
+            self.send_header('Content-length', '0')
+            self.end_headers()
+        else:
+            self.send_response(200)
+            self.send_header('Content-type', 'text/xml')
+            if self.encode_threshold is not None and len(response) > self.encode_threshold:
+                q = self.accept_encodings().get('gzip', 0)
+                if q:
+                    try:
+                        response = xmlrpclib.gzip_encode(response)
+                        self.send_header('Content-Encoding', 'gzip')
+                    except NotImplementedError:
+                        pass
+            self.send_header('Content-length', str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
 
     def decode_request_content(self, data):
         encoding = self.headers.get('content-encoding', 'identity').lower()

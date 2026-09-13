@@ -236,9 +236,6 @@ struct LegacyTry {
     /// continues past this point and a backward jump here is a handler
     /// body's loop back edge, not the try's emit point
     pending_mismatch: Vec<usize>,
-    /// enclosing block's statement count when this chain's inline
-    /// finally region opened — stmts past the mark are the inline body
-    else_stmt_mark: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -1585,7 +1582,6 @@ pub fn decompile_in_scope(
             let same_fin = |r: &TryCtx| r.finally_handler == Some(e.target);
             let same_exc = |r: &TryCtx| r.except_handler == Some(e.target);
             let mut bridged = false;
-            let mut bridged2 = false;
             // 1) contiguous / protocol-bridged extension of the LAST
             //    region (historical semantics, capped so a later entry's
             //    protected range is never swallowed)
@@ -1727,7 +1723,6 @@ pub fn decompile_in_scope(
                     }
                     if ok && any && cur == e.start {
                         deep_idx = Some(ri);
-                        bridged2 = true;
                     }
                 }
             }
@@ -2448,7 +2443,7 @@ impl<'a> Ctx<'a> {
             let pos = inst.offset;
             // tail-duplicated body copy: never walk into it (the jump
             // that targeted it was redirected to the original)
-            if let Some(&(s, e)) = self.dup_copy_skip.iter().find(|&&(s, _)| s == pos) {
+            if let Some(&(_s, e)) = self.dup_copy_skip.iter().find(|&&(s, _)| s == pos) {
                 if let Some(&ei) = self.idx_of.get(&e) {
                     pc = ei;
                     continue;
@@ -3830,7 +3825,7 @@ impl<'a> Ctx<'a> {
     /// copy counterpart). The span must be consumed exactly when the
     /// mirror ends (a partial match is a coincidental prefix).
     fn finally_copy_mirror(&self, s: usize, fh: usize) -> bool {
-        let (Some(&si), Some(&fhi)) =
+        let (Some(&_si), Some(&fhi)) =
             (self.idx_of.get(&s), self.idx_of.get(&fh))
         else {
             return false;
@@ -4275,7 +4270,7 @@ impl<'a> Ctx<'a> {
                     })
                     .map(|x| (x.offset, x.target.unwrap()))
             });
-            if let Some((jf_off, exit_at)) = exit_jump {
+            if let Some((_jf_off, exit_at)) = exit_jump {
                 if let Some((b2_start, b2_end)) = tc.split_body2 {
                     // the span re-walks must not re-open this region
                     self.try_ctxs.remove(&tc.start);
@@ -5056,7 +5051,6 @@ impl<'a> Ctx<'a> {
                             Some(PyObject::None)
                         ) => {
                             ret_at = Some(x.end());
-                            k += 1;
                             break;
                         }
                         // 3.11 sunk shape: LOAD None; RETURN_VALUE — only
@@ -5074,7 +5068,6 @@ impl<'a> Ctx<'a> {
                                 Some(PyObject::None)
                             ) => {
                             ret_at = Some(x.end());
-                            k += 1;
                             break;
                         }
                         Op::LOAD_CONST if saw_exit
@@ -5088,7 +5081,6 @@ impl<'a> Ctx<'a> {
                             // 3.11 sunk `return None`: LOAD None; RETURN
                             // right after the consumed exit
                             ret_at = Some(self.instrs[k + 1].end());
-                            k += 2;
                             break;
                         }
                         Op::LOAD_CONST => {
@@ -8230,7 +8222,6 @@ impl<'a> Ctx<'a> {
                                 if nops > 0 && nops <= 4 && next_is_head {
                                     span = Some(nx.end());
                                 }
-                                u += 1;
                                 break;
                             }
                             _ => break,
@@ -11158,7 +11149,7 @@ impl<'a> Ctx<'a> {
         // stores that happened inside this block must land in it, not in
         // whatever block is open after closing
         self.flush_pending_stores();
-        let close_pos = pos;
+        let _close_pos = pos;
         let mut b = self.blocks.pop().unwrap();
         match b.kind {
             BlockType::Main => {
@@ -12773,7 +12764,6 @@ impl<'a> Ctx<'a> {
                     if self.legacy_try.is_some() {
                         self.begin_legacy_nest();
                     }
-                    let mark = self.blocks.last().map(|b| b.stmts.len()).unwrap_or(0);
                     if self.legacy_try.is_some() {
                         self.begin_legacy_nest();
                     }
@@ -12830,7 +12820,6 @@ impl<'a> Ctx<'a> {
                         else_stop: inline_end,
                         chain_done: false,
                         pending_mismatch: Vec::new(),
-                        else_stmt_mark: mark,
                     });
                     // else arm WITHOUT a body-end JF: a terminating
                     // else (raise/return) needs no skip jump, so its
@@ -19219,7 +19208,7 @@ let reopen = self
                     // 3.8-3.10 `except ... as n:` cleanup wrappers end in
                     // RERAISE 1 instead of END_FINALLY — recognize both so
                     // a genuine nested try is not mistaken for a wrapper
-                    let as_cleanup_reraise = self
+                    let _as_cleanup_reraise = self
                         .idx_of
                         .get(&inst.target.unwrap_or(usize::MAX))
                         .map_or(false, |&ti| {
@@ -19291,7 +19280,7 @@ let reopen = self
                 if self.version.at_least(3, 8) {
                     // 3.8+: also used for except handlers; the legacy chain
                     // machinery decides except-vs-finally at close time
-                    let mut t = Block::new(BlockType::Try, inst.end(), target);
+                    let t = Block::new(BlockType::Try, inst.end(), target);
                     self.blocks.push(t);
                 } else {
                     let mut cont = Block::new(BlockType::Container, inst.end(), usize::MAX);
@@ -19310,7 +19299,7 @@ let reopen = self
                     return true;
                 }
                 let target = inst.target.unwrap_or(inst.end());
-                let mut t = Block::new(BlockType::Try, inst.end(), target);
+                let t = Block::new(BlockType::Try, inst.end(), target);
                 self.blocks.push(t);
                 true
             }
@@ -19420,7 +19409,7 @@ let reopen = self
                 // target here swallows sequential following statements
                 // into the with body.
                 let start = inst.end();
-                let mut end = self
+                let end = self
                     .with_regions
                     .get(&start)
                     .copied()
@@ -21690,7 +21679,7 @@ impl<'a> Ctx<'a> {
         // pending = (operand, link polarity, escape target) triples
         // awaiting the tail
         let mut pending: Vec<(ExprRef, bool, usize)> = vec![(first, jump_if_true, target)];
-        let mut last_target = target;
+        let last_target;
         let mut k = i0 + 1;
         // POP_TOP dropping operand 0 on fall-through
         if self.instrs.get(k).map(|x| x.op) != Some(Op::POP_TOP) {
@@ -22244,8 +22233,8 @@ impl<'a> Ctx<'a> {
         // J1 itself targets the body start — it is the first body jump
         let mut body_jumps = 1usize;
         let mut k = ci + 1;
-        let mut exit: Option<usize> = None;
-        let mut final_was_exit_jump = false;
+        let exit: Option<usize>;
+        let final_was_exit_jump: bool;
         loop {
             // scan the next pure operand region up to its cond jump
             let mut region_start = k;
@@ -22467,7 +22456,7 @@ impl<'a> Ctx<'a> {
                     // already targets.
                     let mut acc = operand;
                     let mut k2 = jk + 1;
-                    let mut chain_exit: Option<usize> = None;
+                    let chain_exit: Option<usize>;
                     loop {
                         let rs = k2;
                         let mut j2 = None;
@@ -22698,12 +22687,11 @@ impl<'a> Ctx<'a> {
             }};
         }
         // enclosing loop whose top is the redirect target
-        let loop_blk = self.blocks.iter().rev().find(|b| {
+        self.blocks.iter().rev().find(|b| {
             matches!(b.kind, BlockType::While | BlockType::For)
                 && (b.start == top_target
                     || (b.cond_end != usize::MAX && b.cond_end == top_target))
-        }) else { bail!("no-loop") };
-        let _ = loop_blk;
+        })?;
         let ci = *self.idx_of.get(&self.cur_offset)?;
         // second operand region: pure value ops up to its cond jump
         let mut k = ci + 1;
@@ -22946,7 +22934,7 @@ impl<'a> Ctx<'a> {
         let mut acc: Option<ExprRef> = None;
         let mut k = ci + 1;
         let mut region_start = ci + 1;
-        let mut resume: Option<usize> = None;
+        let resume: Option<usize>;
         loop {
             // next PJFF link (or the break fall-through)
             let mut jk = None;
@@ -23423,7 +23411,7 @@ impl<'a> Ctx<'a> {
         let mut top_jumps_true = true;
         let mut top_jumps_false = true;
         let mut k = ci + 1;
-        let mut exit: Option<usize> = None;
+        let exit: Option<usize>;
         let mut body_start = 0usize;
         loop {
             let region_start = k;
@@ -25271,7 +25259,7 @@ impl<'a> Ctx<'a> {
         let mut links = 0usize;
         let mut link_targets: Vec<usize> = vec![target];
         loop {
-            let mut region_start = k;
+            let region_start = k;
             let mut jk = None;
             let mut steps = 0;
             while let Some(ins) = self.instrs.get(k) {
@@ -26892,7 +26880,7 @@ return None;
             flatten_boolop(first, BoolOpKind::And, &mut values);
         }
         let mut next = target;
-        let mut body_start;
+        let body_start;
         loop {
             let Some(&ni) = self.idx_of.get(&next) else {
 return None;
@@ -27389,7 +27377,7 @@ return None;
                                                 // True`). A mirroring
                                                 // stub stays with the
                                                 // sunk for-break fold.
-                                                let mut ok5 = true;
+                                                let mut ok5;
                                                 let mut k5 = ti;
                                                 while k5 < bi
                                                     && (is_pad(
@@ -28013,7 +28001,7 @@ return None;
         let me = phys_past(ti, re, e_mid_end - 1)?;
         // the middles must leave the same net stack depth
         let depth = |a: usize, b: usize| -> Option<i32> {
-            let mut acc = self.sim_stack_region(a, b, Vec::new())?;
+            let acc = self.sim_stack_region(a, b, Vec::new())?;
             Some(acc.len() as i32)
         };
         let dt_d = depth(ci + 1, mt)?;
@@ -28473,53 +28461,6 @@ return None;
         Some(st)
     }
 
-    /// Rough stack effect of a value op (None when unknown).
-    fn stack_effect_est(&self, op: Op, arg: u32) -> Option<i32> {
-        let a = arg as usize;
-        let e = match op {
-            Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG | Op::PRECALL
-            | Op::TO_BOOL => 0,
-            Op::LOAD_FAST
-            | Op::LOAD_FAST_CHECK
-            | Op::LOAD_FAST_BORROW
-            | Op::LOAD_NAME
-            | Op::LOAD_GLOBAL
-            | Op::LOAD_DEREF
-            | Op::LOAD_CONST
-            | Op::LOAD_SMALL_INT
-            | Op::LOAD_COMMON_CONSTANT
-            | Op::PUSH_NULL
-            | Op::LOAD_ASSERTION_ERROR => 1,
-            Op::LOAD_FAST_LOAD_FAST | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => 2,
-            Op::LOAD_ATTR => {
-                if self.version.at_least(3, 12) && arg & 1 != 0 {
-                    1
-                } else {
-                    0
-                }
-            }
-            Op::LOAD_METHOD => 1,
-            Op::CALL | Op::CALL_METHOD => -(a as i32),
-            Op::CALL_FUNCTION => {
-                if self.version.at_least(3, 6) {
-                    -(a as i32)
-                } else {
-                    -((a & 0xFF) as i32)
-                }
-            }
-            Op::BINARY_OP
-            | Op::BINARY_SUBSCR
-            | Op::COMPARE_OP
-            | Op::IS_OP
-            | Op::CONTAINS_OP => -1,
-            Op::BINARY_SLICE => -2,
-            Op::UNARY_NOT | Op::UNARY_NEGATIVE | Op::UNARY_INVERT | Op::RETURN_CONST => 0,
-            Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => 1 - a as i32,
-            Op::RETURN_VALUE => 0,
-            _ => return None,
-        };
-        Some(e)
-    }
 
     /// py2 value-preserving and/or chain over the dispatching jump.
     /// Returns the merge offset and leaves the merged BoolOp on the
@@ -28569,7 +28510,7 @@ return None;
         // JIT M). Each operand's value span is recorded; the LAST
         // operand ends on the opposite-polarity jump to the merge.
         let mut spans: Vec<(usize, usize)> = Vec::new();
-        let mut merge: Option<usize> = None;
+        let merge: Option<usize>;
         let mut k = bi;
         loop {
             let region_start = self.instrs.get(k).map(|x| x.offset)?;
@@ -37471,7 +37412,7 @@ if split_cond {
                 break;
             }
             let Some(lj) = last_j else { continue };
-            let Some(mut b) = (lj + 1..ti).find(|&x| !is_padding(self.instrs[x].op)) else {
+            let Some(b) = (lj + 1..ti).find(|&x| !is_padding(self.instrs[x].op)) else {
                 continue;
             };
             let body_start = self.instrs[b].offset;
@@ -38314,8 +38255,8 @@ if split_cond {
         // expressions
         let mut vals: Vec<ExprRef> = vec![cond.clone()];
         let mut k = ci + 1;
-        let mut body_top: Option<usize> = None;
-        let mut last_jump_idx = ci;
+        let body_top: Option<usize>;
+        let mut last_jump_idx;
         loop {
             // operand run up to the next false cj
             let run_start = k;
@@ -39607,7 +39548,7 @@ if split_cond {
                     // 3.11 ConverterMapping.__delitem__: the handler's
                     // own `continue` must not become a flat loop-level
                     // one, costing sig-exactness)
-                    let more_edges = next_edge.map_or(false, |ne| {
+                    let _more_edges = next_edge.map_or(false, |ne| {
                         let (a, b2) =
                             match (self.idx_of.get(&self.cur_offset),
                                    self.idx_of.get(&ne)) {
@@ -41181,11 +41122,6 @@ fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
 
 fn keywords_empty(_args: &[ExprRef]) -> bool {
     true
-}
-
-/// Sentinel used by the comprehension mini-simulator for the NULL/self slot.
-fn null_marker() -> ExprRef {
-    Rc::new(Expr::Name("\u{0}null".to_string()))
 }
 
 fn is_null_marker(e: &ExprRef) -> bool {
@@ -43675,7 +43611,7 @@ impl<'a> Ctx<'a> {
         if n < 2 || ret_at >= n - 1 {
             return false;
         }
-        let mut f = n - 1;
+        let f = n - 1;
         if !matches!(
             self.instrs[f].op,
             Op::RETURN_VALUE | Op::RETURN_CONST
@@ -43899,7 +43835,7 @@ impl<'a> Ctx<'a> {
         if n < 2 || ri >= n - 2 {
             return false;
         }
-        let mut f = n - 1;
+        let f = n - 1;
         if !matches!(
             self.instrs[f].op,
             Op::RETURN_VALUE | Op::RETURN_CONST
@@ -44681,7 +44617,6 @@ impl<'a> Ctx<'a> {
                                     break;
                                 }
                                 _ => {
-                                    k = usize::MAX;
                                     break;
                                 }
                             }
@@ -47923,7 +47858,6 @@ impl<'a> Ctx<'a> {
                     break;
                 }
                 i = fk;
-                fail = 0;
                 continue;
             }
             // scan the value region up to its terminating cond jump
@@ -48019,7 +47953,6 @@ impl<'a> Ctx<'a> {
                 break;
             }
             i = fk;
-            fail = 0;
         }
         if arms.is_empty() {
             return None;
@@ -48076,7 +48009,7 @@ impl<'a> Ctx<'a> {
         };
         i += 1;
         self.match_skip_pad(&mut i);
-        let star = match self.instrs.get(i).map(|x| x.op) {
+        let _star = match self.instrs.get(i).map(|x| x.op) {
             Some(Op::COMPARE_OP) => {
                 let c = cmp_from_index(compare_op_index(self.instrs[i].arg as u32, self.version));
                 match c {
@@ -48565,7 +48498,7 @@ impl<'a> Ctx<'a> {
             }
         };
         let mut slots: Vec<Option<Pattern>> = vec![None; nattr_total];
-        let mut captures: Vec<String> = Vec::new();
+        let captures: Vec<String> = Vec::new();
         if self.instrs.get(i).map(|x| x.op) == Some(Op::UNPACK_SEQUENCE) {
             if self.instrs[i].arg as usize != nattr_total {
                 return None;

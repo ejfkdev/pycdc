@@ -3,8 +3,7 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 15,
-  "SIG-DIFF": 1
+  "AST-PASS": 16
  },
  "results": [
   {
@@ -97,11 +96,7 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 216: orig  If(test=Compare(left=Name(id='owner' | dec  Assign(targets=[Name(id='new_locals'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3734,
-   "ntotal": 4144,
-   "detail": "line 360: orig ('LOAD_FAST', 'owner') | got ('LOAD_GLOBAL', '_StringifierDict + NULL')\nline 361: orig ('POP_JUMP_IF_NOT_NONE', '#53') | got ('BUILD_MAP', '')\nline 362: orig ('NOT_TAKEN', '') | got ('LOAD_GLOBAL', 'builtins')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "ast",
