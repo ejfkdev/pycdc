@@ -2444,7 +2444,7 @@ pub fn decompile_in_scope(
     }
 
     let tail_pair = bytecode_tail_return_pair(code, &ctx.instrs, version);
-    let mut body = postprocess_body(body, code);
+    let mut body = postprocess_body(body, code, version);
     strip_break_continue(&mut body);
     // `from __future__ import annotations` leaves NO bytecode — only the
     // CO_FUTURE_ANNOTATIONS flag. Re-emit it at the module head (after a
@@ -15337,7 +15337,26 @@ impl<'a> Ctx<'a> {
                 if defer_fold {
                     self.close_handler_blocks();
                 }
-                let e = self.pop_expr();
+                // 3.11+ cleanup-region RETURN: the exception-path copy
+                // of a `finally: return X` (SWAP/POP_TOP dance around
+                // the exc slot) walks with no value on the stack — the
+                // underflow here is machinery, not an unrecovered
+                // construct (the mangled [Expr(X), Return(None)] pair is
+                // refolded by refold_mangled_finally_return), so it must
+                // not poison the clean flag.
+                let cleanup_underflow = self.version.at_least(3, 11)
+                    && !self.stack.iter().any(|s| matches!(s, Sv::E(_)))
+                    && {
+                        let off = self.cur_offset;
+                        self.exc_entries
+                            .iter()
+                            .any(|e2| e2.target <= off && off < self.chain_extent(e2.target))
+                    };
+                let e = if cleanup_underflow {
+                    Rc::new(Expr::Const(Rc::new(PyObject::None)))
+                } else {
+                    self.pop_expr()
+                };
                 // 3.8-3.10 `break`-to-final-return sinking: when a
                 // loop's break flows straight into the function's
                 // terminating return, the compiler duplicates the
@@ -46997,7 +47016,7 @@ impl<'a> Ctx<'a> {
                 if !d.clean {
                     self.mark_unclean();
                 }
-                let mut body = postprocess_body(d.body, code);
+                let mut body = postprocess_body(d.body, code, self.version);
                 // Function docstrings never appear in bytecode: CPython
                 // stores them in consts[0]. Up to 3.13 the compiler always
                 // reserves slot 0 (None when there is no docstring), so a
@@ -47717,6 +47736,69 @@ fn bytecode_tail_return_pair(
 /// is the loop back edge rendered past a terminating break — dead code
 /// that recompiles to an extra jump (CGIHTTPServer 2.6 run_cgi:
 /// `if not self.rfile.read(1): break; continue`). Recursively drop it.
+/// 3.11+ `try: ... finally: return X`: the cleanup-path copy of the
+/// return gets torn apart by the exception-slot SWAPs (renders as an
+/// `X` expression statement + a valueless `return` inside the finally)
+/// while the inlined success-path copy becomes a sibling `return X`
+/// right after the try. Recognize the signature and refold it into a
+/// proper `finally: return X`, dropping the duplicate.
+fn refold_mangled_finally_return(stmts: &mut Vec<Stmt>) {
+    let mut i = 0;
+    while i + 1 < stmts.len() {
+        let hit = match (&stmts[i], &stmts[i + 1]) {
+            (Stmt::Try { finalbody, .. }, Stmt::Return(Some(v2)))
+                if finalbody.len() >= 2 =>
+            {
+                let n = finalbody.len();
+                matches!(&finalbody[n - 1], Stmt::Return(None))
+                    && match &finalbody[n - 2] {
+                        Stmt::Expr(v) => expr_eq(v, v2),
+                        _ => false,
+                    }
+            }
+            _ => false,
+        };
+        if hit {
+            if let Stmt::Try { finalbody, .. } = &mut stmts[i] {
+                let n = finalbody.len();
+                let v = match &finalbody[n - 2] {
+                    Stmt::Expr(v) => v.clone(),
+                    _ => unreachable!(),
+                };
+                finalbody.truncate(n - 2);
+                finalbody.push(Stmt::Return(Some(v)));
+            }
+            stmts.remove(i + 1);
+        }
+        // recurse into nested blocks (the shape occurs at any depth)
+        match &mut stmts[i] {
+            Stmt::If { body, orelse, .. }
+            | Stmt::While { body, orelse, .. }
+            | Stmt::For { body, orelse, .. } => {
+                refold_mangled_finally_return(body);
+                refold_mangled_finally_return(orelse);
+            }
+            Stmt::Try { body, handlers, orelse, finalbody, .. } => {
+                refold_mangled_finally_return(body);
+                for h in handlers.iter_mut() {
+                    refold_mangled_finally_return(&mut h.body);
+                }
+                refold_mangled_finally_return(orelse);
+                refold_mangled_finally_return(finalbody);
+            }
+            Stmt::FuncDef(_, body) => refold_mangled_finally_return(body),
+            Stmt::ClassDef { body, .. } => refold_mangled_finally_return(body),
+            Stmt::Match { cases, .. } => {
+                for c in cases.iter_mut() {
+                    refold_mangled_finally_return(&mut c.body);
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+}
+
 fn strip_break_continue(stmts: &mut Vec<Stmt>) {
     let mut i = 0;
     while i + 1 < stmts.len() {
@@ -48013,7 +48095,91 @@ fn restore_pep649_annotations(body: &mut Vec<Stmt>) {
     }
 }
 
-fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
+/// <=3.10: does any SETUP_FINALLY cleanup region contain a RETURN_VALUE
+/// before its END_FINALLY, with only finally machinery (no except-handler
+/// material) in between? That is the `try: ... finally: return X` shape.
+fn legacy_finally_return_in_region(code: &CodeObject, version: PythonVersion) -> bool {
+    let Ok(table) = crate::opcode::table_for(version) else {
+        return false;
+    };
+    let instrs = crate::bytecode::decode_instructions(code, table, version);
+    let mut i = 0;
+    while i < instrs.len() {
+        if instrs[i].op != Op::SETUP_FINALLY {
+            i += 1;
+            continue;
+        }
+        let Some(h) = instrs[i].target else {
+            i += 1;
+            continue;
+        };
+        let Some(hi) = instrs.iter().position(|x| x.offset == h) else {
+            i += 1;
+            continue;
+        };
+        let mut found_return = false;
+        let mut blocked = false;
+        for x in &instrs[hi..] {
+            match x.op {
+                Op::RETURN_VALUE => {
+                    found_return = true;
+                    break;
+                }
+                Op::END_FINALLY => break,
+                Op::SETUP_EXCEPT | Op::SETUP_WITH | Op::DUP_TOP | Op::COMPARE_OP => {
+                    // except-handler material lives inside this region
+                    blocked = true;
+                    break;
+                }
+                _ => {}
+            }
+        }
+        if found_return && !blocked {
+            return true;
+        }
+        i += 1;
+    }
+    false
+}
+
+/// Fold `Try{no handlers, empty finally} + sibling Return` pairs into
+/// `Try{finalbody: [Return]}` (see legacy_finally_return_in_region).
+fn refold_legacy_finally_return(stmts: &mut Vec<Stmt>) {
+    let mut i = 0;
+    while i + 1 < stmts.len() {
+        let hit = matches!(&stmts[i], Stmt::Try { handlers, finalbody, .. }
+            if handlers.is_empty() && finalbody.is_empty())
+            && matches!(&stmts[i + 1], Stmt::Return(Some(_)));
+        if hit {
+            let ret = stmts.remove(i + 1);
+            if let Stmt::Try { finalbody, .. } = &mut stmts[i] {
+                finalbody.push(ret);
+            }
+        }
+        match &mut stmts[i] {
+            Stmt::If { body, orelse, .. }
+            | Stmt::While { body, orelse, .. }
+            | Stmt::For { body, orelse, .. } => {
+                refold_legacy_finally_return(body);
+                refold_legacy_finally_return(orelse);
+            }
+            Stmt::Try { body, handlers, orelse, finalbody, .. } => {
+                refold_legacy_finally_return(body);
+                for h in handlers.iter_mut() {
+                    refold_legacy_finally_return(&mut h.body);
+                }
+                refold_legacy_finally_return(orelse);
+                refold_legacy_finally_return(finalbody);
+            }
+            Stmt::FuncDef(_, body) => refold_legacy_finally_return(body),
+            Stmt::ClassDef { body, .. } => refold_legacy_finally_return(body),
+            _ => {}
+        }
+        i += 1;
+    }
+}
+
+fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject, version: PythonVersion) -> Vec<Stmt> {
     // 3.6+ evaluates module/class-body annotations into the scope's
     // `__annotations__` dict (`x: T = v` -> STORE x; T; LOAD
     // __annotations__; LOAD 'x'; STORE_SUBSCR). The walk renders these
@@ -48149,6 +48315,19 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
             }
             i += 1;
         }
+    }
+    // 3.11+ `finally: return X` — the exception-path copy is mangled by
+    // the SWAP/POP_TOP dance into [Expr(X), Return(None)] while the
+    // success-path copy lands as a sibling Return(X) AFTER the try;
+    // refold both into `finally: return X`
+    refold_mangled_finally_return(&mut body);
+    // <=3.10 `finally: return X`: the return material sits INSIDE the
+    // SETUP_FINALLY cleanup region (before its END_FINALLY) — the walk
+    // emits it as a sibling after the try, dropping the swallow
+    // semantics. The bytecode discriminator separates it from a real
+    // post-try return (which lands after the END_FINALLY).
+    if !version.at_least(3, 11) && legacy_finally_return_in_region(code, version) {
+        refold_legacy_finally_return(&mut body);
     }
     // trailing `return None` — including the tail-position copies the
     // compiler sinks into ending `if` branches (3.11+ emits one

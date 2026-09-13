@@ -534,14 +534,37 @@ impl Printer {
                     handlers.truncate(bp + 1);
                 }
                 if handlers.is_empty() && finalbody.is_empty() {
-                    // A try without except/finally is invalid Python — the
-                    // structure was only partially recovered; keep the body
-                    // statements AT THE CURRENT INDENT so the output stays
-                    // compilable.
-                    self.write_line("# WARNING: unrecovered try/except structure");
-                    for s in body.iter().chain(orelse.iter()) {
-                        self.stmt(s);
+                    // A try with no except and an empty finally only comes
+                    // from `try: ... finally: pass` (a finally body with a
+                    // real statement compiles to at least one instruction,
+                    // so an empty cleanup region means the source body was
+                    // pass/comments). Render it as a real try/finally so
+                    // the protection structure survives — the historical
+                    // flat dump with an `unrecovered` warning dropped the
+                    // try entirely (nested empty-finally chains like
+                    // `try: try: return x finally: pass finally: pass`).
+                    self.write_line("try:");
+                    if body.is_empty() && orelse.is_empty() {
+                        self.indent += 1;
+                        self.write_line("pass");
+                        self.indent -= 1;
+                    } else {
+                        self.block(body);
+                        // without an except clause there is no else — the
+                        // success path flows straight into the cleanup, so
+                        // fold any recovered orelse into the body
+                        if !orelse.is_empty() {
+                            self.indent += 1;
+                            for s in orelse {
+                                self.stmt(s);
+                            }
+                            self.indent -= 1;
+                        }
                     }
+                    self.write_line("finally:");
+                    self.indent += 1;
+                    self.write_line("pass");
+                    self.indent -= 1;
                     return;
                 }
                 self.write_line("try:");
