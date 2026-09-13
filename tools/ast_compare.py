@@ -476,6 +476,13 @@ def _merge_py2_prints(stmts):
 def normalize_body(body):
     """Normalize a statement list: drop docstrings, merge adjacent
     from-imports, hoist global/nonlocal, flatten terminal elses."""
+    # a trailing Pass is the no-op statement the decompiler may elide
+    # when its source's last statement carries no effect (bdb 2.6
+    # user_exception: the unpack + anonymous string + pass body
+    # rendered as just the unpack) - drop when others remain; a lone
+    # Pass stays (empty bodies normalize back to [Pass] on both sides)
+    while len(body) > 1 and isinstance(body[-1], ast.Pass):
+        body = body[:-1]
     # guard-conjoin BEFORE terminal-else flattening strips the orelse
     # that form 1b matches on (cgi 2.7 indexed_value)
     body = merge_nested_ifs(body)

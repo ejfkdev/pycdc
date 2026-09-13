@@ -18646,7 +18646,83 @@ let reopen = self
                         (Some(_), Some(Sv::E(e))) => Some(e.clone()),
                         _ => None,
                     };
-                    if let (Some(i0), Some(first)) = (ci, first) {
+                    // value-chain concession: when the operand run
+                    // after this link's POP_TOP ends in an OPPOSITE-
+                    // polarity value-preserving jump to a merge M
+                    // (target holds no POP_TOP) whose escape region
+                    // [target+1, M) is pure-value, this is
+                    // `A and B and C or D` (a value expression), not a
+                    // statement chain - let py2_value_chain fold it
+                    // (bdb 2.6 get_breaks rendered `if A and B: pass` +
+                    // a wrong-condition ternary that KeyErrors where
+                    // the source returns [])
+                    let first_op_here = inst.op;
+                    let value_chain_ahead = (|| {
+                        let p1 = ci? + 1;
+                        let s0 = *self.idx_of.get(&self.instrs.get(p1)?.end())?;
+                        let t0 = *self.idx_of.get(&target)?;
+                        let te = self.instrs[t0].end();
+                        let mut q = s0;
+                        while q < self.instrs.len() {
+                            let ins = &self.instrs[q];
+                            if matches!(
+                                ins.op,
+                                Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE
+                            ) {
+                                // same-polarity link escaping to the
+                                // shared target with a POP_TOP after:
+                                // another and/or operand - skip past it
+                                if ins.op == first_op_here
+                                    && ins.target == Some(target)
+                                    && self
+                                        .instrs
+                                        .get(q + 1)
+                                        .map_or(false, |nx| nx.op == Op::POP_TOP)
+                                {
+                                    q += 2;
+                                    continue;
+                                }
+                                let opp = ins.op != first_op_here;
+                                let mt = ins.target?;
+                                if !opp || ins.is_backward || mt <= target {
+                                    return Some(false);
+                                }
+                                // escape region [target_pop_end, M)
+                                // pure value, and M not a POP_TOP
+                                // landing (merge, not else head)
+                                let mi = *self.idx_of.get(&mt)?;
+                                if matches!(self.instrs[mi].op, Op::POP_TOP) {
+                                    return Some(false);
+                                }
+                                let mut r = te;
+                                while r < mi {
+                                    let x = &self.instrs[r];
+                                    if !is_pure_value_op(x.op)
+                                        && !matches!(
+                                            x.op,
+                                            Op::NOP
+                                                | Op::NOT_TAKEN
+                                                | Op::CACHE
+                                                | Op::TO_BOOL
+                                        )
+                                    {
+                                        return Some(false);
+                                    }
+                                    r += 1;
+                                }
+                                return Some(true);
+                            }
+                            if ins.is_jump() || !is_pure_value_op(ins.op) {
+                                return Some(false);
+                            }
+                            q += 1;
+                        }
+                        Some(false)
+                    })()
+                    .unwrap_or(false);
+                    if value_chain_ahead {
+                        // fall through to py2_value_chain below
+                    } else if let (Some(i0), Some(first)) = (ci, first) {
                         if let Some((cond, then_start, else_body, else_pop)) =
                             self.py26_stmt_boolop_chain(i0, first, jump_if_true, target)
                         {
@@ -21487,6 +21563,7 @@ impl<'a> Ctx<'a> {
         jump_if_true: bool,
         target: usize,
     ) -> Option<(ExprRef, usize, usize, usize)> {
+        let first_op = self.instrs.get(i0).map(|x| x.op);
         // link 0's target must hold the escape-path POP_TOP
         let &t0i = self.idx_of.get(&target)?;
         if self.instrs.get(t0i).map(|x| x.op) != Some(Op::POP_TOP) {
@@ -21543,6 +21620,11 @@ impl<'a> Ctx<'a> {
             // POP_TOP → another link. Anything else → body.
             let mut p = k;
             let mut more = false;
+            let ljit_probe = self
+                .instrs
+                .get(k.saturating_sub(1))
+                .map(|x| x.op == Op::JUMP_IF_TRUE)
+                .unwrap_or(false);
             while let Some(ins) = self.instrs.get(p) {
                 if matches!(ins.op, Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE)
                     && ins.target.map_or(false, |t| t > ins.offset)
@@ -21550,21 +21632,23 @@ impl<'a> Ctx<'a> {
                     if let Some(t) = ins.target {
                         if let Some(&nti) = self.idx_of.get(&t) {
                             if self.instrs.get(nti).map(|x| x.op) == Some(Op::POP_TOP)
-                                // a chain LINK's landing continues with
-                                // value material (the shared escape's
-                                // POP_TOP, or an or-merge POP_TOP then
-                                // the next operand run); a statement-if
-                                // inside the would-be body lands on its
-                                // own else POP_TOP followed by STATEMENT
-                                // material (bdb 2.6 stop_here: the while
-                                // body's `if frame is self.botframe:` JIF
-                                // was read as a third link, the fold
+                                // coherence at PROBE time: a same-
+                                // polarity candidate link must escape to
+                                // the shared escape the pending links
+                                // already use; a statement-if inside the
+                                // would-be body jumps to its OWN else
+                                // (bdb 2.6 stop_here: the body's `if
+                                // frame is self.botframe:` JIF->106 was
+                                // probed as a third link, the fold
                                 // over-consumed the body and bailed, and
-                                // the while condition lost operand B)
-                                && self.instrs.get(nti + 1).map_or(true, |nx| {
-                                    matches!(nx.op, Op::POP_TOP | Op::RETURN_VALUE | Op::RETURN_CONST)
-                                        || is_pure_value_op(nx.op)
-                                })
+                                // the while condition lost operand B).
+                                // Opposite-polarity links (or-merges)
+                                // keep the historical acceptance.
+                                && (Some(ins.op) != first_op
+                                    || pending
+                                        .iter()
+                                        .filter(|(_, j, _)| *j == ljit_probe)
+                                        .all(|(_, _, t2)| *t2 == t))
                             {
                                 more = true;
                             }
@@ -28360,22 +28444,64 @@ return None;
             Op::JUMP_IF_TRUE
         };
         let bi = *self.idx_of.get(&pop1_end)?;
+        // n-operand generalization: every and/or operand before the
+        // final one short-circuits to `target` with a same-polarity
+        // value-preserving jump followed by POP_TOP (bdb 2.6
+        // get_breaks: `A and B and C or []` = JIF T; POP; JIF T; POP;
+        // JIT M). Each operand's value span is recorded; the LAST
+        // operand ends on the opposite-polarity jump to the merge.
+        let mut spans: Vec<(usize, usize)> = Vec::new();
         let mut merge: Option<usize> = None;
-        let mut b_end: Option<usize> = None;
         let mut k = bi;
-        while k < ti {
-            let ins = &self.instrs[k];
-            if ins.op == second_op && !ins.is_backward {
-                if merge.is_some() {
+        loop {
+            let region_start = self.instrs.get(k).map(|x| x.offset)?;
+            if region_start >= self.instrs[ti].offset {
+                return None;
+            }
+            let mut jump_at = None;
+            while k < ti {
+                let ins = &self.instrs[k];
+                if matches!(ins.op, Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE) {
+                    jump_at = Some(k);
+                    break;
+                }
+                if ins.is_jump() {
                     return None;
                 }
-                let mt = ins.target?;
+                if !is_pure_value_op(ins.op)
+                    && !matches!(
+                        ins.op,
+                        Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL
+                    )
+                {
+                    return None;
+                }
+                k += 1;
+            }
+            let jk = match jump_at {
+                Some(jk) => jk,
+                None => return None,
+            };
+            let jins = &self.instrs[jk];
+            let jend = jins.offset;
+            if jins.op == first.op && jins.target == Some(target) {
+                // another short-circuit operand to `target`
+                let nxt = self.instrs.get(jk + 1)?;
+                if nxt.op != Op::POP_TOP {
+                    return None;
+                }
+                spans.push((region_start, jend));
+                k = jk + 2;
+                continue;
+            }
+            if jins.op == second_op && !jins.is_backward {
+                let mt = jins.target?;
                 if mt <= target {
                     return None;
                 }
                 merge = Some(mt);
-                b_end = Some(ins.offset);
-                k += 1;
+                spans.push((region_start, jend));
+                k = jk + 1;
                 while k < ti {
                     if !matches!(
                         self.instrs[k].op,
@@ -28387,21 +28513,12 @@ return None;
                 }
                 break;
             }
-            if ins.is_jump() {
-                return None;
-            }
-            if !is_pure_value_op(ins.op)
-                && !matches!(
-                    ins.op,
-                    Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL
-                )
-            {
-                return None;
-            }
-            k += 1;
+            return None;
         }
         let m = merge?;
-        let b_end = b_end?;
+        if spans.is_empty() {
+            return None;
+        }
         let mi = *self.idx_of.get(&m)?;
         if mi <= ti + 1 {
             return None;
@@ -28444,15 +28561,19 @@ return None;
             return None;
         }
         let a = self.pop_expr();
-        self.region_result_expr = None;
-        let stmts_b = self.decompile_region(pop1_end, b_end);
-        let b = self.region_result_expr.take();
-        if !stmts_b.is_empty() || b.is_none() {
-            self.stack = stack;
-            self.blocks = blocks;
-            self.skip_until = skip;
-            self.pending_stores = pend;
-            return None;
+        let mut ands: Vec<ExprRef> = vec![a];
+        for (s0, s1) in &spans {
+            self.region_result_expr = None;
+            let stmts_b = self.decompile_region(*s0, *s1);
+            let b = self.region_result_expr.take();
+            if !stmts_b.is_empty() || b.is_none() {
+                self.stack = stack;
+                self.blocks = blocks;
+                self.skip_until = skip;
+                self.pending_stores = pend;
+                return None;
+            }
+            ands.push(b.unwrap());
         }
         self.region_result_expr = None;
         let stmts_c = self.decompile_region(cs, m);
@@ -28471,7 +28592,7 @@ return None;
         };
         let inner_e = Rc::new(Expr::BoolOp {
             op: inner,
-            values: vec![a, b.unwrap()],
+            values: ands,
         });
         self.push(Rc::new(Expr::BoolOp {
             op: outer,
