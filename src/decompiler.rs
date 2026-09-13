@@ -3089,6 +3089,7 @@ impl<'a> Ctx<'a> {
                 // read the natural iteration edge as an explicit
                 // `continue` (binhex 3.10 HexBin.__init__)
                 let mut blk = Block::new(BlockType::While, pos_eff, end);
+                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=3091 off={} cond-start", self.cur_offset); }
                 blk.cond = Some(self.true_cond_expr());
                 blk.cond_set = true;
                 self.blocks.push(blk);
@@ -12140,6 +12141,7 @@ impl<'a> Ctx<'a> {
                     let start = if pos == b.end { pos } else { b.end };
                     self.pending_loop.push((Some(cond), None, None, body, false));
                     let else_blk = Block::new(BlockType::WhileElse, start, else_end);
+                    if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=12142 off={} cond-start", self.cur_offset); }
                     self.blocks.push(else_blk);
                 } else {
                     self.push_stmt(Stmt::While {
@@ -18939,6 +18941,7 @@ let reopen = self
                     self.flushing = false;
                 }
                 let mut blk = Block::new(BlockType::While, inst.end(), target);
+                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=18941 off={} cond-start", self.cur_offset); }
                 blk.cond_set = false;
                 self.blocks.push(blk);
                 true
@@ -30826,6 +30829,7 @@ return None;
             if let (Some(be), Some(xj)) = (back_edge, exit_jump) {
                 if let Some(ct) = be.target {
                     let mut blk = Block::new(BlockType::While, ct, be.end());
+                    if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=30828 off={} cond-start", self.cur_offset); }
                     blk.cond = Some(cond);
                     blk.cond_set = true;
                     blk.cond_end = self.cur_next;
@@ -32364,6 +32368,7 @@ if split_cond {
                             if let (Some(wt), Some(we)) = (wtop, wend) {
                                 let cond_end = self.instrs[ci0].end();
                                 let mut blk = Block::new(BlockType::While, wt, we);
+                                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=32366 off={} cond-start", self.cur_offset); }
                                 blk.cond = Some(cond);
                                 blk.cond_set = true;
                                 blk.cond_end = cond_end;
@@ -32860,6 +32865,7 @@ if split_cond {
                     // degenerate `if line: continue` guard)
                     let cond_end = self.instrs[ci].end();
                     let mut blk = Block::new(BlockType::While, target, reval_exit);
+                    if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=32862 off={} cond-start", self.cur_offset); }
                     // the jump enters the BODY on true: a PJIT pre-check
                     // means the source cond is the operand as-is
                     let wcond = if jump_if_true {
@@ -32980,8 +32986,23 @@ if split_cond {
                                 )
                             })
                         };
+                        // the claimed exit must not flow back to the top:
+                        // a guard-clause `while True:` body whose first
+                        // guard's PJIF lands on the SECOND guard (which
+                        // continues back to the top) is not a rotated
+                        // while cond (annotationlib 3.14 get_annotations
+                        // unwrap loop rendered `while hasattr: B else: G`
+                        // - the body's break only left the inner loop and
+                        // the cycle-detection spun forever)
+                        let exit_loops_back = self
+                            .idx_of
+                            .get(&target)
+                            .map_or(false, |&ti2| {
+                                self.region_loops_back_to(ti2, t)
+                            });
                         if inst.is_backward
                             && t < target
+                            && !exit_loops_back
                             && (t == cur
                                 || (t == self.cur_next
                                     && !inner_cond_exit(t)
@@ -32992,6 +33013,7 @@ if split_cond {
                         {
                             let cond_end = self.instrs[ci].end();
                             let mut blk = Block::new(BlockType::While, t, target);
+                            if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=32994 off={} cond-start", self.cur_offset); }
                             let mut wcond = if jump_if_true {
                                 negate_cond(cond)
                             } else {
@@ -33135,6 +33157,7 @@ if split_cond {
                                 .map_or(true, |(_, bt)| t >= bt)
                         {
                             let mut blk = Block::new(BlockType::While, t, target);
+                            if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=33137 off={} cond-start", self.cur_offset); }
                             let mut merged = cond.clone();
                             let mc = self.merge_forward_cond_chain(ci, target);
                             if let Some(c2) = mc {
@@ -37460,6 +37483,82 @@ if split_cond {
         }
     }
 
+    /// Two-path DFS from instruction index `ti`: does linear flow (forking
+    /// at cond jumps) reach a backward jump to loop top `bt` after passing
+    /// real statement material, before any RETURN/forward-exit? True means
+    /// the region at `ti` is loop-INTERNAL (a guard-clause continuation of
+    /// a rotated while-True), not the loop's exhaustion exit.
+    fn region_loops_back_to(&self, ti: usize, bt: usize) -> bool {
+        let back_ops = |o: Op| {
+            matches!(
+                o,
+                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
+            )
+        };
+        let is_cj = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                    | Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_IF_NOT_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+            )
+        };
+        let mut found = false;
+        let mut frontier: Vec<(usize, bool)> = vec![(ti, false)];
+        let mut visited: Vec<(usize, bool)> = Vec::new();
+        let mut budget = 600usize;
+        while let Some((q0, saw0)) = frontier.pop() {
+            let mut q = q0;
+            let mut saw_stmt = saw0;
+            while budget > 0 {
+                budget -= 1;
+                let Some(x) = self.instrs.get(q) else { break };
+                if visited.contains(&(q, saw_stmt)) {
+                    break;
+                }
+                visited.push((q, saw_stmt));
+                if matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                    q += 1;
+                    continue;
+                }
+                if x.is_backward {
+                    if x.target == Some(bt) && saw_stmt && back_ops(x.op) {
+                        found = true;
+                    }
+                    break;
+                }
+                if matches!(
+                    x.op,
+                    Op::JUMP_FORWARD | Op::JUMP | Op::RETURN_VALUE | Op::RETURN_CONST | Op::RERAISE
+                ) {
+                    break;
+                }
+                if is_cj(x.op) {
+                    if let Some(t) = x.target {
+                        if let Some(&tq) = self.idx_of.get(&t) {
+                            frontier.push((tq, saw_stmt));
+                        }
+                    }
+                    q += 1;
+                    continue;
+                }
+                if !is_pure_value_op(x.op) && !matches!(x.op, Op::TO_BOOL) {
+                    saw_stmt = true;
+                }
+                q += 1;
+            }
+            if found {
+                break;
+            }
+        }
+        found
+    }
+
     fn prescan_while_true(&mut self) {
         if !self.version.at_least(3, 8) || self.inline_comp.is_some() {
             return;
@@ -37565,7 +37664,23 @@ if split_cond {
                     // back to 1228; claiming it rendered `while
                     // hasattr(...): ... else: <functools clause>` and lost
                     // the loop semantics)
+                    // linear-flow walk from the target: the region is
+                    // still loop-internal when straight-line execution
+                    // (through pads and cond jumps, following
+                    // fall-through) reaches a backward jump to the top
+                    // without exiting first. A genuine rotated while's
+                    // exit starts the post-loop main flow, which never
+                    // flows back into the top (its back edges live in
+                    // out-of-line handler/sunk regions branched into,
+                    // not fallen into - contextlib 3.14 __exit__
+                    // regressed under the blanket any-scan form).
+                    // the cond jump's target must be the loop EXIT, not
+                    // a guard-clause continuation that flows back to the
+                    // top (annotationlib 3.14 get_annotations unwrap loop)
+                    let target_loops_back = self.region_loops_back_to(ti, bt);
+
                     if self.is_cond_expr_top(bt, cj.offset)
+                        && !target_loops_back
                         && !self
                             .idx_of
                             .get(&bt)
@@ -38297,6 +38412,7 @@ if split_cond {
             .unwrap_or(exit_a);
         self.while_true_loops.retain(|(t, _)| *t != body_top);
         let mut blk = Block::new(BlockType::While, body_top, exit_end);
+        if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38395 off={} cond-start", self.cur_offset); }
         blk.cond = Some(merged);
         blk.cond_set = true;
         blk.cond_end = self.instrs[ci].end();
@@ -38513,6 +38629,7 @@ if split_cond {
                 });
                 self.while_true_loops.retain(|(t, _)| *t != target);
                 let mut blk = Block::new(BlockType::While, target, exit);
+                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38611 off={} cond-start", self.cur_offset); }
                 blk.cond = Some(merged);
                 blk.cond_set = true;
                 // cond_end = the LAST head link's end (the B jump whose
@@ -38672,6 +38789,7 @@ if split_cond {
                 });
                 self.while_true_loops.retain(|(t, _)| *t != target);
                 let mut blk = Block::new(BlockType::While, target, exit);
+                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38770 off={} cond-start", self.cur_offset); }
                 blk.cond = Some(merged);
                 blk.cond_set = true;
                 // cond_end = the LAST head link's end (the B jump whose
@@ -38833,6 +38951,7 @@ if split_cond {
         });
         self.while_true_loops.retain(|(t, _)| *t != target);
         let mut blk = Block::new(BlockType::While, target, exit);
+        if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38931 off={} cond-start", self.cur_offset); }
         blk.cond = Some(merged);
         blk.cond_set = true;
         blk.cond_end = self.instrs[ci].end();
