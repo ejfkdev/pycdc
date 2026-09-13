@@ -1611,6 +1611,106 @@ def _refold_tail_flat_else(stmts):
     return stmts
 
 
+def _try_tail_is_sunk(tr):
+    """A Try whose body and every handler body end in a bare return - the
+    3.11+ compiler sinks the function-tail return into the try body and
+    into each clause (asyncore 3.11 dispatcher.__init__)."""
+    if not isinstance(tr, TRY_TYPES) or not getattr(tr, 'body', None) \
+            or not getattr(tr, 'handlers', None):
+        return False
+    if not _is_bare_return(tr.body[-1]):
+        return False
+    for h in tr.handlers:
+        if not h.body or not _is_bare_return(h.body[-1]):
+            return False
+    return True
+
+
+def _is_none_const(node):
+    if hasattr(ast, 'Constant') and isinstance(node, ast.Constant):
+        return node.value is None
+    if hasattr(ast, 'Name') and isinstance(node, ast.Name):
+        return node.id == 'None'  # py2 parses None as a Name
+    return False
+
+
+def _is_as_cleanup_pair(stmts):
+    """`name = None` + `del name` - the handler's exception-variable
+    cleanup the decompiler emits as post-try siblings. Version-tolerant:
+    ast.Constant is absent before 3.8 and py2 parses None as a Name."""
+    return (len(stmts) == 2
+            and isinstance(stmts[0], ast.Assign)
+            and len(stmts[0].targets) == 1
+            and isinstance(stmts[0].targets[0], ast.Name)
+            and _is_none_const(stmts[0].value)
+            and isinstance(stmts[1], ast.Delete)
+            and len(stmts[1].targets) == 1
+            and isinstance(stmts[1].targets[0], ast.Name)
+            and stmts[1].targets[0].id == stmts[0].targets[0].id)
+
+
+def _strip_sunk_try_returns(stmts):
+    """The orelse-carrying half of _refold_sunk_try_tail: a guard WITH an
+    else arm whose then-arm tail Try is sunk-shaped loses its body/handler
+    tail bare returns - the source-side tree keeps the returns the 3.11+
+    compiler sank (they are implicit there), so stripping on both shapes
+    lets the else form and the flattened form converge. Asymmetric fires
+    (one side only) would leave the other side's returns behind
+    (asyncore 3.11 dispatcher.__init__)."""
+    for s in stmts:
+        if isinstance(s, ast.If) and s.body and s.orelse \
+                and isinstance(s.body[-1], TRY_TYPES) \
+                and _try_tail_is_sunk(s.body[-1]):
+            s.body[-1].body = s.body[-1].body[:-1]
+            for h in s.body[-1].handlers:
+                h.body = h.body[:-1]
+        for fld in ('body', 'orelse'):
+            v = getattr(s, fld, None)
+            if isinstance(v, list) and v and isinstance(v[0], ast.stmt):
+                _strip_sunk_try_returns(v)
+    return stmts
+
+
+def _refold_sunk_try_tail(stmts):
+    """At the effective function tail, `if A: [..., Try{sunk}, cleanup?]"
+    followed by siblings S equals `if A: [..., Try] else: S` with the sunk
+    bare returns and the as-cleanup residue dropped: 3.11+ sinks the
+    function-tail return into the try body and into each clause, the
+    decompiler renders the exception-variable cleanup as post-try
+    siblings, and the else arm flattens to a function-level sibling
+    (asyncore 3.11 dispatcher.__init__ lost `self.socket = None` into an
+    unconditional assign while gaining two phantom returns). Only fires
+    when the arm's tail Try vetts as sunk - the returns are the
+    terminality evidence gating the else refold."""
+    i = 0
+    while i < len(stmts):
+        s = stmts[i]
+        if isinstance(s, ast.If) and s.body and not s.orelse \
+                and i + 1 < len(stmts):
+            body = s.body
+            pre = body
+            tail_try = None
+            if _is_as_cleanup_pair(body[-2:]) and len(body) >= 3:
+                tail_try = body[-3]
+                pre = body[:-3]
+            elif body:
+                tail_try = body[-1]
+                pre = body[:-1]
+            if isinstance(tail_try, TRY_TYPES) and _try_tail_is_sunk(tail_try):
+                tail_try.body = tail_try.body[:-1]
+                for h in tail_try.handlers:
+                    h.body = h.body[:-1]
+                s.body = pre + [tail_try]
+                s.orelse = stmts[i + 1:]
+                del stmts[i + 1:]
+                return stmts
+            _refold_sunk_try_tail(s.body)
+            if s.orelse:
+                _refold_sunk_try_tail(s.orelse)
+        i += 1
+    return stmts
+
+
 def _sink_tail_into_nested_guard(stmts, ret):
     """Make the trailing guard chain of `stmts` end in `return V` at
     every arm, where V is the function-tail return the arms fall
@@ -3355,6 +3455,8 @@ def dump(src):
             _normalize_func_tail_handler_return(node)
             _strip_dup_tail_returns(node)
             node.body = _strip_tail_bare_returns(node.body)
+            _refold_sunk_try_tail(node.body)
+            _strip_sunk_try_returns(node.body)
             _refold_tail_flat_else(node.body)
             _strip_redundant_tail_bare_returns(node.body)
             if _sink_func_tail_into_guard_arms(node):

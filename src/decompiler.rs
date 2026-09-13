@@ -1982,6 +1982,74 @@ pub fn decompile_in_scope(
                 r.body_end = e.end;
                 r.region_end = e.end;
             } else {
+                // 3.11+ protects the function-tail return that FOLLOWS a
+                // try with its own entry targeting the SAME handler the
+                // try already claims (asyncore 3.11 recv: [104,106)->108
+                // after the body [4,100)->108). A tail-return-shaped span
+                // whose handler is already claimed is that cleanup
+                // window, not a source try - creating a region renders a
+                // phantom `try: return ...` re-parsing the consumed
+                // handler; skip it and the walk emits the plain return.
+                let tail_ret_window = ctx.version.at_least(3, 11)
+                    && is_exc
+                    && regions.iter().any(|r| r.except_handler == Some(e.target))
+                    // the window is the try's POST-try tail: the compiler
+                    // closed the protection range before it, so a real
+                    // (non-pad) gap separates it from the previous
+                    // same-handler fragment - `try: x=f(); return x` keeps
+                    // its return fragment CONTIGUOUS with the body and
+                    // must stay inside the try (asyncore 3.11 recv: the
+                    // gap [100,104) holds the if-arm's unprotected
+                    // `return b''`)
+                    && regions
+                        .iter()
+                        .filter(|r| r.except_handler == Some(e.target))
+                        .map(|r| r.region_end)
+                        .max()
+                        .map_or(false, |prev_end| {
+                            prev_end < e.start
+                                && ctx.instrs.iter().any(|x| {
+                                    x.offset >= prev_end
+                                        && x.offset < e.start
+                                        && !matches!(
+                                            x.op,
+                                            Op::NOP
+                                                | Op::NOT_TAKEN
+                                                | Op::CACHE
+                                        )
+                                })
+                        })
+                    && {
+                        // the entry may cover ONLY the value loads (the
+                        // RETURN itself sits past e.end - recv's
+                        // [104,106) = LOAD_FAST data): scan up to and
+                        // including the first instruction at/after e.end
+                        let mut saw_ret = false;
+                        let mut clean = true;
+                        for x in ctx.instrs.iter() {
+                            if x.offset < e.start {
+                                continue;
+                            }
+                            if x.offset > e.end {
+                                break;
+                            }
+                            if matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                                continue;
+                            }
+                            if matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                                saw_ret = true;
+                                continue;
+                            }
+                            if x.target.is_some() || !is_pure_value_op(x.op) {
+                                clean = false;
+                                break;
+                            }
+                        }
+                        saw_ret && clean
+                    };
+                if tail_ret_window {
+                    continue;
+                }
                 let mut r = TryCtx {
                     start: e.start,
                     body_end: e.end,
@@ -2117,8 +2185,8 @@ pub fn decompile_in_scope(
         if std::env::var("PYCDC_EG_DBG").is_ok() {
             for r in &regions {
                 eprintln!(
-                    "EG region start={} body_end={} region_end={} exc={:?} fin={:?} split={:?}",
-                    r.start, r.body_end, r.region_end, r.except_handler, r.finally_handler, r.split_body2
+                    "EG region[{}] start={} body_end={} region_end={} exc={:?} fin={:?} split={:?}",
+                    code.name, r.start, r.body_end, r.region_end, r.except_handler, r.finally_handler, r.split_body2
                 );
             }
         }
