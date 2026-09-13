@@ -7916,6 +7916,43 @@ impl<'a> Ctx<'a> {
     /// Extent of the out-of-line handler chain starting at `from`: runs
     /// through clause bodies and trailing cleanups, ending after the last
     /// RERAISE not followed by more cleanup.
+    /// The END_FINALLY offset closing the legacy finally chain that
+    /// starts at `hs` (3.8-3.10): linear scan counting SETUP_FINALLY /
+    /// SETUP_EXCEPT nesting. The finally body's own nested chains and
+    /// guard arms close PAST the inline_end scan's first sunk-tail stop,
+    /// and their statements still belong to the finalbody (cmd 3.8
+    /// cmdloop: the finally body's `if use_rawinput and completekey:`
+    /// wrapper closed at the chain's outer END_FINALLY, past else_stop,
+    /// and leaked to function level as a sibling).
+    fn legacy_finally_chain_end(&self, hs: usize) -> Option<usize> {
+        let mut i = *self.idx_of.get(&hs)?;
+        let mut depth = 1usize;
+        let mut saw_nested_setup = false;
+        while i < self.instrs.len() {
+            let ins = &self.instrs[i];
+            match ins.op {
+                Op::SETUP_FINALLY | Op::SETUP_EXCEPT | Op::BEGIN_FINALLY => {
+                    depth += 1;
+                    saw_nested_setup = true;
+                }
+                Op::END_FINALLY => {
+                    depth -= 1;
+                    if depth == 0 {
+                        // a SIMPLE finally body (no nested chain of its
+                        // own) keeps the historical bound: extending to
+                        // its END_FINALLY redirects the sunk inline-copy
+                        // material and loses the Try (cProfile/cgitb/bdb
+                        // 3.8 `try: return X finally: Y` regressions)
+                        return saw_nested_setup.then_some(ins.offset);
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        None
+    }
+
     fn chain_extent(&self, from: usize) -> usize {
         let Some(&i) = self.idx_of.get(&from) else {
             return from;
@@ -13261,6 +13298,13 @@ impl<'a> Ctx<'a> {
             let (es_dbg, stop_dbg, fin_dbg) = self.legacy_try.as_ref().map(|l| (l.else_start, l.else_stop, l.finalbody.len())).unwrap_or((None, 0, 0));
             eprintln!("PS fn={} off={} kind={} erbo={} es={:?} stop={} fin={} blocks={:?}", self.code.name, self.cur_offset, match &stmt { Stmt::If { .. } => "If", Stmt::Try { .. } => "Try", Stmt::Expr(_) => "Expr", Stmt::Assign { .. } => "Assign", _ => "other" }, else_region_block_open, es_dbg, stop_dbg, fin_dbg, self.blocks.iter().map(|b| (b.kind as u8, b.start, b.end)).collect::<Vec<_>>());
         }
+        // has_finally chains: the redirect bound extends to the chain's
+        // outer END_FINALLY (computed before the mutable borrow)
+        let fin_chain_end = self
+            .legacy_try
+            .as_ref()
+            .filter(|l| l.has_finally)
+            .and_then(|l| self.legacy_finally_chain_end(l.handler_start));
         if !else_region_block_open {
             if let Some(lt) = self.legacy_try.as_mut() {
                 if let Some(es) = lt.else_start {
@@ -13269,10 +13313,15 @@ impl<'a> Ctx<'a> {
                     // returns and the inline_end scan stops at the
                     // first — if-arm wrappers over the copy close past
                     // else_stop and still belong to the finally body
-                    // (cmd 3.10 cmdloop). orelse regions keep the
-                    // precise else_stop bound.
+                    // (cmd 3.10 cmdloop). A finally body with its OWN
+                    // nested chains closes at the outer END_FINALLY
+                    // (cmd 3.8 cmdloop) - prefer the chain end when
+                    // known. orelse regions keep the precise else_stop
+                    // bound.
                     let stop = if lt.has_finally {
-                        lt.else_stop.max(lt.handler_start)
+                        fin_chain_end
+                            .map(|ce| lt.else_stop.max(ce))
+                            .unwrap_or_else(|| lt.else_stop.max(lt.handler_start))
                     } else {
                         lt.else_stop
                     };
