@@ -639,6 +639,15 @@ impl Printer {
                 }
                 self.newline();
             }
+            Stmt::TypeAlias { name, type_params, value } => {
+                self.write(&format!("type {name}"));
+                if !type_params.is_empty() {
+                    self.type_params(type_params);
+                }
+                self.write(" = ");
+                self.expr(value, 0);
+                self.newline();
+            }
             Stmt::FuncDef(fdef, body) => {
                 for d in &fdef.decorators {
                     self.write("@");
@@ -648,7 +657,11 @@ impl Printer {
                 if fdef.is_async {
                     self.write("async ");
                 }
-                self.write(&format!("def {}(", fdef.name));
+                self.write(&format!("def {}", fdef.name));
+                if !fdef.type_params.is_empty() {
+                    self.type_params(&fdef.type_params);
+                }
+                self.write("(");
                 self.parameters(&fdef.params);
                 self.write(")");
                 let ret = fdef
@@ -672,6 +685,7 @@ impl Printer {
                 star_kwargs,
                 decorators,
                 body,
+                type_params,
             } => {
                 for d in decorators {
                     self.write("@");
@@ -679,6 +693,9 @@ impl Printer {
                     self.newline();
                 }
                 self.write(&format!("class {name}"));
+                if !type_params.is_empty() {
+                    self.type_params(type_params);
+                }
                 let has_args = !bases.is_empty()
                     || !keywords.is_empty()
                     || star_args.is_some()
@@ -804,6 +821,59 @@ impl Printer {
         self.indent -= 1;
     }
 
+    /// 3.12+ PEP 695 type parameter list: `[T, U: bound, *Ts, **P, V = d]`
+    fn type_params(&mut self, params: &[crate::ast::TypeParam]) {
+        use crate::ast::TypeParam;
+        self.write("[");
+        let mut first = true;
+        for tp in params {
+            if !first {
+                self.write(", ");
+            }
+            first = false;
+            match tp {
+                TypeParam::TypeVar { name, bound, default } => {
+                    self.write(name);
+                    if let Some(b) = bound {
+                        self.write(": ");
+                        // constraints render as a parenthesized tuple
+                        // (`T: (int, str)`)
+                        if matches!(&**b, crate::ast::Expr::Tuple(items) if items.len() != 1) {
+                            self.write("(");
+                            self.expr(b, 0);
+                            self.write(")");
+                        } else {
+                            self.expr(b, 0);
+                        }
+                    }
+                    if let Some(d) = default {
+                        self.write(" = ");
+                        self.expr(d, 0);
+                    }
+                }
+                TypeParam::ParamSpec { name, default } => {
+                    self.write("**");
+                    self.write(name);
+                    if let Some(d) = default {
+                        self.write(" = ");
+                        self.expr(d, 0);
+                    }
+                }
+                TypeParam::TypeVarTuple { name, default } => {
+                    self.write("*");
+                    self.write(name);
+                    if let Some(d) = default {
+                        // PEP 696: a TypeVarTuple default is written with
+                        // a leading star (`*Ts = *tuple[()]`)
+                        self.write(" = *");
+                        self.expr(d, 0);
+                    }
+                }
+            }
+        }
+        self.write("]");
+    }
+
     fn parameters(&mut self, p: &Parameters) {
         let mut first = true;
         // clamp: defaults must never exceed the positional arg count
@@ -890,6 +960,23 @@ impl Printer {
 
     fn expr_inner(&mut self, e: &ExprRef) {
         match &**e {
+            // PEP 695 symbolic values — consumed before codegen in normal
+            // flows; render the underlying name/shape if one ever leaks.
+            Expr::TypeParamNode(tp) => {
+                let name = match &**tp {
+                    crate::ast::TypeParam::TypeVar { name, .. } => name.clone(),
+                    crate::ast::TypeParam::ParamSpec { name, .. } => format!("**{name}"),
+                    crate::ast::TypeParam::TypeVarTuple { name, .. } => format!("*{name}"),
+                };
+                self.write(&name);
+            }
+            Expr::GenericBase { name, params } => {
+                self.write(name);
+                if !params.is_empty() {
+                    self.type_params(params);
+                }
+            }
+            Expr::TypeAliasValue { value, .. } => self.expr(value, 0),
             Expr::Const(o) => self.const_expr(o),
             Expr::Name(n) => self.write(n),
             Expr::Attribute { value, attr } => {

@@ -13889,6 +13889,22 @@ impl<'a> Ctx<'a> {
                 self.push(self.name_expr(self.const_name(arg as usize)));
                 true
             }
+            Op::LOAD_FROM_DICT_OR_DEREF => {
+                // 3.12+ generic class bodies: `LOAD_LOCALS;
+                // LOAD_FROM_DICT_OR_DEREF i (.type_params)` reads a cell
+                // through the class dict — model it like LOAD_DEREF (the
+                // dict slot is consumed). The resulting compiler-dunder
+                // assignment (__type_params__) is stripped in
+                // postprocessing.
+                self.pop(); // the locals dict
+                let n = self
+                    .code
+                    .deref_name(arg as usize)
+                    .unwrap_or("/*bad-deref*/")
+                    .to_string();
+                self.push(self.name_expr(n));
+                true
+            }
             Op::STORE_DEREF => {
                 let n = self
                     .code
@@ -20378,6 +20394,182 @@ let reopen = self
                     };
                     self.push(Rc::new(t));
                     return true;
+                }
+                // 3.12+ PEP 695/696 type-parameter intrinsics. These only
+                // execute inside `<generic parameters of X>` wrapper bodies
+                // (run as nested decompilations by
+                // run_generic_params_wrapper), so the symbolic values they
+                // build never reach the outer output.
+                if self.version.at_least(3, 12) && inst.op == Op::CALL_INTRINSIC_1 {
+                    match arg {
+                        // INTRINSIC_TYPEVAR / PARAMSPEC / TYPEVARTUPLE:
+                        // pop the name constant, push a symbolic param node
+                        7 | 8 | 9 => {
+                            let name_e = self.pop_expr();
+                            let name = match &*name_e {
+                                Expr::Const(o) => match &**o {
+                                    PyObject::Str(s) => s.clone(),
+                                    _ => String::new(),
+                                },
+                                _ => String::new(),
+                            };
+                            let tp = match arg {
+                                7 => crate::ast::TypeParam::TypeVar {
+                                    name,
+                                    bound: None,
+                                    default: None,
+                                },
+                                8 => crate::ast::TypeParam::ParamSpec {
+                                    name,
+                                    default: None,
+                                },
+                                _ => crate::ast::TypeParam::TypeVarTuple {
+                                    name,
+                                    default: None,
+                                },
+                            };
+                            self.push(Rc::new(Expr::TypeParamNode(Box::new(tp))));
+                            return true;
+                        }
+                        // INTRINSIC_SUBSCRIPT_GENERIC: the implicit `C[T]`
+                        // base of a generic class (filtered at class
+                        // build); net-zero — the name is left on the
+                        // stack for __build_class__
+                        10 => {
+                            let params_e = self.pop_expr();
+                            let name_e = self.pop_expr();
+                            let name = match &*name_e {
+                                Expr::Const(o) => match &**o {
+                                    PyObject::Str(s) => s.clone(),
+                                    _ => String::new(),
+                                },
+                                _ => String::new(),
+                            };
+                            let params = type_params_of(&params_e);
+                            // net-zero intrinsic: the class name stays
+                            // below (it is __build_class__'s 2nd arg)
+                            self.push(name_e.clone());
+                            self.push(Rc::new(Expr::GenericBase { name, params }));
+                            return true;
+                        }
+                        // INTRINSIC_TYPEALIAS: ("Name", params, value_fn) ->
+                        // a TypeAliasValue the store path renders as
+                        // `type Name[params] = value`
+                        11 => {
+                            let tup = self.pop_expr();
+                            let items = match &*tup {
+                                Expr::Tuple(v) => v.clone(),
+                                _ => Vec::new(),
+                            };
+                            if items.len() == 3 {
+                                let name = match &*items[0] {
+                                    Expr::Const(o) => match &**o {
+                                        PyObject::Str(s) => s.clone(),
+                                        _ => String::new(),
+                                    },
+                                    _ => String::new(),
+                                };
+                                let params = type_params_of(&items[1]);
+                                let value = self.type_alias_value_expr(&items[2]);
+                                self.push(Rc::new(Expr::TypeAliasValue {
+                                    name,
+                                    type_params: params,
+                                    value,
+                                }));
+                                return true;
+                            }
+                            return true;
+                        }
+                        _ => {}
+                    }
+                }
+                if self.version.at_least(3, 12) && inst.op == Op::CALL_INTRINSIC_2 {
+                    match arg {
+                        // INTRINSIC_TYPEVAR_WITH_BOUND: (name, bound_fn)
+                        2 => {
+                            let bound_fn = self.pop_expr();
+                            let name_e = self.pop_expr();
+                            let name = match &*name_e {
+                                Expr::Const(o) => match &**o {
+                                    PyObject::Str(s) => s.clone(),
+                                    _ => String::new(),
+                                },
+                                _ => String::new(),
+                            };
+                            let bound = Some(self.type_param_fn_body(&bound_fn));
+                            self.push(Rc::new(Expr::TypeParamNode(Box::new(
+                                crate::ast::TypeParam::TypeVar {
+                                    name,
+                                    bound,
+                                    default: None,
+                                },
+                            ))));
+                            return true;
+                        }
+                        // INTRINSIC_TYPEVAR_WITH_CONSTRAINTS: same shape
+                        // as WITH_BOUND — the material is the constraints
+                        // tuple (`T: (int, str)`), rendered in bound
+                        // position (3.14 wraps it in an eval function)
+                        3 => {
+                            let mat = self.pop_expr();
+                            let name_e = self.pop_expr();
+                            let name = match &*name_e {
+                                Expr::Const(o) => match &**o {
+                                    PyObject::Str(s) => s.clone(),
+                                    _ => String::new(),
+                                },
+                                _ => String::new(),
+                            };
+                            let bound = Some(self.type_param_fn_body(&mat));
+                            self.push(Rc::new(Expr::TypeParamNode(Box::new(
+                                crate::ast::TypeParam::TypeVar {
+                                    name,
+                                    bound,
+                                    default: None,
+                                },
+                            ))));
+                            return true;
+                        }
+                        // INTRINSIC_SET_FUNCTION_TYPE_PARAMS: attach the
+                        // param tuple to the inner function object
+                        4 => {
+                            let a = self.pop_expr();
+                            let b = self.pop_expr();
+                            // order-insensitive: one side is the params
+                            // tuple, the other the target value
+                            let (target, params_e) =
+                                if matches!(&*a, Expr::Tuple(_)) { (b, a) } else { (a, b) };
+                            let params = type_params_of(&params_e);
+                            let out = match &*target {
+                                Expr::Function(fd) => {
+                                    let mut fd = (**fd).clone();
+                                    fd.type_params = params;
+                                    Rc::new(Expr::Function(Rc::new(fd))) as ExprRef
+                                }
+                                other => Rc::new(other.clone()) as ExprRef,
+                            };
+                            self.push(out);
+                            return true;
+                        }
+                        // INTRINSIC_SET_TYPEPARAM_DEFAULT (PEP 696):
+                        // (param_node, default_fn) -> node with default
+                        5 => {
+                            let default_fn = self.pop_expr();
+                            let node = self.pop_expr();
+                            let default = Some(self.type_param_fn_body(&default_fn));
+                            let out = match &*node {
+                                Expr::TypeParamNode(tp) => {
+                                    let mut tp = (**tp).clone();
+                                    set_tp_default(&mut tp, default);
+                                    Rc::new(Expr::TypeParamNode(Box::new(tp)))
+                                }
+                                other => Rc::new(other.clone()),
+                            };
+                            self.push(out);
+                            return true;
+                        }
+                        _ => {}
+                    }
                 }
                 // all other intrinsics are value-preserving pass-throughs
                 true
@@ -42508,6 +42700,7 @@ impl<'a> Ctx<'a> {
                     star_kwargs: None,
                     decorators,
                     body,
+                    type_params: Vec::new(),
                 });
                 return;
             }
@@ -42528,6 +42721,18 @@ impl<'a> Ctx<'a> {
                 // stale marker
                 self.pending_aug = Some((aug_target, op));
                 self.pending_aug = None;
+            }
+        }
+        // 3.12+ PEP 695 type alias: `type X[T] = value`
+        if let Expr::TypeAliasValue { name, type_params, value } = &*val {
+            if let Expr::Name(fname) = &*target {
+                let name = if name.is_empty() { fname.clone() } else { name.clone() };
+                self.push_stmt(Stmt::TypeAlias {
+                    name,
+                    type_params: type_params.clone(),
+                    value: value.clone(),
+                });
+                return;
             }
         }
         // function definition
@@ -42601,6 +42806,11 @@ impl<'a> Ctx<'a> {
                                 let mut star_kwargs = None;
                                 let mut real_bases = Vec::new();
                                 let mut real_kws = Vec::new();
+                                // 3.12+ PEP 695: the compiler appends the
+                                // implicit `C[T]` generic base (an artifact
+                                // of SUBSCRIPT_GENERIC) — lift its params
+                                // into the class header instead
+                                let mut class_type_params: Vec<crate::ast::TypeParam> = Vec::new();
                                 for b in bases {
                                     match &*b {
                                         Expr::Starred(e) => {
@@ -42608,6 +42818,11 @@ impl<'a> Ctx<'a> {
                                                 star_args = Some(e.clone());
                                             } else {
                                                 star_kwargs = Some(e.clone());
+                                            }
+                                        }
+                                        Expr::GenericBase { params, .. } => {
+                                            if class_type_params.is_empty() {
+                                                class_type_params = params.clone();
                                             }
                                         }
                                         other => real_bases.push(Rc::new(other.clone())),
@@ -42633,6 +42848,7 @@ impl<'a> Ctx<'a> {
                                     star_kwargs,
                                     decorators,
                                     body,
+                                    type_params: class_type_params,
                                 });
                                 return;
                             }
@@ -45896,6 +46112,55 @@ impl<'a> Ctx<'a> {
             (args, Vec::new())
         };
 
+        // 3.12+ PEP 695: calling the compiler-generated `<generic
+        // parameters of X>` wrapper — run its straight-line body in a
+        // nested decompiler (the extended CALL_INTRINSIC arms build the
+        // symbolic type params there) and push its RETURN value: the
+        // inner function with type_params attached, a TypeAliasValue, or
+        // the __build_class__ call carrying the GenericBase artifact.
+        if self.version.at_least(3, 12) && keywords.is_empty() {
+            // 3.13 SWAP shape: the wrapper Function sits in the
+            // self_or_null (marker) slot and its `.defaults` tuple
+            // occupies the callable slot; 3.12 passes `.defaults` as a
+            // real CALL 1 argument and the wrapper is the callable.
+            let mut wrap_args = pos_args.clone();
+            let wrapper = if let Expr::Function(fd) = &*func {
+                if fd.code.name.starts_with("<generic parameters of ") {
+                    if wrap_args.is_empty() {
+                        if let Some(Sv::E(m)) = &marker {
+                            if matches!(&**m, Expr::Const(o) if matches!(&**o, PyObject::Tuple(_))) {
+                                wrap_args.push(m.clone());
+                            }
+                        }
+                    }
+                    Some(fd.clone())
+                } else {
+                    None
+                }
+            } else if let Some(Sv::E(m)) = &marker {
+                if let Expr::Function(fd) = &**m {
+                    if fd.code.name.starts_with("<generic parameters of ")
+                        && matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::Tuple(_)))
+                    {
+                        wrap_args = vec![func.clone()];
+                        Some(fd.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            if let Some(fd) = wrapper {
+                if let Some(v) = self.run_generic_params_wrapper(&fd.code, &wrap_args) {
+                    self.push(v);
+                    return;
+                }
+            }
+        }
+
         // decorator application: calling with a Function object argument
         // (3.12+ uses CALL 0 with the decorator *below* the function)
         if pos_args.len() == 1 && keywords.is_empty() {
@@ -46177,6 +46442,7 @@ impl<'a> Ctx<'a> {
             decorators,
             returns,
             is_async,
+            type_params: Vec::new(),
         });
         if is_lambda {
             // body: single return expression — extract from the lambda code
@@ -46538,6 +46804,144 @@ impl<'a> Ctx<'a> {
         self.push(out);
     }
 
+    /// Run a PEP 695 `<generic parameters of X>` wrapper body and return
+    /// its RETURN value. `args` are the wrapper call's positional args:
+    /// the implicit `.defaults` tuple (and kw-defaults dict) the compiler
+    /// passes for defs with parameter defaults — LOAD_FAST of those slots
+    /// yields placeholders in the nested run, so the inner function's
+    /// defaults are re-bound from `args` afterwards.
+    fn run_generic_params_wrapper(
+        &mut self,
+        code: &Rc<CodeObject>,
+        args: &[ExprRef],
+    ) -> Option<ExprRef> {
+        let scope = self.class_scope.clone();
+        let d = decompile_in_scope(code, self.version, &scope).ok()?;
+        if !d.clean {
+            // unrecognized wrapper shape — keep the historical placeholder
+            return None;
+        }
+        let mut result: Option<ExprRef> = None;
+        for stmt in &d.body {
+            if let Stmt::Return(Some(e)) = stmt {
+                result = Some(e.clone());
+            }
+        }
+        let mut result = result?;
+        // the class wrapper stores the GenericBase artifact into
+        // `.generic_base` and re-loads it as a bare Name for the
+        // __build_class__ call — substitute the captured value back so
+        // class formation can filter it and lift the type params
+        if let Expr::Call { func, args, keywords, star_args, star_kwargs } = &*result {
+            if matches!(&**func, Expr::Name(n) if n == "__build_class__")
+                && args.iter().any(|a| is_generic_base_name(a))
+            {
+                let mut gb: Option<ExprRef> = None;
+                // the params tuple reaches SUBSCRIPT_GENERIC through the
+                // `.type_params` cell (LOAD_DEREF yields a bare Name), so
+                // recover the real params from the wrapper's store stmt
+                let mut cell_params: Vec<crate::ast::TypeParam> = Vec::new();
+                for stmt in &d.body {
+                    if let Stmt::Assign { targets, value, .. } = stmt {
+                        if targets.iter().any(|t| is_generic_base_name(t))
+                            && matches!(&**value, Expr::GenericBase { .. })
+                        {
+                            gb = Some(value.clone());
+                        }
+                        if targets.iter().any(|t| {
+                            matches!(&**t, Expr::Name(n) if n.trim_start_matches('.') == "type_params")
+                        }) {
+                            cell_params = type_params_of(value);
+                        }
+                    }
+                }
+                let gb = gb.map(|g| {
+                    if let Expr::GenericBase { name, params } = &*g {
+                        if params.is_empty() && !cell_params.is_empty() {
+                            return Rc::new(Expr::GenericBase {
+                                name: name.clone(),
+                                params: cell_params.clone(),
+                            });
+                        }
+                    }
+                    g
+                });
+                if let Some(gb) = gb {
+                    let new_args: Vec<ExprRef> = args
+                        .iter()
+                        .map(|a| {
+                            if is_generic_base_name(a) { gb.clone() } else { a.clone() }
+                        })
+                        .collect();
+                    result = Rc::new(Expr::Call {
+                        func: func.clone(),
+                        args: new_args,
+                        keywords: keywords.clone(),
+                        star_args: star_args.clone(),
+                        star_kwargs: star_kwargs.clone(),
+                    });
+                }
+            }
+        }
+        if let Expr::Function(fd) = &*result {
+            if !args.is_empty() {
+                let mut fd2 = (**fd).clone();
+                fd2.params.defaults = tuple_items(&args[0]);
+                if args.len() > 1 {
+                    let map = dict_items(&args[1]);
+                    fd2.params.kw_defaults = fd2
+                        .params
+                        .kwonly
+                        .iter()
+                        .map(|p| {
+                            map.iter().find(|(k, _)| k == &p.name).map(|(_, v)| v.clone())
+                        })
+                        .collect();
+                }
+                return Some(Rc::new(Expr::Function(Rc::new(fd2))));
+            }
+        }
+        Some(result)
+    }
+
+    /// Body expression of a compiler-generated single-expression function
+    /// (PEP 695 bound/default lambdas, PEP 696 annotation format funcs).
+    /// 3.14 prepends a `.format` guard (`if .format > 2: raise
+    /// NotImplementedError`) — scan for the value `return`, not the first.
+    fn type_param_fn_body(&mut self, e: &ExprRef) -> ExprRef {
+        let code = match &**e {
+            Expr::Function(fd) => Some(fd.code.clone()),
+            Expr::Lambda { body, .. } => return body.clone(),
+            // 3.12/3.13 pass the material directly (constraints tuple,
+            // bound expression) — no eval-function wrapper
+            _ => return e.clone(),
+        };
+        if let Some(c) = code {
+            if let Ok(d) = decompile(&c, self.version) {
+                for stmt in &d.body {
+                    if let Stmt::Return(Some(v)) = stmt {
+                        return v.clone();
+                    }
+                }
+            }
+        }
+        self.mark_unclean();
+        self.name_expr("/*type-param-value?*/")
+    }
+
+    /// TYPEALIAS value slot: 3.12/3.13 hold the value-expression code
+    /// object directly; 3.14 wraps it in a real function (`.format` arg).
+    fn type_alias_value_expr(&mut self, e: &ExprRef) -> ExprRef {
+        match &**e {
+            Expr::Const(o) => match &**o {
+                PyObject::Code(c) => self.lambda_body(c),
+                _ => e.clone(),
+            },
+            Expr::Function(fd) => self.lambda_body(&fd.code),
+            _ => e.clone(),
+        }
+    }
+
     fn lambda_body(&mut self, code: &CodeObject) -> ExprRef {
         // lambda code: build expression from the (short) instruction stream
         let inner = decompile(code, self.version);
@@ -46764,6 +47168,42 @@ impl<'a> Ctx<'a> {
             }
             _ => self.mark_unclean(),
         }
+    }
+}
+
+/// Flatten a params-tuple expression into PEP 695 type parameters
+/// (non-TypeParamNode items are dropped — they cannot appear in
+/// compiler-generated wrappers).
+fn type_params_of(e: &ExprRef) -> Vec<crate::ast::TypeParam> {
+    match &**e {
+        Expr::Tuple(items) => items.iter().filter_map(unwrap_tp_node).collect(),
+        _ => unwrap_tp_node(e).map(|tp| vec![tp]).unwrap_or_default(),
+    }
+}
+
+/// The wrapper's `COPY 1; STORE_FAST T` shape is recognized as a walrus
+/// (`T := TypeVar('T')`), so param nodes may arrive wrapped in Expr::Named.
+fn is_generic_base_name(e: &ExprRef) -> bool {
+    matches!(&**e, Expr::Name(n) if n.trim_start_matches('.') == "generic_base"
+        || n.trim_start_matches('.') == "_generic_base")
+}
+
+fn unwrap_tp_node(e: &ExprRef) -> Option<crate::ast::TypeParam> {
+    let inner = match &**e {
+        Expr::Named { value, .. } => value,
+        _ => e,
+    };
+    match &**inner {
+        Expr::TypeParamNode(tp) => Some((**tp).clone()),
+        _ => None,
+    }
+}
+
+fn set_tp_default(tp: &mut crate::ast::TypeParam, default: Option<ExprRef>) {
+    match tp {
+        crate::ast::TypeParam::TypeVar { default: d, .. }
+        | crate::ast::TypeParam::ParamSpec { default: d, .. }
+        | crate::ast::TypeParam::TypeVarTuple { default: d, .. } => *d = default,
     }
 }
 
@@ -47397,6 +47837,7 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
                         || n == "__classdict__"
                         || n == "__firstlineno__"
                         || n == "__static_attributes__"
+                        || n == "__type_params__"
                     {
                         remove = true;
                     } else if n == "__doc__" {
@@ -49350,6 +49791,7 @@ impl<'a> Ctx<'a> {
                     decorators: Vec::new(),
                     returns: None,
                     is_async: false,
+                    type_params: Vec::new(),
                 })
             }
             _ => return None,
@@ -50370,6 +50812,7 @@ fn genexpr_ternary_merge(
                                         decorators: Vec::new(),
                                         returns: None,
                                         is_async: false,
+                                        type_params: Vec::new(),
                                     }))));
                                     handled = true;
                                 }

@@ -222,6 +222,40 @@ pub enum Expr {
     TString(Box<FString>),
     /// py2 backquote repr: `x`
     Backquote(ExprRef),
+    /// PEP 695: symbolic type-parameter value living only inside the
+    /// `<generic parameters of X>` wrapper evaluation; never codegen'd.
+    TypeParamNode(Box<TypeParam>),
+    /// PEP 695: the compiler-generated `C[T]` generic base artifact of a
+    /// `class C[T](...)` wrapper; filtered out of the rendered bases.
+    GenericBase {
+        name: String,
+        params: Vec<TypeParam>,
+    },
+    /// PEP 695: result of the TYPEALIAS intrinsic; the store path turns it
+    /// into `Stmt::TypeAlias`.
+    TypeAliasValue {
+        name: String,
+        type_params: Vec<TypeParam>,
+        value: ExprRef,
+    },
+}
+
+/// PEP 695/696 type parameter (`def f[T]`, `class C[T: bound]`, `type X[T = d]`)
+#[derive(Debug, Clone)]
+pub enum TypeParam {
+    TypeVar {
+        name: String,
+        bound: Option<ExprRef>,
+        default: Option<ExprRef>,
+    },
+    ParamSpec {
+        name: String,
+        default: Option<ExprRef>,
+    },
+    TypeVarTuple {
+        name: String,
+        default: Option<ExprRef>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -234,6 +268,8 @@ pub struct FunctionDef {
     /// return annotation (`-> X`)
     pub returns: Option<ExprRef>,
     pub is_async: bool,
+    /// 3.12+ PEP 695 type parameters (`def f[T](...)`)
+    pub type_params: Vec<TypeParam>,
 }
 
 #[derive(Debug, Clone)]
@@ -390,6 +426,14 @@ pub enum Stmt {
         star_kwargs: Option<ExprRef>,
         decorators: Vec<ExprRef>,
         body: Vec<Stmt>,
+        /// 3.12+ PEP 695 type parameters (`class C[T]:`)
+        type_params: Vec<TypeParam>,
+    },
+    /// 3.12+ PEP 695 type alias: `type X[T] = value`
+    TypeAlias {
+        name: String,
+        type_params: Vec<TypeParam>,
+        value: ExprRef,
     },
     /// 3.10+ `match subject: case ...:`
     Match {

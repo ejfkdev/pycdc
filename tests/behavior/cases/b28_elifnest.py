@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-# MIN_VERSION: 3.10
+# MIN_VERSION: 2.6
 # elif 链 + 臂内嵌套 if + 后续 elif 臂（crypt.mksalt 族）。
 # 3.11+：`elif x is None:` 的 NONE 跳族必须算 elif 条件
 # （starts_with_cond_jump），且臂尾 JF 在与嵌套 if 共享 merge 处
 # 关闭嵌套块后必须重派发给跨链 Else（否则第三臂掉链成无条件 if，
-# 行为破坏）。已知缺口：2.7-3.9 编译器把嵌套 if 假路径 jump-thread
-# 到下一 elif 标签，split_cond 将三臂合并成一个 And 链并丢失第二臂
-# 体（本用例经 MIN_VERSION 隔离）。
+# 行为破坏）。旧记录称 2.7-3.9 的 jump-thread 形状（嵌套 if 假路径
+# 穿到下一 elif 标签）会被 split_cond 合并成 And 链丢臂——经复核
+# 已被后续批次修复，本用例放开到 2.6 全版本验证。
 def elif_none(x, r):
     s = ''
     if x == 1:
