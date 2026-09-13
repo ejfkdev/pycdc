@@ -9,6 +9,20 @@ use pycdc::disasm::{disassemble, DisasmOptions};
 use pycdc::loader;
 use pycdc::version::FLAG_HASH_BASED;
 
+/// Write to stdout, exiting quietly when the reader closed the pipe.
+fn print_stdout(text: &str) {
+    use std::io::Write;
+    let stdout = std::io::stdout();
+    let mut lock = stdout.lock();
+    if let Err(e) = lock.write_all(text.as_bytes()) {
+        if e.kind() == std::io::ErrorKind::BrokenPipe {
+            std::process::exit(0);
+        }
+        eprintln!("error: stdout: {e}");
+        std::process::exit(1);
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut files: Vec<PathBuf> = Vec::new();
@@ -39,10 +53,9 @@ fn main() -> ExitCode {
                 }
             }
             "-h" | "--help" => {
-                println!("Usage: pycdas [--opcodes DIR] [-v X.Y] <file.pyc>...");
-                println!();
-                println!("  --opcodes DIR   load extra/override opcode config JSONs");
-                println!("  -v X.Y          treat input as raw marshal data for version X.Y");
+                print_stdout(
+                    "Usage: pycdas [--opcodes DIR] [-v X.Y] <file.pyc>...\n\n  --opcodes DIR   load extra/override opcode config JSONs\n  -v X.Y          treat input as raw marshal data for version X.Y\n",
+                );
                 return ExitCode::SUCCESS;
             }
             other => files.push(Path::new(other).to_path_buf()),
@@ -65,8 +78,8 @@ fn main() -> ExitCode {
     for file in &files {
         match loader::load(file, version_override) {
             Ok(loaded) => {
-                println!(
-                    "{} (Python {} {}, magic {})",
+                let mut head = format!(
+                    "{} (Python {} {}, magic {})\n",
                     file.display(),
                     loaded.version.display(),
                     loaded.version.implementation.name(),
@@ -76,23 +89,24 @@ fn main() -> ExitCode {
                     if h.kind == pycdc::version::HeaderKind::Pep552
                         && h.flags & FLAG_HASH_BASED != 0
                     {
-                        println!("  hash-based pyc, flags {:#x}", h.flags);
+                        head.push_str(&format!("  hash-based pyc, flags {:#x}\n", h.flags));
                     } else {
-                        println!(
-                            "  timestamp {} source size {}",
+                        head.push_str(&format!(
+                            "  timestamp {} source size {}\n",
                             h.timestamp, h.source_size
-                        );
+                        ));
                     }
                 }
-                println!();
+                head.push('\n');
+                print_stdout(&head);
                 match disassemble(&loaded.code, loaded.version, &DisasmOptions::default(), 0) {
-                    Ok(text) => print!("{text}"),
+                    Ok(text) => print_stdout(&text),
                     Err(e) => {
                         eprintln!("{}: disassembly error: {e}", file.display());
                         failed = true;
                     }
                 }
-                println!();
+                print_stdout("\n");
             }
             Err(e) => {
                 eprintln!("{}: error: {e}", file.display());

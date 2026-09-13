@@ -20,6 +20,57 @@ use crate::object::{ObjectRef, PyObject};
 use crate::opcode::{table_for, OpcodeTable};
 use crate::version::PythonVersion;
 
+/// Debug flag read from the environment **once per call site** and cached.
+/// Raw `std::env::var` in per-instruction paths took a global env lock and
+/// allocated a String every call — it showed up as a top profile hotspot.
+macro_rules! dbg_flag {
+    ($name:literal) => {{
+        static FLAG: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *FLAG.get_or_init(|| std::env::var($name).is_ok())
+    }};
+}
+
+/// Fast hasher for the dense-integer maps/sets in the VM loop (offset ->
+/// index lookups happen hundreds of times per instruction). SipHash with a
+/// random seed measurably dominated the profile; this map never iterates,
+/// so a deterministic multiply-xor hash is safe and ~5x faster.
+#[derive(Default, Clone, Copy)]
+struct FxHasher {
+    hash: u64,
+}
+
+impl FxHasher {
+    #[inline(always)]
+    fn add(&mut self, w: u64) {
+        self.hash = (self.hash.rotate_left(5) ^ w).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+}
+
+impl std::hash::Hasher for FxHasher {
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.add(b as u64);
+        }
+    }
+    #[inline]
+    fn write_u8(&mut self, i: u8) { self.add(i as u64); }
+    #[inline]
+    fn write_u16(&mut self, i: u16) { self.add(i as u64); }
+    #[inline]
+    fn write_u32(&mut self, i: u32) { self.add(i as u64); }
+    #[inline]
+    fn write_u64(&mut self, i: u64) { self.add(i); }
+    #[inline]
+    fn write_usize(&mut self, i: usize) { self.add(i as u64); }
+    #[inline]
+    fn finish(&self) -> u64 { self.hash }
+}
+
+type FxBuildHasher = std::hash::BuildHasherDefault<FxHasher>;
+type FastMap<K, V> = HashMap<K, V, FxBuildHasher>;
+type FastSet<T> = HashSet<T, FxBuildHasher>;
+
 pub struct Decompiled {
     pub body: Vec<Stmt>,
     /// False when at least one construct could not be fully recovered.
@@ -310,8 +361,8 @@ struct Ctx<'a> {
     table: &'a OpcodeTable,
     version: PythonVersion,
     instrs: Vec<Instruction>,
-    idx_of: HashMap<usize, usize>,
-    targets: HashSet<usize>,
+    idx_of: FastMap<usize, usize>,
+    targets: FastSet<usize>,
     stack: Vec<Sv>,
     blocks: Vec<Block>,
     clean: bool,
@@ -762,8 +813,8 @@ pub fn decompile_in_scope(
 ) -> crate::Result<Decompiled> {
     let table = table_for(version)?;
     let instrs = crate::bytecode::decode_instructions(code, table, version);
-    let mut idx_of = HashMap::new();
-    let mut targets = HashSet::new();
+    let mut idx_of = FastMap::default();
+    let mut targets = FastSet::default();
     for (i, inst) in instrs.iter().enumerate() {
         idx_of.insert(inst.offset, i);
         idx_of.insert(inst.end(), i);
@@ -2177,7 +2228,7 @@ pub fn decompile_in_scope(
                 }
             }
         }
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
+        if dbg_flag!("PYCDC_EG_DBG") {
             for r in &regions {
                 eprintln!(
                     "EG region[{}] start={} body_end={} region_end={} exc={:?} fin={:?} split={:?}",
@@ -2724,7 +2775,7 @@ impl<'a> Ctx<'a> {
             if self.inline_comp.is_some() {
                 self.comp_fold_ternary_at(pos);
             }
-            if std::env::var("PYCDC_STACK").is_ok() {
+            if dbg_flag!("PYCDC_STACK") {
                 eprintln!(
                     "ST {:>4} {:?} stack={:?}",
                     pos,
@@ -2732,7 +2783,7 @@ impl<'a> Ctx<'a> {
                     self.stack.iter().map(short).collect::<Vec<_>>()
                 );
             }
-            if std::env::var("PYCDC_TRACE2").is_ok() {
+            if dbg_flag!("PYCDC_TRACE2") {
                 eprintln!("T2 {:>4} {:?} blocks={:?} skip={:?} lh={:?} lt={:?}", pos, inst.op,
                     self.blocks.iter().map(|b| format!("{:?}[{},{}]", b.kind, b.start, b.end)).collect::<Vec<_>>(),
                     self.skip_until,
@@ -3084,7 +3135,7 @@ impl<'a> Ctx<'a> {
                 // read the natural iteration edge as an explicit
                 // `continue` (binhex 3.10 HexBin.__init__)
                 let mut blk = Block::new(BlockType::While, pos_eff, end);
-                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=3091 off={} cond-start", self.cur_offset); }
+                if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=3091 off={} cond-start", self.cur_offset); }
                 blk.cond = Some(self.true_cond_expr());
                 blk.cond_set = true;
                 self.blocks.push(blk);
@@ -3288,7 +3339,7 @@ impl<'a> Ctx<'a> {
             let prev = self.prev_op;
             self.prev_op_at_exec = prev;
             if !self.exec(&inst) {
-                if std::env::var("PYCDC_TRACE").is_ok() {
+                if dbg_flag!("PYCDC_TRACE") {
                     eprintln!("AW BREAK at {} {:?}", pos, inst.op);
                 }
                 break;
@@ -3681,7 +3732,7 @@ impl<'a> Ctx<'a> {
     /// read's `else: return ...`).
     fn arm_try_body_tail(&mut self, tc: &TryCtx) {
         self.pending_try_tail = None;
-        let dbg = std::env::var("PYCDC_EG_DBG").is_ok();
+        let dbg = dbg_flag!("PYCDC_EG_DBG");
         if dbg { eprintln!("EG arm ENTER tc=({},{},{}) exc={:?}", tc.start, tc.body_end, tc.region_end, tc.except_handler); }
         if !self.version.at_least(3, 11) || tc.except_handler.is_none() {
             if dbg { eprintln!("EG arm REJECT version/handler"); }
@@ -3793,11 +3844,11 @@ impl<'a> Ctx<'a> {
             return;
         }
         let tail_start = self.instrs[j].offset;
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
+        if dbg_flag!("PYCDC_EG_DBG") {
             eprintln!("EG armtail tc=({},{}) h={} j={} tail_start={} cur_offset={} jump_is_loop_exit={} span_ok={}", tc.start, tc.body_end, h, self.instrs[j].offset, tail_start, self.cur_offset, jump_is_loop_exit, span_ok);
         }
         if tail_start <= self.cur_offset {
-            if std::env::var("PYCDC_EG_DBG").is_ok() { eprintln!("EG armtail REJECT cur_offset"); }
+            if dbg_flag!("PYCDC_EG_DBG") { eprintln!("EG armtail REJECT cur_offset"); }
             return;
         }
         // padding-adjacent (3.11): resume at the chain head. Break-over-
@@ -3975,7 +4026,7 @@ impl<'a> Ctx<'a> {
                 .instrs
                 .get(si + sn)
                 .map_or(true, |x| x.offset >= fh);
-        if std::env::var("PYCDC_EG_DBG").is_ok() && !tail_ok {
+        if dbg_flag!("PYCDC_EG_DBG") && !tail_ok {
             eprintln!("EG mirfail [{}] s={} tail matched={} next={:?}", self.code.name, s, matched,
                 self.instrs.get(si + sn).map(|x| (x.offset, x.op)));
         }
@@ -4028,7 +4079,7 @@ impl<'a> Ctx<'a> {
         } else {
             None
         };
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
+        if dbg_flag!("PYCDC_EG_DBG") {
             eprintln!(
                 "EG tail [{}] tc start={} body_end={} region_end={} exc={:?} fin={:?} pos={} star_inline={} body_jf={:?}",
                 self.code.name, tc.start, tc.body_end, tc.region_end, tc.except_handler, tc.finally_handler, pos, star_inline, body_jf
@@ -4456,7 +4507,7 @@ impl<'a> Ctx<'a> {
                         body.push(Stmt::Break);
                     }
                     body.extend(self.decompile_region(b2_start, trimmed.max(b2_start)));
-                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_EG_DBG") {
                         eprintln!(
                             "EG splitfin [{}] body2=[{},{}) fin=[{},{}) exit={}",
                             self.code.name, b2_start, trimmed, fin_head, fin_stop, exit_at
@@ -4777,7 +4828,7 @@ impl<'a> Ctx<'a> {
                         // loop-back-edge trim cutting the span short
                         // (b22 3.11 loop_try_mix decomposes correctly
                         // despite it)
-                        if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        if dbg_flag!("PYCDC_EG_DBG") {
                             eprintln!("EG mirror [{}] pos={} fh={} ok={} sn={} si0off={} fin_span_stop={}", self.code.name, pos, tc.finally_handler.unwrap_or(0), ok, sn, self.instrs.get(si0).map(|x| x.offset).unwrap_or(0), fin_span_stop);
                         }
                         mirror_ok = ok || sn > 1;
@@ -6288,7 +6339,7 @@ impl<'a> Ctx<'a> {
             let prev = self.prev_op;
             self.prev_op_at_exec = prev;
             if !self.exec(&inst) {
-                if std::env::var("PYCDC_TRACE").is_ok() {
+                if dbg_flag!("PYCDC_TRACE") {
                     eprintln!("AW BREAK at {} {:?}", pos, inst.op);
                 }
                 break;
@@ -6506,7 +6557,7 @@ impl<'a> Ctx<'a> {
                     Some(is_dispatch)
                 })
                 .unwrap_or(false);
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
+        if dbg_flag!("PYCDC_EG_DBG") {
             eprintln!(
                 "EG nested-check [{}] from={} region_end={} prev_reraise={} extent={} nested={}",
                 self.code.name, from,
@@ -6529,7 +6580,7 @@ impl<'a> Ctx<'a> {
             return handlers;
         }
         pc += 1;
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
+        if dbg_flag!("PYCDC_EG_DBG") {
             eprintln!("EG dispatch from={} end={} region_end={} nested={}", from, end, region_end, nested);
         }
         let mut pattern: Option<ExprRef> = None;
@@ -6635,7 +6686,7 @@ impl<'a> Ctx<'a> {
                     }
                     let body =
                         self.decompile_handler_body(&mut pc, next, region_end, star_clause);
-                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_EG_DBG") {
                         eprintln!("EG clause next={} bodylen={}", next, body.len());
                     }
                     self.pending_as_cleanup = saved_pac;
@@ -7147,7 +7198,7 @@ impl<'a> Ctx<'a> {
                 }
             }
             *pc = k;
-            if std::env::var("PYCDC_EG_DBG").is_ok() {
+            if dbg_flag!("PYCDC_EG_DBG") {
                 eprintln!(
                     "EG no-pop [{}] body start={} end={} limit={} star={} pac={:?}",
                     self.code.name, body_start, body_end, limit, is_star, self.pending_as_cleanup
@@ -9130,7 +9181,7 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if ok {
-                    if std::env::var("PYCDC_BH_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_BH_DBG") {
                         eprintln!("BH midchain pos={} hend={}", pos, hend);
                     }
                     self.legacy_handler = Some(LegacyHandler {
@@ -11198,7 +11249,7 @@ impl<'a> Ctx<'a> {
                 // raise` — the else `raise` rendered as an
                 // unconditional clause sibling, so firstline decodes
                 // with len>1 wrongly raised).
-                if std::env::var("PYCDC_CER_DBG").is_ok() && matches!(b.kind, BlockType::If) {
+                if dbg_flag!("PYCDC_CER_DBG") && matches!(b.kind, BlockType::If) {
                     eprintln!("CER: fn={} pos={} b=[{},{}) else_end={:?} vm={} sc={} fe={}", self.code.name, pos, b.start, b.end, b.else_end, b.value_merge.is_some(), b.short_circuit.is_some(), b.folded_exit);
                 }
                 let mut attach_pos: Option<usize> = None;
@@ -12198,7 +12249,7 @@ impl<'a> Ctx<'a> {
                     let start = if pos == b.end { pos } else { b.end };
                     self.pending_loop.push((Some(cond), None, None, body, false));
                     let else_blk = Block::new(BlockType::WhileElse, start, else_end);
-                    if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=12142 off={} cond-start", self.cur_offset); }
+                    if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=12142 off={} cond-start", self.cur_offset); }
                     self.blocks.push(else_blk);
                 } else {
                     self.push_stmt(Stmt::While {
@@ -13079,7 +13130,7 @@ impl<'a> Ctx<'a> {
                 }
                 None => {
                     self.mark_unclean();
-                    if std::env::var("PYCDC_TRACE").is_ok() {
+                    if dbg_flag!("PYCDC_TRACE") {
                         eprintln!("AW UNDERFLOW pop_expr at {} in {:?}", self.cur_offset, self.code.name);
                     }
                     return Rc::new(Expr::Const(Rc::new(PyObject::None)));
@@ -13351,7 +13402,7 @@ impl<'a> Ctx<'a> {
         // there (cur_offset == else_stop) before taking the try, so those
         // stores still belong to orelse. (Matches the inclusive checks used
         // by the else-region probes elsewhere.)
-        if std::env::var("PYCDC_OM_DBG").is_ok() {
+        if dbg_flag!("PYCDC_OM_DBG") {
             let (es_dbg, stop_dbg, fin_dbg) = self.legacy_try.as_ref().map(|l| (l.else_start, l.else_stop, l.finalbody.len())).unwrap_or((None, 0, 0));
             eprintln!("PS fn={} off={} kind={} erbo={} es={:?} stop={} fin={} blocks={:?}", self.code.name, self.cur_offset, match &stmt { Stmt::If { .. } => "If", Stmt::Try { .. } => "Try", Stmt::Expr(_) => "Expr", Stmt::Assign { .. } => "Assign", _ => "other" }, else_region_block_open, es_dbg, stop_dbg, fin_dbg, self.blocks.iter().map(|b| (b.kind as u8, b.start, b.end)).collect::<Vec<_>>());
         }
@@ -13449,9 +13500,9 @@ impl<'a> Ctx<'a> {
     }
 
     fn mark_unclean(&mut self) {
-        if std::env::var("PYCDC_UNCLEAN").is_ok() {
+        if dbg_flag!("PYCDC_UNCLEAN") {
             eprintln!("UNCLEAN @{} fn={}", self.cur_offset, self.code.name);
-            if std::env::var("PYCDC_UNCLEAN_BT").is_ok() {
+            if dbg_flag!("PYCDC_UNCLEAN_BT") {
                 let bt = std::backtrace::Backtrace::force_capture();
                 for l in bt.to_string().lines().take(40) {
                     if l.contains("decompiler.rs") {
@@ -15405,7 +15456,7 @@ impl<'a> Ctx<'a> {
                         // NOP and no sibling mirrors). Render Break per
                         // copy; the lifted post-loop return emits when
                         // the loop closes.
-                        if std::env::var("PYCDC_SWL_DBG").is_ok() {
+                        if dbg_flag!("PYCDC_SWL_DBG") {
                             eprintln!(
                                 "SWL ret@{} j={} jop={:?} ver={} lift={}",
                                 self.cur_offset,
@@ -15471,7 +15522,7 @@ impl<'a> Ctx<'a> {
                                         .find(|(t, _)| *t == b.start)
                                         .copied()
                                 });
-                                if std::env::var("PYCDC_SWL_DBG").is_ok() {
+                                if dbg_flag!("PYCDC_SWL_DBG") {
                                     eprintln!("SWL lb={:?} span={:?}", lb.map(|b| (b.start, b.end)), span);
                                 }
                                 if let (Some(lb), Some((wtop, wend))) =
@@ -15547,7 +15598,7 @@ impl<'a> Ctx<'a> {
                                             .iter()
                                             .filter(|x| x.offset >= wend)
                                             .all(is_pad2);
-                                        if std::env::var("PYCDC_SWL_DBG").is_ok() {
+                                        if dbg_flag!("PYCDC_SWL_DBG") {
                                             eprintln!("SWL span wtop={} wend={} count={} all_ok={} tail_pad={}", wtop, wend, count, all_ok, tail_pad);
                                         }
                                         if all_ok
@@ -17244,7 +17295,7 @@ let reopen = self
                         }
                     }
                 }
-                if std::env::var("PYCDC_EG_DBG").is_ok() {
+                if dbg_flag!("PYCDC_EG_DBG") {
                     eprintln!(
                         "EG jbarm [{}] pos={} target={} lands={} iscont={} degen={} fused?",
                         self.code.name, self.cur_offset, target,
@@ -17482,7 +17533,7 @@ let reopen = self
                         }
                         _ => false,
                     };
-                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_EG_DBG") {
                         eprintln!("EG jfold [{}] pos={} folded={}", self.code.name, self.cur_offset, folded);
                     }
                     if folded {
@@ -17961,7 +18012,7 @@ let reopen = self
                             }
                             seen_inner && matched_outer
                         };
-                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_EG_DBG") {
                         eprintln!(
                             "EG ib [{}] pos={} target={} inner_break={} blocks={:?} skip={:?}",
                             self.code.name, self.cur_offset, target, inner_break,
@@ -18996,7 +19047,7 @@ let reopen = self
                     self.flushing = false;
                 }
                 let mut blk = Block::new(BlockType::While, inst.end(), target);
-                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=18941 off={} cond-start", self.cur_offset); }
+                if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=18941 off={} cond-start", self.cur_offset); }
                 blk.cond_set = false;
                 self.blocks.push(blk);
                 true
@@ -19782,7 +19833,7 @@ let reopen = self
                     let ti = (0..ii)
                         .rev()
                         .find(|&i| self.blocks[i].kind == BlockType::Try);
-                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_EG_DBG") {
                         eprintln!(
                             "EG cf-split [{}] pos={} target={} ti={:?} ii={} blocks={:?}",
                             self.code.name, self.cur_offset, target, ti, ii,
@@ -19844,7 +19895,7 @@ let reopen = self
                                     && x.target == Some(b2_start)
                             })
                             .map(|x| (x.offset, x.op));
-                        if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        if dbg_flag!("PYCDC_EG_DBG") {
                             eprintln!(
                                 "EG cf-split2 b2={} pb2={:?} fin_stop={} cj={:?}",
                                 b2_start, pb2, fin_stop, cond_jump
@@ -21221,7 +21272,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_legacy_try(&mut self, l: LegacyTry) {
-        if std::env::var("PYCDC_OM_DBG").is_ok() {
+        if dbg_flag!("PYCDC_OM_DBG") {
             eprintln!("PLT fn={} off={} hs={} fin={} body={} blocks={:?}", self.code.name, self.cur_offset, l.handler_start, l.finalbody.len(), l.body.len(), self.blocks.iter().map(|b| (b.kind as u8, b.start, b.end)).collect::<Vec<_>>());
         }
         let l_handler_start = l.handler_start;
@@ -22658,7 +22709,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn try_fwd_or_continue(&self, target: usize, first: &ExprRef) -> Option<(ExprRef, usize)> {
-        let dbg = std::env::var("PYCDC_FOC_DBG").is_ok();
+        let dbg = dbg_flag!("PYCDC_FOC_DBG");
         // pre-3.8 has no back-edge redirect: the target may be the back
         // edge instruction itself - normalize to the loop top
         let top_target = self
@@ -22831,7 +22882,7 @@ impl<'a> Ctx<'a> {
     /// >= self.length > 0: break`). Returns (merged Or cond, resume
     /// offset = the loop's natural back edge after the break stub).
     fn try_or_break_chain(&self, cond: &ExprRef, target: usize) -> Option<(ExprRef, usize)> {
-        let dbg = std::env::var("PYCDC_OBC_DBG").is_ok();
+        let dbg = dbg_flag!("PYCDC_OBC_DBG");
         macro_rules! bail {
             ($why:expr) => {{
                 if dbg {
@@ -23134,7 +23185,7 @@ impl<'a> Ctx<'a> {
         cond: &ExprRef,
         target: usize,
     ) -> Option<(ExprRef, usize, usize)> {
-        let dbg = std::env::var("PYCDC_ACB_DBG").is_ok();
+        let dbg = dbg_flag!("PYCDC_ACB_DBG");
         macro_rules! bail {
             ($why:expr) => {{
                 if dbg {
@@ -24837,7 +24888,7 @@ impl<'a> Ctx<'a> {
         cond: &ExprRef,
         target: usize,
     ) -> Option<(ExprRef, usize, usize)> {
-        let scc_dbg = std::env::var("PYCDC_SCC_DBG").is_ok();
+        let scc_dbg = dbg_flag!("PYCDC_SCC_DBG");
         let Expr::Compare { operands, ops } = &**cond else {
             if scc_dbg { eprintln!("SCC: bail not-compare"); }
             return None;
@@ -26464,7 +26515,7 @@ impl<'a> Ctx<'a> {
         let tramp = self.instrs.get(t)?;
         // or-group head attempt: this jump = member 1, subsequent members
         // share its target, the last member's fall-through is the trampoline
-        let or_head = if std::env::var("PYCDC_NO_A").is_ok() {
+        let or_head = if dbg_flag!("PYCDC_NO_A") {
             None
         } else if !(tramp.is_backward
             && matches!(
@@ -29577,7 +29628,7 @@ return None;
         // of an `if A: pass` + a truncated `B or C` (ast 3.6 _format).
         if !jump_if_true {
             if let Some((merged, m)) = self.try_and_or_value_chain(cond.clone(), target) {
-                if std::env::var("PYCDC_AOR_DBG").is_ok() {
+                if dbg_flag!("PYCDC_AOR_DBG") {
                     eprintln!("AOR: off={} target={} merge={} -> {:?}", self.cur_offset, target, m, merged);
                 }
                 self.push(merged);
@@ -30006,7 +30057,7 @@ return None;
         // 3.8-3.11: statement-level chained-comparison if condition
         if !jump_if_true && self.version.major >= 3 && !self.version.at_least(3, 12) {
             let scc = self.try_stmt_chain_compare(&cond, target);
-            if std::env::var("PYCDC_SCC_DBG").is_ok() {
+            if dbg_flag!("PYCDC_SCC_DBG") {
                 eprintln!("SCCDBG: off={} target={} -> {:?}", self.cur_offset, target,
                     scc.as_ref().map(|(m, bs, be)| (format!("{m:?}").chars().take(60).collect::<String>(), *bs, *be)));
             }
@@ -30586,7 +30637,7 @@ return None;
             // stop is not None: if not i < stop: break`, semantically
             // right but sig-off: `is not`+PJF+JABS instead of `is`+PJIT)
             if jump_if_true && self.legacy_handler.is_none() {
-                if std::env::var("PYCDC_ORC_DBG").is_ok() {
+                if dbg_flag!("PYCDC_ORC_DBG") {
                     eprintln!("WOR hdr-probe off={} target={} top={:?}", self.cur_offset, target, self.blocks.last().map(|t| (t.kind as u8, t.start, t.end, t.cond_set)));
                 }
                 // the prescan may have synthesized `while True:` for this
@@ -30648,7 +30699,7 @@ return None;
                             values: or_vals,
                         }) as ExprRef)
                     })();
-                    if std::env::var("PYCDC_ORC_DBG").is_ok() {
+                    if dbg_flag!("PYCDC_ORC_DBG") {
                         eprintln!("WOR merged={}", merged_or.is_some());
                     }
                     if let Some(mc) = merged_or {
@@ -30693,7 +30744,7 @@ return None;
                 for _ in 0..chain_blocks {
                     self.blocks.pop();
                 }
-                if std::env::var("PYCDC_ORC_DBG").is_ok() {
+                if dbg_flag!("PYCDC_ORC_DBG") {
                     eprintln!("ORC off={} merged={:?} body=[{},{}) chain={}", self.cur_offset, merged_cond, body_start, exit, chain_blocks);
                 }
                 // a body-targeting or-group merged directly UNDER an open
@@ -30836,7 +30887,7 @@ return None;
             if let (Some(be), Some(xj)) = (back_edge, exit_jump) {
                 if let Some(ct) = be.target {
                     let mut blk = Block::new(BlockType::While, ct, be.end());
-                    if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=30828 off={} cond-start", self.cur_offset); }
+                    if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=30828 off={} cond-start", self.cur_offset); }
                     blk.cond = Some(cond);
                     blk.cond_set = true;
                     blk.cond_end = self.cur_next;
@@ -32375,7 +32426,7 @@ if split_cond {
                             if let (Some(wt), Some(we)) = (wtop, wend) {
                                 let cond_end = self.instrs[ci0].end();
                                 let mut blk = Block::new(BlockType::While, wt, we);
-                                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=32366 off={} cond-start", self.cur_offset); }
+                                if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=32366 off={} cond-start", self.cur_offset); }
                                 blk.cond = Some(cond);
                                 blk.cond_set = true;
                                 blk.cond_end = cond_end;
@@ -32728,7 +32779,7 @@ if split_cond {
         // 6) while loop (3.8+): a backward jump inside the jump-target
         // region that lands at the current instruction offset marks a loop.
         let cur = self.cur_offset;
-        if std::env::var("PYCDC_S6_DBG").is_ok() {
+        if dbg_flag!("PYCDC_S6_DBG") {
             eprintln!("S6DBG: off={cur} target={target}");
         }
         if let (Some(&ci), Some(&ti)) = (self.idx_of.get(&cur), self.idx_of.get(&target)) {
@@ -32872,7 +32923,7 @@ if split_cond {
                     // degenerate `if line: continue` guard)
                     let cond_end = self.instrs[ci].end();
                     let mut blk = Block::new(BlockType::While, target, reval_exit);
-                    if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=32862 off={} cond-start", self.cur_offset); }
+                    if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=32862 off={} cond-start", self.cur_offset); }
                     // the jump enters the BODY on true: a PJIT pre-check
                     // means the source cond is the operand as-is
                     let wcond = if jump_if_true {
@@ -32897,7 +32948,7 @@ if split_cond {
                         // back edge to the cond jump itself or to the start
                         // of the condition expression (rotated while loops:
                         // the back edge skips the duplicated initial cond)
-                        if std::env::var("PYCDC_S6_DBG").is_ok()
+                        if dbg_flag!("PYCDC_S6_DBG")
                             && inst.is_backward
                         {
                             eprintln!(
@@ -33020,7 +33071,7 @@ if split_cond {
                         {
                             let cond_end = self.instrs[ci].end();
                             let mut blk = Block::new(BlockType::While, t, target);
-                            if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=32994 off={} cond-start", self.cur_offset); }
+                            if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=32994 off={} cond-start", self.cur_offset); }
                             let mut wcond = if jump_if_true {
                                 negate_cond(cond)
                             } else {
@@ -33164,7 +33215,7 @@ if split_cond {
                                 .map_or(true, |(_, bt)| t >= bt)
                         {
                             let mut blk = Block::new(BlockType::While, t, target);
-                            if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=33137 off={} cond-start", self.cur_offset); }
+                            if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=33137 off={} cond-start", self.cur_offset); }
                             let mut merged = cond.clone();
                             let mc = self.merge_forward_cond_chain(ci, target);
                             if let Some(c2) = mc {
@@ -37517,7 +37568,9 @@ if split_cond {
         };
         let mut found = false;
         let mut frontier: Vec<(usize, bool)> = vec![(ti, false)];
-        let mut visited: Vec<(usize, bool)> = Vec::new();
+        // (index, saw_stmt) pairs as a flat bitset: the old Vec::contains
+        // made this walk O(budget^2) and it was the top profile hotspot.
+        let mut visited = vec![false; self.instrs.len() * 2 + 2];
         let mut budget = 600usize;
         while let Some((q0, saw0)) = frontier.pop() {
             let mut q = q0;
@@ -37525,10 +37578,11 @@ if split_cond {
             while budget > 0 {
                 budget -= 1;
                 let Some(x) = self.instrs.get(q) else { break };
-                if visited.contains(&(q, saw_stmt)) {
+                let vi = q * 2 + saw_stmt as usize;
+                if visited[vi] {
                     break;
                 }
-                visited.push((q, saw_stmt));
+                visited[vi] = true;
                 if matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
                     q += 1;
                     continue;
@@ -38419,7 +38473,7 @@ if split_cond {
             .unwrap_or(exit_a);
         self.while_true_loops.retain(|(t, _)| *t != body_top);
         let mut blk = Block::new(BlockType::While, body_top, exit_end);
-        if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38395 off={} cond-start", self.cur_offset); }
+        if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=38395 off={} cond-start", self.cur_offset); }
         blk.cond = Some(merged);
         blk.cond_set = true;
         blk.cond_end = self.instrs[ci].end();
@@ -38636,7 +38690,7 @@ if split_cond {
                 });
                 self.while_true_loops.retain(|(t, _)| *t != target);
                 let mut blk = Block::new(BlockType::While, target, exit);
-                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38611 off={} cond-start", self.cur_offset); }
+                if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=38611 off={} cond-start", self.cur_offset); }
                 blk.cond = Some(merged);
                 blk.cond_set = true;
                 // cond_end = the LAST head link's end (the B jump whose
@@ -38796,7 +38850,7 @@ if split_cond {
                 });
                 self.while_true_loops.retain(|(t, _)| *t != target);
                 let mut blk = Block::new(BlockType::While, target, exit);
-                if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38770 off={} cond-start", self.cur_offset); }
+                if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=38770 off={} cond-start", self.cur_offset); }
                 blk.cond = Some(merged);
                 blk.cond_set = true;
                 // cond_end = the LAST head link's end (the B jump whose
@@ -38958,7 +39012,7 @@ if split_cond {
         });
         self.while_true_loops.retain(|(t, _)| *t != target);
         let mut blk = Block::new(BlockType::While, target, exit);
-        if std::env::var("PYCDC_WC_DBG").is_ok() && self.code.name == "get_annotations" { eprintln!("WC line=38931 off={} cond-start", self.cur_offset); }
+        if dbg_flag!("PYCDC_WC_DBG") && self.code.name == "get_annotations" { eprintln!("WC line=38931 off={} cond-start", self.cur_offset); }
         blk.cond = Some(merged);
         blk.cond_set = true;
         blk.cond_end = self.instrs[ci].end();
@@ -39303,7 +39357,7 @@ if split_cond {
         }
         self.close_blocks_at(self.cur_offset);
         let n = self.blocks.len();
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
+        if dbg_flag!("PYCDC_EG_DBG") {
             eprintln!(
                 "EG jb [{}] pos={} target={} blocks={:?}",
                 self.code.name, self.cur_offset, target,
@@ -44781,7 +44835,7 @@ impl<'a> Ctx<'a> {
                                     (Some(r), Some(hl)) => r < hl,
                                     _ => true,
                                 };
-                            if std::env::var("PYCDC_REC_DBG").is_ok() {
+                            if dbg_flag!("PYCDC_REC_DBG") {
                                 eprintln!("REC off={} targeted={} adjacent={} always={} body_term={} line_ok={} h={} end_at={} ltb={:?}", self.cur_offset, targeted, adjacent, chain_always_raises, body_terminal, line_ok, h, end_at, self.last_try_body_end);
                             }
                             if !targeted
@@ -44840,7 +44894,7 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-        if std::env::var("PYCDC_REC_DBG").is_ok() && self.code.name == "open" {
+        if dbg_flag!("PYCDC_REC_DBG") && self.code.name == "open" {
             eprintln!("REC2 off={} ptc={:?} ptb={:?} top={:?} topstmts={}", self.cur_offset,
                 self.pending_try_ctx.as_ref().map(|t| (t.start, t.body_end, t.region_end, t.except_handler)),
                 self.pending_try_body.iter().map(|b| b.len()).collect::<Vec<_>>(),

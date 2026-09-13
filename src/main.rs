@@ -24,6 +24,8 @@ Arguments:
 
 Options:
   -o, --output <PATH>    output file or directory (see OUTPUT below)
+  -j, --jobs <N>         parallel worker threads for batch mode
+                         (default: number of CPUs; -j 1 = serial)
       --opcodes <DIR>    load extra/override opcode config JSONs
   -c                     accepted for compatibility; raw-marshal input is
                          selected by -v alone
@@ -45,13 +47,31 @@ Output:
     inputs write <stem>.py next to each input.
 ";
 
+/// Write to stdout, exiting quietly when the reader closed the pipe
+/// (`pycdc foo.pyc | head` must not panic-print a BrokenPipe message).
+fn print_stdout(text: &str) {
+    use std::io::Write;
+    let stdout = std::io::stdout();
+    let mut lock = stdout.lock();
+    if let Err(e) = lock.write_all(text.as_bytes()) {
+        if e.kind() == std::io::ErrorKind::BrokenPipe {
+            std::process::exit(0);
+        }
+        eprintln!("error: stdout: {e}");
+        std::process::exit(1);
+    }
+}
+
 fn print_help() {
-    println!("{HELP}");
+    print_stdout(HELP);
+    print_stdout("\n");
 }
 
 fn print_version() {
-    println!("pycdc {}", env!("CARGO_PKG_VERSION"));
-    println!("supported: Python 2.0 - 3.15 pyc (CPython, PyPy and other implementations)");
+    print_stdout(&format!(
+        "pycdc {}\nsupported: Python 2.0 - 3.15 pyc (CPython, PyPy and other implementations)\n",
+        env!("CARGO_PKG_VERSION")
+    ));
 }
 
 struct Cli {
@@ -59,6 +79,7 @@ struct Cli {
     output: Option<PathBuf>,
     opcode_dir: Option<PathBuf>,
     version_override: Option<(u8, u8)>,
+    jobs: Option<usize>,
 }
 
 fn parse_args(args: &[String]) -> Result<Cli, String> {
@@ -67,6 +88,7 @@ fn parse_args(args: &[String]) -> Result<Cli, String> {
         output: None,
         opcode_dir: None,
         version_override: None,
+        jobs: None,
     };
     let mut i = 0;
     while i < args.len() {
@@ -83,6 +105,13 @@ fn parse_args(args: &[String]) -> Result<Cli, String> {
                 match args.get(i) {
                     Some(p) if !p.starts_with('-') => cli.output = Some(PathBuf::from(p)),
                     _ => return Err("-o/--output requires a path argument".into()),
+                }
+            }
+            "-j" | "--jobs" => {
+                i += 1;
+                match args.get(i).and_then(|s| s.parse::<usize>().ok()) {
+                    Some(n) if n >= 1 => cli.jobs = Some(n),
+                    _ => return Err("-j/--jobs requires a positive integer".into()),
                 }
             }
             "-c" => {}
@@ -248,7 +277,7 @@ fn run_stdout(cli: &Cli) -> ExitCode {
     let file = &cli.inputs[0];
     match decompile_file(file, cli.version_override) {
         Ok(text) => {
-            print!("{text}");
+            print_stdout(&text);
             ExitCode::SUCCESS
         }
         Err(e) => {
@@ -308,21 +337,60 @@ fn run_batch(cli: &Cli) -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    let mut failed = false;
-    for job in &jobs {
-        match decompile_file(&job.src, cli.version_override) {
-            Ok(text) => {
-                let mut text = text;
-                if !text.ends_with('\n') {
-                    text.push('\n');
-                }
-                if let Err(e) = write_output(&job.dst, &text) {
-                    eprintln!("{e}");
-                    failed = true;
-                } else {
-                    println!("{} -> {}", job.src.display(), job.dst.display());
-                }
+    let n_threads = cli
+        .jobs
+        .unwrap_or_else(|| {
+            std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1)
+        })
+        .min(jobs.len());
+
+    // run_job: decompile + write one job; the per-job message is returned
+    // instead of printed so batch output stays in deterministic order.
+    let run_job = |job: &Job| -> Result<String, String> {
+        let text = decompile_file(&job.src, cli.version_override)?;
+        let mut text = text;
+        if !text.ends_with('\n') {
+            text.push('\n');
+        }
+        write_output(&job.dst, &text)?;
+        Ok(format!("{} -> {}", job.src.display(), job.dst.display()))
+    };
+
+    let n_jobs = jobs.len();
+    let results: Vec<Result<String, String>> = if n_threads <= 1 {
+        jobs.iter().map(run_job).collect()
+    } else {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Mutex;
+        let next = AtomicUsize::new(0);
+        let slots: Mutex<Vec<Option<Result<String, String>>>> =
+            Mutex::new((0..n_jobs).map(|_| None).collect());
+        std::thread::scope(|s| {
+            for _ in 0..n_threads {
+                s.spawn(|| loop {
+                    let i = next.fetch_add(1, Ordering::Relaxed);
+                    if i >= n_jobs {
+                        break;
+                    }
+                    let r = run_job(&jobs[i]);
+                    slots.lock().unwrap()[i] = Some(r);
+                });
             }
+        });
+        slots
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .map(|r| r.expect("every job recorded"))
+            .collect()
+    };
+
+    let mut failed = false;
+    for r in results {
+        match r {
+            Ok(line) => print_stdout(&format!("{line}\n")),
             Err(e) => {
                 eprintln!("{e}");
                 failed = true;

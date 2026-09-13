@@ -195,34 +195,71 @@ impl OpcodeTable {
     }
 }
 
-/// All embedded configs, keyed by (major, minor).
-fn embedded_tables() -> &'static HashMap<(u8, u8), OpcodeTable> {
-    static TABLES: OnceLock<HashMap<(u8, u8), OpcodeTable>> = OnceLock::new();
-    TABLES.get_or_init(|| {
-        macro_rules! configs {
-            ($($file:literal),* $(,)?) => {{
-                let raw: Vec<&str> = vec![$(include_str!(concat!("../configs/opcodes/", $file))),*];
-                raw
-            }};
-        }
-        let raw = configs![
-            "python_2_0.json", "python_2_1.json", "python_2_2.json", "python_2_3.json",
-            "python_2_4.json", "python_2_5.json", "python_2_6.json", "python_2_7.json",
-            "python_3_0.json", "python_3_1.json", "python_3_2.json", "python_3_3.json",
-            "python_3_4.json", "python_3_5.json", "python_3_6.json", "python_3_7.json",
-            "python_3_8.json", "python_3_9.json", "python_3_10.json", "python_3_11.json",
-            "python_3_12.json", "python_3_13.json", "python_3_14.json", "python_3_15.json",
-        ];
-        let mut map = HashMap::new();
-        for text in raw {
-            let cfg: OpcodeConfig = serde_json::from_str(text).expect("embedded config parses");
-            let mut parts = cfg.version.split('.');
-            let major: u8 = parts.next().unwrap().parse().expect("major");
-            let minor: u8 = parts.next().unwrap().parse().expect("minor");
-            let table = OpcodeTable::from_config(cfg).expect("table builds");
-            map.insert((major, minor), table);
-        }
-        map
+/// Raw embedded config texts, keyed by (major, minor). Tables are parsed
+/// lazily per version — a single-file run touches one config, not all 24
+/// (the eager parse-everything map cost startup time and ~MBs of RSS).
+fn embedded_raw() -> &'static [(u8, u8, &'static str)] {
+    macro_rules! configs {
+        ($(($maj:literal, $min:literal, $file:literal)),* $(,)?) => {{
+            &[$(($maj, $min, include_str!(concat!("../configs/opcodes/", $file)))),*]
+        }};
+    }
+    configs![
+        (2, 0, "python_2_0.json"), (2, 1, "python_2_1.json"),
+        (2, 2, "python_2_2.json"), (2, 3, "python_2_3.json"),
+        (2, 4, "python_2_4.json"), (2, 5, "python_2_5.json"),
+        (2, 6, "python_2_6.json"), (2, 7, "python_2_7.json"),
+        (3, 0, "python_3_0.json"), (3, 1, "python_3_1.json"),
+        (3, 2, "python_3_2.json"), (3, 3, "python_3_3.json"),
+        (3, 4, "python_3_4.json"), (3, 5, "python_3_5.json"),
+        (3, 6, "python_3_6.json"), (3, 7, "python_3_7.json"),
+        (3, 8, "python_3_8.json"), (3, 9, "python_3_9.json"),
+        (3, 10, "python_3_10.json"), (3, 11, "python_3_11.json"),
+        (3, 12, "python_3_12.json"), (3, 13, "python_3_13.json"),
+        (3, 14, "python_3_14.json"), (3, 15, "python_3_15.json"),
+    ]
+}
+
+/// Parsed-table cache, one lock-free slot per (major, minor). Parsed tables
+/// are leaked so they can be handed out as 'static references (the previous
+/// eager map did the same via its 'static lifetime).
+fn embedded_tables() -> &'static [OnceLock<Option<&'static OpcodeTable>>] {
+    static TABLES: OnceLock<Vec<OnceLock<Option<&'static OpcodeTable>>>> = OnceLock::new();
+    TABLES.get_or_init(|| (0..EMBEDDED_SLOTS).map(|_| OnceLock::new()).collect())
+}
+
+const EMBEDDED_SLOTS: usize = 16 * 16;
+
+#[inline]
+fn slot_key(major: u8, minor: u8) -> usize {
+    (major as usize) * 16 + (minor as usize)
+}
+
+fn embedded_table(major: u8, minor: u8) -> Option<&'static OpcodeTable> {
+    if major as usize * 16 + minor as usize >= EMBEDDED_SLOTS {
+        return None;
+    }
+    let slot = &embedded_tables()[slot_key(major, minor)];
+    *slot.get_or_init(|| {
+        let text = embedded_raw()
+            .iter()
+            .find(|(ma, mi, _)| *ma == major && *mi == minor)
+            .map(|(_, _, t)| *t)?;
+        let cfg: OpcodeConfig = serde_json::from_str(text).expect("embedded config parses");
+        // the embedded file names pin the version; still verify the content
+        // agrees so a regenerated config can never land in the wrong slot
+        let mut parts = cfg.version.split('.');
+        let cfg_major: u8 = parts.next().unwrap().parse().expect("major");
+        let cfg_minor: u8 = parts.next().unwrap().parse().expect("minor");
+        assert!(
+            (cfg_major, cfg_minor) == (major, minor),
+            "embedded config version mismatch: slot {major}.{minor} vs {}.{}",
+            cfg_major,
+            cfg_minor
+        );
+        Some(Box::leak(Box::new(
+            OpcodeTable::from_config(cfg).expect("table builds"),
+        )))
     })
 }
 
@@ -276,9 +313,7 @@ pub fn table_for(version: PythonVersion) -> Result<&'static OpcodeTable> {
             return Ok(t);
         }
     }
-    embedded_tables()
-        .get(&key)
-        .ok_or(PycError::UnsupportedVersion(version.display()))
+    embedded_table(key.0, key.1).ok_or(PycError::UnsupportedVersion(version.display()))
 }
 
 #[cfg(test)]

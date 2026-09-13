@@ -22,6 +22,23 @@ cargo build --release
 ```
 
 依赖仅 `serde` / `serde_json` / `thiserror`；`build.rs` 从 `configs/opcodes/*.json` 生成规范 opcode 枚举。
+release profile 启用 `opt-level=3` + fat LTO + 单 codegen unit + `strip`。
+
+## 性能
+
+Apple Silicon（M 系列）实测，526 个真实 `.pyc`（2.6–3.14 标准库语料，约 9.5MB）：
+
+| 场景 | 耗时 | 峰值内存 |
+|---|---|---|
+| 批量（默认并行，按 CPU 核数） | **≈0.05s** | ≈25MB |
+| 批量（`-j 1` 串行） | ≈0.34s | ≈13MB |
+| 最大单文件（74KB pyc，含进程启动） | ≈5.5ms | ≈4.4MB |
+| 进程启动开销 | ≈2ms | — |
+
+opcode 表按版本**懒解析**（单文件运行只解析一张表）；调试环境变量开关按调用点
+缓存（`OnceLock`）；offset→index 映射用确定性快速哈希；批处理并行时输出顺序
+仍保持确定性。管道读端提前关闭（`pycdc x.pyc | head`）时安静退出，不再打印
+BrokenPipe panic。
 
 ## 使用
 
@@ -33,8 +50,10 @@ pycdc program.pyc > program.py
 pycdc program.pyc -o program.py
 pycdc program.pyc -o ./outdir/
 
-# 批量反编译文件夹（递归收集 .pyc/.pyo）：目录结构镜像到输出目录
+# 批量反编译文件夹（递归收集 .pyc/.pyo）：目录结构镜像到输出目录，
+# 默认按 CPU 核数并行；-j N 指定线程数（-j 1 = 串行，内存占用最低）
 pycdc ./pyc-corpus -o ./src-out
+pycdc ./pyc-corpus -o ./src-out -j 4
 
 # 批量反编译文件夹：未指定 -o 时，默认输出目录与输入目录平级，命名为 <输入名>-decompiled
 pycdc ./pyc-corpus        # 生成 ./pyc-corpus-decompiled/（内部结构一致）
