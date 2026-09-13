@@ -1,11 +1,3 @@
-def __annotate__(format, /):
-    if format > 2:
-        raise NotImplementedError
-    if 0 in __conditional_annotations__:
-        {}['_theme'] = Theme
-    return {}
-
-__conditional_annotations__ = {}
 import os
 import sys
 from collections.abc import (Callable, Iterator, Mapping)
@@ -66,12 +58,9 @@ for attr, code in ANSIColors.__dict__.items():
     setattr(NoColors, attr, '')
 
 class ThemeSection(Mapping[str, str]):
-    '''A mixin/base class for theme sections.
-
-    It enables dictionary access to a section, as well as implements convenience
-    methods.
-    '''
-
+    __dataclass_fields__: ClassVar[dict[str, Field[str]]]
+    _name_to_value: Callable[[str], str]
+    'A mixin/base class for theme sections.\n\nIt enables dictionary access to a section, as well as implements convenience\nmethods.\n'
     def __post_init__(self) -> None:
         name_to_value = {}
         for color_name in self.__dataclass_fields__:
@@ -101,119 +90,55 @@ class ThemeSection(Mapping[str, str]):
     def __iter__(self) -> Iterator[str]:
         return iter(self.__dataclass_fields__)
 
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['__dataclass_fields__'] = ClassVar[dict[str, Field[str]]]
-        {}['_name_to_value'] = Callable[[str], str]
-        return {}
-
 
 @dataclass(frozen=True, kw_only=True)
 class Argparse(ThemeSection):
-    usage = ANSIColors.BOLD_BLUE
-    prog = ANSIColors.BOLD_MAGENTA
-    prog_extra = ANSIColors.MAGENTA
-    heading = ANSIColors.BOLD_BLUE
-    summary_long_option = ANSIColors.CYAN
-    summary_short_option = ANSIColors.GREEN
-    summary_label = ANSIColors.YELLOW
-    summary_action = ANSIColors.GREEN
-    long_option = ANSIColors.BOLD_CYAN
-    short_option = ANSIColors.BOLD_GREEN
-    label = ANSIColors.BOLD_YELLOW
-    action = ANSIColors.BOLD_GREEN
-    reset = ANSIColors.RESET
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['usage'] = str
-        {}['prog'] = str
-        {}['prog_extra'] = str
-        {}['heading'] = str
-        {}['summary_long_option'] = str
-        {}['summary_short_option'] = str
-        {}['summary_label'] = str
-        {}['summary_action'] = str
-        {}['long_option'] = str
-        {}['short_option'] = str
-        {}['label'] = str
-        {}['action'] = str
-        {}['reset'] = str
-        return {}
-
+    usage: str = ANSIColors.BOLD_BLUE
+    prog: str = ANSIColors.BOLD_MAGENTA
+    prog_extra: str = ANSIColors.MAGENTA
+    heading: str = ANSIColors.BOLD_BLUE
+    summary_long_option: str = ANSIColors.CYAN
+    summary_short_option: str = ANSIColors.GREEN
+    summary_label: str = ANSIColors.YELLOW
+    summary_action: str = ANSIColors.GREEN
+    long_option: str = ANSIColors.BOLD_CYAN
+    short_option: str = ANSIColors.BOLD_GREEN
+    label: str = ANSIColors.BOLD_YELLOW
+    action: str = ANSIColors.BOLD_GREEN
+    reset: str = ANSIColors.RESET
 
 @dataclass(frozen=True)
 class Syntax(ThemeSection):
-    prompt = ANSIColors.BOLD_MAGENTA
-    keyword = ANSIColors.BOLD_BLUE
-    keyword_constant = ANSIColors.BOLD_BLUE
-    builtin = ANSIColors.CYAN
-    comment = ANSIColors.RED
-    string = ANSIColors.GREEN
-    number = ANSIColors.YELLOW
-    op = ANSIColors.RESET
-    definition = ANSIColors.BOLD
-    soft_keyword = ANSIColors.BOLD_BLUE
-    reset = ANSIColors.RESET
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['prompt'] = str
-        {}['keyword'] = str
-        {}['keyword_constant'] = str
-        {}['builtin'] = str
-        {}['comment'] = str
-        {}['string'] = str
-        {}['number'] = str
-        {}['op'] = str
-        {}['definition'] = str
-        {}['soft_keyword'] = str
-        {}['reset'] = str
-        return {}
-
+    prompt: str = ANSIColors.BOLD_MAGENTA
+    keyword: str = ANSIColors.BOLD_BLUE
+    keyword_constant: str = ANSIColors.BOLD_BLUE
+    builtin: str = ANSIColors.CYAN
+    comment: str = ANSIColors.RED
+    string: str = ANSIColors.GREEN
+    number: str = ANSIColors.YELLOW
+    op: str = ANSIColors.RESET
+    definition: str = ANSIColors.BOLD
+    soft_keyword: str = ANSIColors.BOLD_BLUE
+    reset: str = ANSIColors.RESET
 
 @dataclass(frozen=True)
 class Traceback(ThemeSection):
-    type = ANSIColors.BOLD_MAGENTA
-    message = ANSIColors.MAGENTA
-    filename = ANSIColors.MAGENTA
-    line_no = ANSIColors.MAGENTA
-    frame = ANSIColors.MAGENTA
-    error_highlight = ANSIColors.BOLD_RED
-    error_range = ANSIColors.RED
-    reset = ANSIColors.RESET
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['type'] = str
-        {}['message'] = str
-        {}['filename'] = str
-        {}['line_no'] = str
-        {}['frame'] = str
-        {}['error_highlight'] = str
-        {}['error_range'] = str
-        {}['reset'] = str
-        return {}
-
+    type: str = ANSIColors.BOLD_MAGENTA
+    message: str = ANSIColors.MAGENTA
+    filename: str = ANSIColors.MAGENTA
+    line_no: str = ANSIColors.MAGENTA
+    frame: str = ANSIColors.MAGENTA
+    error_highlight: str = ANSIColors.BOLD_RED
+    error_range: str = ANSIColors.RED
+    reset: str = ANSIColors.RESET
 
 @dataclass(frozen=True)
 class Unittest(ThemeSection):
-    passed = ANSIColors.GREEN
-    warn = ANSIColors.YELLOW
-    fail = ANSIColors.RED
-    fail_info = ANSIColors.BOLD_RED
-    reset = ANSIColors.RESET
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['passed'] = str
-        {}['warn'] = str
-        {}['fail'] = str
-        {}['fail_info'] = str
-        {}['reset'] = str
-        return {}
-
+    passed: str = ANSIColors.GREEN
+    warn: str = ANSIColors.YELLOW
+    fail: str = ANSIColors.RED
+    fail_info: str = ANSIColors.BOLD_RED
+    reset: str = ANSIColors.RESET
 
 @dataclass(frozen=True)
 class Theme:
@@ -223,10 +148,10 @@ class Theme:
     below.
     '''
 
-    argparse = field(default_factory=Argparse)
-    syntax = field(default_factory=Syntax)
-    traceback = field(default_factory=Traceback)
-    unittest = field(default_factory=Unittest)
+    argparse: Argparse = field(default_factory=Argparse)
+    syntax: Syntax = field(default_factory=Syntax)
+    traceback: Traceback = field(default_factory=Traceback)
+    unittest: Unittest = field(default_factory=Unittest)
     def copy_with(self, *, argparse: Argparse | None=None, syntax: Syntax | None=None, traceback: Traceback | None=None, unittest: Unittest | None=None) -> Self:
         '''Return a new Theme based on this instance with some sections replaced.
 
@@ -246,15 +171,6 @@ class Theme:
         '''
 
         return cls(argparse=Argparse.no_colors(), syntax=Syntax.no_colors(), traceback=Traceback.no_colors(), unittest=Unittest.no_colors())
-
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['argparse'] = Argparse
-        {}['syntax'] = Syntax
-        {}['traceback'] = Traceback
-        {}['unittest'] = Unittest
-        return {}
 
 
 def get_colors(colorize: bool=False, *, file: IO[str] | IO[bytes] | None=None) -> ANSIColors:

@@ -500,26 +500,16 @@ class ExtendedInterpolation(Interpolation):
 
 
 class _ReadState:
-    cursect = None
-    sectname = None
-    optname = None
-    lineno = 0
-    indent_level = 0
+    elements_added: set[str]
+    cursect: dict[str, str] | None = None
+    sectname: str | None = None
+    optname: str | None = None
+    lineno: int = 0
+    indent_level: int = 0
+    errors: list[ParsingError]
     def __init__(self):
         self.elements_added = set()
         self.errors = list()
-
-    def __annotate_func__(format, /):
-        if format > 2:
-            raise NotImplementedError
-        {}['elements_added'] = set[str]
-        {}['cursect'] = dict[str, str] | None
-        {}['sectname'] = str | None
-        {}['optname'] = str | None
-        {}['lineno'] = int
-        {}['indent_level'] = int
-        {}['errors'] = list[ParsingError]
-        return {}
 
 
 class _Line(str):
