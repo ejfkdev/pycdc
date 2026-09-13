@@ -1,6 +1,6 @@
 [package]
 name = "pycdc"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["ejfkdev <152914458+ejfkdev@users.noreply.github.com>"]
 description = "Python bytecode (pyc) disassembler and decompiler for Python 1.x - 3.x, written in Rust"

@@ -4,7 +4,7 @@
 
 > **当前验证水平**：在 2.6–3.14 共 13 个解释器、520 个真实标准库模块语料上，
 > **语义等价 520/520 = 100%**（其中 398 个达到字节码签名级完全一致，76.5%）；
-> 行为等价矩阵 **463/463 = 100%**（反编译产物与原码在同一解释器下运行结果一致）；
+> 行为等价矩阵 **490/490 = 100%**（反编译产物与原码在同一解释器下运行结果一致）；
 > 全部输出零语法错误、零 incomplete 占位。
 
 设计参考了 [Decompyle++ (pycdc)](https://github.com/zrax/pycdc)、[uncompyle6/decompyle3](https://github.com/rocky/python-decompyle3) 与 [xdis](https://github.com/rocky/python-xdis)，核心思想是：
@@ -146,19 +146,19 @@ cargo build                                                 # 重新嵌入
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
 
-### 行为等价矩阵（`tools/run_behavior.py`，44 用例 × 13 解释器）
+### 行为等价矩阵（`tools/run_behavior.py`，48 用例 × 13 解释器）
 
 用例编译为 pyc → 反编译 → **用同一解释器分别运行原始与反编译代码**，比较 stdout+返回码：
 
 | 版本 | 通过率 | 版本 | 通过率 |
 |---|---|---|---|
-| 2.6 | 27/27 | 3.9 | 37/37 |
-| 2.7 | 28/28 | 3.10 | 39/39 |
-| 3.3 | 29/29 | 3.11 | 42/42 |
-| 3.5 | 31/31 | 3.12 | 43/43 |
-| 3.6 | 32/32 | 3.13 | 43/43 |
-| 3.7 | 32/32 | 3.14 | 43/43 |
-| 3.8 | 37/37 | **合计** | **463/463 = 100%** |
+| 2.6 | 29/29 | 3.9 | 39/39 |
+| 2.7 | 30/30 | 3.10 | 40/40 |
+| 3.3 | 31/31 | 3.11 | 43/43 |
+| 3.5 | 33/33 | 3.12 | 45/45 |
+| 3.6 | 34/34 | 3.13 | 46/46 |
+| 3.7 | 34/34 | 3.14 | 47/47 |
+| 3.8 | 39/39 | **合计** | **490/490 = 100%** |
 
 （带 MIN/MAX_VERSION 门控的用例只在适用版本运行；用例源文件本身无法在
 某解释器编译时记 N/A 并排除出分母。）
@@ -172,10 +172,14 @@ cargo build                                                 # 重新嵌入
   `RAISE_VARARGS` 收尾的 handler 闭合）；多 handler 链含尾随裸 `except:` 正确归位，
   3.11+ 裸 `except:` 不再误判为 `finally:`；py2 else 区发射按区前来源与有界区语句
   材料判别。生成器代码对象中被死代码消除的空生成器惯用法（`while False: yield None`）
-  在后处理阶段合成还原。已知缺口：2.x/3.5–3.10 中「except 分支内 continue + 同 try
-  带 finally + 位于循环内」的组合可能丢失循环嵌套结构；裸 except 归位时循环内 handler
-  尾可能多出一个语义等价的 `continue`；内联嵌套 try 的罕见形状仍可能触发
-  `unrecovered try/except structure` 占位（当前 520 模块语料为零占位）。
+  在后处理阶段合成还原。空 `finally: pass` 链（含嵌套）渲染为真实 try/finally 结构；
+  `finally: return X` 吞没形在两个时代均正确归位（3.11+ 清理路径撕裂材料重折叠；
+  ≤3.10 用「return 材料位于 SETUP_FINALLY 清理区 END_FINALLY 之前」判别，真尾随
+  return 不受影响）。已知缺口：2.x/3.5–3.10 中「except 分支内 continue + 同 try
+  带 finally + 位于循环内」的组合可能丢失循环嵌套结构（3.10 上可触发占位符，行为
+  多数仍等价）；3.9/3.10 的 with 体内联 try 可能平铺并泄漏 __exit__ 协议调用
+  （行为等价、含占位符）；裸 except 归位时循环内 handler 尾可能多出一个语义等价的
+  `continue`。当前 520 模块语料为零占位、零警告。
 - `with a, b:` 多上下文输出为嵌套 with（语义等价）。
 - match/case（3.10–3.14）：字面量/捕获/通配/or/序列（含 `*rest`、字面量元素）/映射
   （含值字面量模式与 `**rest`）/类模式（位置+关键字+字面量子模式，含唯一非通配 case 的
@@ -187,10 +191,12 @@ cargo build                                                 # 重新嵌入
   用 PJIF_TRUE 跳 body + 失败 JUMP_BACKWARD」的倒置形状（如 `case 2: return`）会漏判为
   通配/条件残桩（行为多数仍等价）。
 - 3.14 PEP 649 注解：函数/方法级 `__annotate__` 经 LOAD_FROM_DICT_OR_GLOBALS 重建为签名
-  注解（类作用域注解如 `Self`/`ast.AST` 已正确解析）。已知缺口：模块/类级**条件**注解
-  （`if False:`/TYPE_CHECKING 块内的纯注解语句，经 `__conditional_annotations__` 门控，
-  如 _colorize）仍以 `__annotate__`/`__conditional_annotations__` 伪函数形式输出而非还原
-  为注解语句（语义等价，判 AST-PASS）。
+  注解；模块/类级注解（含 `__conditional_annotations__` 门控的条件注解）经
+  `restore_pep649_annotations` 后处理还原为真实注解语句——门控 SET_ADD 泄漏的 `{IDX}`
+  标记即原始位置（TYPE_CHECKING 块内注解归位到块内；类体注解按源序折叠/插入），
+  运行时 `get_annotations` VALUE/FORWARDREF 与原始完全一致。已知边角：被编译器整体
+  折叠的死分支（`if False:` 内的注解）条目被丢弃——VALUE/FORWARDREF 语义与原始一致，
+  仅 STRING 格式的注解字典存在差异（原始会保留该死条目文本）。
 - PEP 750 模板字符串（3.14+ t-string，`BUILD_TEMPLATE`）已支持：插值、转换符与格式
   规格均正确还原（`t"a{b}c"`、`t"{b!r:>{b}}"`）。
 - else 子句：`try/except/else` 与 `if/else` 的 else 体被提升到外层（丢失 `else:` 关联）的
@@ -201,7 +207,10 @@ cargo build                                                 # 重新嵌入
   3.12 内联推导式把 try 体拆成多分片时的误判）。_bootlocale/copy/_compat_pickle/abc 等
   已达 PASS 或正确嵌套。残留：少数模块（_weakrefset/copy/copyreg 3.3）语义等价（AST-PASS）
   但仍有嵌套空 orelse 的层次差异（`orelse=[]` 位置不同），非 else 体丢失。
-- PEP 695 类型参数语法（3.12+ `type X = ...`、`def f[T](...)`、`class C[T]`）不支持。
+- PEP 695/696 类型参数语法（3.12+）已支持：`type X[T] = ...` 别名、`def f[T](...)`、
+  `class C[T](...)`，含 bound/constraints（`T: int`、`T: (int, str)`）、`*Ts`/`**P` 与
+  PEP 696 默认值（`T = int`、`*Ts = *tuple[()]`，3.13+）。实现：识别编译器生成的
+  `<generic parameters of X>` 包装函数并在嵌套反编译中执行其 CALL_INTRINSIC 协议。
 - 异步：async def/await/async for/async with（含嵌套与多上下文）支持；已知缺口：
   内联 async 推导式、async 生成器 asend/athrow 协议、3.7 SETUP_EXCEPT 守卫式
   async-for 的 break+else 组合。
