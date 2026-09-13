@@ -21549,7 +21549,23 @@ impl<'a> Ctx<'a> {
                 {
                     if let Some(t) = ins.target {
                         if let Some(&nti) = self.idx_of.get(&t) {
-                            if self.instrs.get(nti).map(|x| x.op) == Some(Op::POP_TOP) {
+                            if self.instrs.get(nti).map(|x| x.op) == Some(Op::POP_TOP)
+                                // a chain LINK's landing continues with
+                                // value material (the shared escape's
+                                // POP_TOP, or an or-merge POP_TOP then
+                                // the next operand run); a statement-if
+                                // inside the would-be body lands on its
+                                // own else POP_TOP followed by STATEMENT
+                                // material (bdb 2.6 stop_here: the while
+                                // body's `if frame is self.botframe:` JIF
+                                // was read as a third link, the fold
+                                // over-consumed the body and bailed, and
+                                // the while condition lost operand B)
+                                && self.instrs.get(nti + 1).map_or(true, |nx| {
+                                    matches!(nx.op, Op::POP_TOP | Op::RETURN_VALUE | Op::RETURN_CONST)
+                                        || is_pure_value_op(nx.op)
+                                })
+                            {
                                 more = true;
                             }
                         }

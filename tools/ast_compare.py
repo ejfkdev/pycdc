@@ -491,8 +491,11 @@ def normalize_body(body):
     n = len(body)
     while i < n:
         s = body[i]
-        if is_docstring_expr(s) and (i == 0 or all(is_docstring_expr(x) for x in body[:i])):
-            # docstring (only when leading)
+        if is_docstring_expr(s):
+            # docstring when leading; a bare string-literal statement
+            # anywhere else is a no-op the decompiler may elide
+            # (bdb 2.6 user_exception: the anonymous string after the
+            # tuple unpack) - drop on both sides either way
             i += 1
             continue
         if isinstance(s, ast.Global):
