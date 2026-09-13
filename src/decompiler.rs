@@ -37555,6 +37555,16 @@ if split_cond {
                 // chain-length guess (the wide multi-link form
                 // regressed _markupbase/base64/asynchat 3.8-3.10).
                 for bt in straddle {
+                    // the cond jump's target must be the loop EXIT: a
+                    // backward jump to the top at/after the target means
+                    // the target region is still inside the loop - the
+                    // shape is a rotated `while True:` whose first
+                    // guard-clause re-eval sits at the top (annotationlib
+                    // 3.14 get_annotations unwrap loop: PJIF->1382 lands
+                    // on the SECOND guard clause, whose own continue jumps
+                    // back to 1228; claiming it rendered `while
+                    // hasattr(...): ... else: <functools clause>` and lost
+                    // the loop semantics)
                     if self.is_cond_expr_top(bt, cj.offset)
                         && !self
                             .idx_of
@@ -44885,7 +44895,24 @@ impl<'a> Ctx<'a> {
                         && !(nested_handler_terminates && !main_only)
                     {
                         if let Some(h) = exc_h {
-                            if h > self.cur_offset {
+                            // the hop is only safe when NOTHING live lies
+                            // between the body and the chain: a function
+                            // with several tries lays their chains out
+                            // together at the tail while the main flow
+                            // continues right after each body - hopping
+                            // the first chain's extent then skips the
+                            // later tries' unprotected bodies entirely
+                            // (annotationlib 3.14 ForwardRef.evaluate:
+                            // the cell-try's body return hopped to
+                            // extent 1972, losing the whole owner/
+                            // globals/locals middle and both later
+                            // tries). A registered TryCtx starting in
+                            // the gap is exactly that live material.
+                            let live_body_between = h > self.cur_offset
+                                && self.try_ctxs.values().any(|t| {
+                                    t.start > self.cur_offset && t.start < h
+                                });
+                            if h > self.cur_offset && !live_body_between {
                                 let ext = self.chain_extent(h);
                                 let mut resume = ext;
                                 let mut probe = ext;
