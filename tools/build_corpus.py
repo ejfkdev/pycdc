@@ -64,15 +64,28 @@ def main():
             break
         base = os.path.basename(src)[:-3]
         pyc = os.path.join(outdir, base + ".pyc")
+        py = os.path.join(outdir, base + ".py")
+        with open(src, "rb") as f:
+            data = f.read()
+        # sanitize local paths before the fixture is committed:
+        # _sysconfigdata embeds the build prefix in string constants, and
+        # every pyc would otherwise carry the absolute source path as its
+        # co_filename (dfile below replaces it with a bare module name)
+        home = os.path.expanduser("~")
         try:
-            py_compile.compile(src, cfile=pyc, doraise=True)
+            hb = home.encode("utf-8")
+        except Exception:
+            hb = home
+        if home and home != "~":
+            data = data.replace(hb, b"~")
+        with open(py, "wb") as f:
+            f.write(data)
+        try:
+            py_compile.compile(py, cfile=pyc, dfile=base + ".py",
+                               doraise=True)
         except Exception:
             failed.append((base, str(sys.exc_info()[1])[:120]))
             continue
-        with open(src, "rb") as f:
-            data = f.read()
-        with open(os.path.join(outdir, base + ".py"), "wb") as f:
-            f.write(data)
         picked += 1
     ver = sys.version.split()[0]
     print("python %s: picked %d modules into %s" % (ver, picked, outdir))

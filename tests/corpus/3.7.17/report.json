@@ -1,6 +1,6 @@
 {
  "version": "3.7.17",
- "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
+ "interp": "~/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
   "PASS": 36,
   "AST-PASS": 4

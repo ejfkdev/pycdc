@@ -1,6 +1,6 @@
 {
  "version": "2.6.9",
- "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
+ "interp": "~/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 18,
   "AST-PASS": 22

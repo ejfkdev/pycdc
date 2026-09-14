@@ -41102,16 +41102,11 @@ if split_cond {
         // close the innermost open If/Else whose region continues past
         // the label — its arm just terminated at the raise
         let mut marked = false;
-        while let Some(top) = self.blocks.last() {
-            if !matches!(top.kind, BlockType::If | BlockType::Else) {
-                break;
+        if let Some(top) = self.blocks.last() {
+            if matches!(top.kind, BlockType::If | BlockType::Else) && top.end > next {
+                self.force_close_top(next);
+                marked = true;
             }
-            if top.end <= next {
-                break;
-            }
-            self.force_close_top(next);
-            marked = true;
-            break;
         }
         if !marked {
             return;

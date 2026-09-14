@@ -2,6 +2,7 @@
 name = "pycdc"
 version = "0.4.1"
 edition = "2021"
+rust-version = "1.70"
 authors = ["ejfkdev <152914458+ejfkdev@users.noreply.github.com>"]
 description = "Python bytecode (pyc) disassembler and decompiler for Python 1.x - 3.x, written in Rust"
 readme = "README.md"

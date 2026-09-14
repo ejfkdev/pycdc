@@ -32,6 +32,19 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def sanitize_paths(obj):
+    """Replace the local home directory with ~ so committed reports carry
+    no personal paths."""
+    home = os.path.expanduser("~")
+    if isinstance(obj, str):
+        return obj.replace(home, "~")
+    if isinstance(obj, dict):
+        return dict((k, sanitize_paths(v)) for k, v in obj.items())
+    if isinstance(obj, list):
+        return [sanitize_paths(v) for v in obj]
+    return obj
 CORPUS = os.path.join(ROOT, "tests", "corpus")
 SIG_DUMP = os.path.join(ROOT, "tools", "sig_dump.py")
 AST_COMPARE = os.path.join(ROOT, "tools", "ast_compare.py")
@@ -218,8 +231,9 @@ def main():
                         (r.get("detail", "") or "").splitlines()[0][:110]
                         if r.get("detail") else ""))
         with open(os.path.join(vdir, "report.json"), "w") as f:
-            json.dump({"version": vd, "interp": interp, "counts": counts,
-                       "results": results}, f, indent=1)
+            json.dump(sanitize_paths(
+                {"version": vd, "interp": interp, "counts": counts,
+                 "results": results}), f, indent=1)
 
     # overall
     tot = {}
@@ -242,8 +256,9 @@ def main():
         print("strict pass rate: %d/%d = %.1f%%" % (good, n, 100.0 * good / n))
         print("semantic pass rate (PASS+AST-PASS): %d/%d = %.1f%%" % (sem, n, 100.0 * sem / n))
     with open(os.path.join(CORPUS, "summary.json"), "w") as f:
-        json.dump({vd: {k: v for k, v in s.items() if k != "results"}
-                   for vd, s in summary.items()}, f, indent=1)
+        json.dump(sanitize_paths(
+            {vd: {k: v for k, v in s.items() if k != "results"}
+             for vd, s in summary.items()}), f, indent=1)
 
 
 if __name__ == "__main__":

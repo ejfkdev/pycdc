@@ -86,7 +86,7 @@ class ParserBase:
             elif c == '[':
                 if decltype == 'doctype':
                     j = self._parse_doctype_subset(j + 1, i)
-                elif decltype in {'attlist', 'linktype', 'element', 'link'}:
+                elif decltype in {'attlist', 'linktype', 'link', 'element'}:
                     self.error("unsupported '[' char in %s declaration" % decltype)
                 else:
                     self.error("unexpected '[' char in declaration")
@@ -102,9 +102,9 @@ class ParserBase:
         sectName, j = self._scan_name(i + 3, i)
         if j < 0:
             return j
-        if sectName in {'include', 'temp', 'ignore', 'cdata', 'rcdata'}:
+        if sectName in {'ignore', 'cdata', 'rcdata', 'temp', 'include'}:
             match = _markedsectionclose.search(rawdata, i + 3)
-        elif sectName in {'else', 'if', 'endif'}:
+        elif sectName in {'if', 'else', 'endif'}:
             match = _msmarkedsectionclose.search(rawdata, i + 3)
         else:
             self.error('unknown status keyword %r in marked section' % rawdata[i + 3:j])

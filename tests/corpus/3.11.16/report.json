@@ -1,6 +1,6 @@
 {
  "version": "3.11.16",
- "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
+ "interp": "~/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 34,
   "AST-PASS": 6

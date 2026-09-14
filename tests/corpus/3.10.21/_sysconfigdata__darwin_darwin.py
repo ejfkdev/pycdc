@@ -12,8 +12,8 @@ build_time_vars = {'ABIFLAGS': '',
  'BASECFLAGS': '-Wno-unused-result -Wsign-compare -Wunreachable-code',
  'BASECPPFLAGS': '',
  'BASEMODLIBS': '',
- 'BINDIR': '/Users/e/.pyenv/versions/3.10.21/bin',
- 'BINLIBDEST': '/Users/e/.pyenv/versions/3.10.21/lib/python3.10',
+ 'BINDIR': '~/.pyenv/versions/3.10.21/bin',
+ 'BINLIBDEST': '~/.pyenv/versions/3.10.21/lib/python3.10',
  'BLDLIBRARY': '-L. -lpython3.10',
  'BLDSHARED': 'clang -bundle -undefined dynamic_lookup '
               '-L/opt/homebrew/opt/ncurses/lib '
@@ -21,8 +21,8 @@ build_time_vars = {'ABIFLAGS': '',
               '-L/opt/homebrew/opt/readline/lib '
               '-L/opt/homebrew/opt/openssl@3/lib '
               '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-              '-L/Users/e/.pyenv/versions/3.10.21/lib '
-              '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+              '-L~/.pyenv/versions/3.10.21/lib '
+              '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
               '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
               '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
               '-L/opt/homebrew/opt/ncurses/lib '
@@ -30,8 +30,8 @@ build_time_vars = {'ABIFLAGS': '',
               '-L/opt/homebrew/opt/readline/lib '
               '-L/opt/homebrew/opt/openssl@3/lib '
               '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-              '-L/Users/e/.pyenv/versions/3.10.21/lib '
-              '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+              '-L~/.pyenv/versions/3.10.21/lib '
+              '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
               '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
               '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'BUILDEXE': '.exe',
@@ -61,21 +61,21 @@ build_time_vars = {'ABIFLAGS': '',
                        '-I/opt/homebrew/opt/readline/include '
                        '-I/opt/homebrew/opt/readline/include '
                        '-I/opt/homebrew/opt/openssl@3/include  '
-                       '-I/Users/e/.pyenv/versions/3.10.21/include '
+                       '-I~/.pyenv/versions/3.10.21/include '
                        '-I/opt/homebrew/include',
  'CONFIGURE_LDFLAGS': '-L/opt/homebrew/opt/ncurses/lib '
                       '-L/opt/homebrew/opt/readline/lib '
                       '-L/opt/homebrew/opt/readline/lib '
                       '-L/opt/homebrew/opt/openssl@3/lib '
                       '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                      '-L/Users/e/.pyenv/versions/3.10.21/lib '
-                      '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib '
+                      '-L~/.pyenv/versions/3.10.21/lib '
+                      '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib '
                       '-isysroot '
                       '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                       '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'CONFIGURE_LDFLAGS_NODIST': '',
- 'CONFIG_ARGS': "'--prefix=/Users/e/.pyenv/versions/3.10.21' '--enable-shared' "
-                "'--libdir=/Users/e/.pyenv/versions/3.10.21/lib' "
+ 'CONFIG_ARGS': "'--prefix=~/.pyenv/versions/3.10.21' '--enable-shared' "
+                "'--libdir=~/.pyenv/versions/3.10.21/lib' "
                 "'--with-openssl=/opt/homebrew/opt/openssl@3' 'CC=clang' "
                 "'CFLAGS=-isysroot "
                 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk' "
@@ -84,22 +84,22 @@ build_time_vars = {'ABIFLAGS': '',
                 '-L/opt/homebrew/opt/readline/lib '
                 '-L/opt/homebrew/opt/openssl@3/lib '
                 '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                '-L/Users/e/.pyenv/versions/3.10.21/lib '
-                '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+                '-L~/.pyenv/versions/3.10.21/lib '
+                '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
                 '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                 "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib' "
-                "'LIBS=-L/Users/e/.pyenv/versions/3.10.21/lib "
-                '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib '
+                "'LIBS=-L~/.pyenv/versions/3.10.21/lib "
+                '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib '
                 "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib' "
                 "'CPPFLAGS=-I/opt/homebrew/opt/ncurses/include "
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/openssl@3/include  '
-                '-I/Users/e/.pyenv/versions/3.10.21/include '
+                '-I~/.pyenv/versions/3.10.21/include '
                 "-I/opt/homebrew/include' "
                 "'PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@3/lib/pkgconfig/:'",
- 'CONFINCLUDEDIR': '/Users/e/.pyenv/versions/3.10.21/include',
- 'CONFINCLUDEPY': '/Users/e/.pyenv/versions/3.10.21/include/python3.10',
+ 'CONFINCLUDEDIR': '~/.pyenv/versions/3.10.21/include',
+ 'CONFINCLUDEPY': '~/.pyenv/versions/3.10.21/include/python3.10',
  'COREPYTHONPATH': '',
  'COVERAGE_INFO': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3675/Python-3.10.21/coverage.info',
  'COVERAGE_REPORT': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3675/Python-3.10.21/lcov-report',
@@ -109,21 +109,21 @@ build_time_vars = {'ABIFLAGS': '',
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/openssl@3/include  '
-             '-I/Users/e/.pyenv/versions/3.10.21/include '
+             '-I~/.pyenv/versions/3.10.21/include '
              '-I/opt/homebrew/include -I/opt/homebrew/opt/ncurses/include '
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/openssl@3/include  '
-             '-I/Users/e/.pyenv/versions/3.10.21/include '
+             '-I~/.pyenv/versions/3.10.21/include '
              '-I/opt/homebrew/include',
  'CXX': 'clang++',
- 'DESTDIRS': '/Users/e/.pyenv/versions/3.10.21 '
-             '/Users/e/.pyenv/versions/3.10.21/lib '
-             '/Users/e/.pyenv/versions/3.10.21/lib/python3.10 '
-             '/Users/e/.pyenv/versions/3.10.21/lib/python3.10/lib-dynload',
- 'DESTLIB': '/Users/e/.pyenv/versions/3.10.21/lib/python3.10',
+ 'DESTDIRS': '~/.pyenv/versions/3.10.21 '
+             '~/.pyenv/versions/3.10.21/lib '
+             '~/.pyenv/versions/3.10.21/lib/python3.10 '
+             '~/.pyenv/versions/3.10.21/lib/python3.10/lib-dynload',
+ 'DESTLIB': '~/.pyenv/versions/3.10.21/lib/python3.10',
  'DESTPATH': '',
- 'DESTSHARED': '/Users/e/.pyenv/versions/3.10.21/lib/python3.10/lib-dynload',
+ 'DESTSHARED': '~/.pyenv/versions/3.10.21/lib/python3.10/lib-dynload',
  'DFLAGS': '',
  'DIRMODE': 755,
  'DIST': 'README.rst ChangeLog configure configure.ac acconfig.h pyconfig.h.in '
@@ -591,12 +591,12 @@ build_time_vars = {'ABIFLAGS': '',
  'HAVE_ZLIB_COPY': 1,
  'HAVE__GETPTY': 0,
  'HOST_GNU_TYPE': 'aarch64-apple-darwin25.6.0',
- 'INCLDIRSTOMAKE': '/Users/e/.pyenv/versions/3.10.21/include '
-                   '/Users/e/.pyenv/versions/3.10.21/include '
-                   '/Users/e/.pyenv/versions/3.10.21/include/python3.10 '
-                   '/Users/e/.pyenv/versions/3.10.21/include/python3.10',
- 'INCLUDEDIR': '/Users/e/.pyenv/versions/3.10.21/include',
- 'INCLUDEPY': '/Users/e/.pyenv/versions/3.10.21/include/python3.10',
+ 'INCLDIRSTOMAKE': '~/.pyenv/versions/3.10.21/include '
+                   '~/.pyenv/versions/3.10.21/include '
+                   '~/.pyenv/versions/3.10.21/include/python3.10 '
+                   '~/.pyenv/versions/3.10.21/include/python3.10',
+ 'INCLUDEDIR': '~/.pyenv/versions/3.10.21/include',
+ 'INCLUDEPY': '~/.pyenv/versions/3.10.21/include/python3.10',
  'INSTALL': '/usr/bin/install -c',
  'INSTALL_DATA': '/usr/bin/install -c -m 644',
  'INSTALL_PROGRAM': '/usr/bin/install -c',
@@ -610,16 +610,16 @@ build_time_vars = {'ABIFLAGS': '',
             '-L/opt/homebrew/opt/readline/lib '
             '-L/opt/homebrew/opt/openssl@3/lib '
             '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-            '-L/Users/e/.pyenv/versions/3.10.21/lib '
-            '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+            '-L~/.pyenv/versions/3.10.21/lib '
+            '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
             '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
             '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
             '-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/readline/lib '
             '-L/opt/homebrew/opt/readline/lib '
             '-L/opt/homebrew/opt/openssl@3/lib '
             '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-            '-L/Users/e/.pyenv/versions/3.10.21/lib '
-            '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+            '-L~/.pyenv/versions/3.10.21/lib '
+            '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
             '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
             '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'LDFLAGS_NODIST': '',
@@ -630,35 +630,35 @@ build_time_vars = {'ABIFLAGS': '',
              '-L/opt/homebrew/opt/readline/lib '
              '-L/opt/homebrew/opt/openssl@3/lib '
              '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-             '-L/Users/e/.pyenv/versions/3.10.21/lib '
-             '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+             '-L~/.pyenv/versions/3.10.21/lib '
+             '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
              '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
              '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
              '-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/readline/lib '
              '-L/opt/homebrew/opt/readline/lib '
              '-L/opt/homebrew/opt/openssl@3/lib '
              '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-             '-L/Users/e/.pyenv/versions/3.10.21/lib '
-             '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+             '-L~/.pyenv/versions/3.10.21/lib '
+             '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
              '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
              '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'LDVERSION': '3.10',
  'LIBC': '',
- 'LIBDEST': '/Users/e/.pyenv/versions/3.10.21/lib/python3.10',
- 'LIBDIR': '/Users/e/.pyenv/versions/3.10.21/lib',
+ 'LIBDEST': '~/.pyenv/versions/3.10.21/lib/python3.10',
+ 'LIBDIR': '~/.pyenv/versions/3.10.21/lib',
  'LIBFFI_INCLUDEDIR': '',
  'LIBM': '',
  'LIBOBJDIR': 'Python/',
  'LIBOBJS': '',
- 'LIBPC': '/Users/e/.pyenv/versions/3.10.21/lib/pkgconfig',
- 'LIBPL': '/Users/e/.pyenv/versions/3.10.21/lib/python3.10/config-3.10-darwin',
+ 'LIBPC': '~/.pyenv/versions/3.10.21/lib/pkgconfig',
+ 'LIBPL': '~/.pyenv/versions/3.10.21/lib/python3.10/config-3.10-darwin',
  'LIBPYTHON': '',
  'LIBRARY': 'libpython3.10.a',
  'LIBRARY_DEPS': 'libpython3.10.a libpython3.10.dylib',
  'LIBRARY_OBJS': '\\',
  'LIBRARY_OBJS_OMIT_FROZEN': '\\',
- 'LIBS': '-lintl -ldl -L/Users/e/.pyenv/versions/3.10.21/lib '
-         '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -L/opt/homebrew/lib '
+ 'LIBS': '-lintl -ldl -L~/.pyenv/versions/3.10.21/lib '
+         '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -L/opt/homebrew/lib '
          '-Wl,-rpath,/opt/homebrew/lib  -framework CoreFoundation',
  'LIBSUBDIRS': 'asyncio \\',
  'LINKCC': 'clang',
@@ -673,13 +673,13 @@ build_time_vars = {'ABIFLAGS': '',
  'LOCALMODLIBS': '',
  'MACHDEP': 'darwin',
  'MACHDEP_OBJS': '',
- 'MACHDESTLIB': '/Users/e/.pyenv/versions/3.10.21/lib/python3.10',
+ 'MACHDESTLIB': '~/.pyenv/versions/3.10.21/lib/python3.10',
  'MACOSX_DEPLOYMENT_TARGET': '26.6',
  'MAINCC': 'clang',
  'MAJOR_IN_MKDEV': 0,
  'MAJOR_IN_SYSMACROS': 0,
  'MAKESETUP': './Modules/makesetup',
- 'MANDIR': '/Users/e/.pyenv/versions/3.10.21/share/man',
+ 'MANDIR': '~/.pyenv/versions/3.10.21/share/man',
  'MKDIR_P': './install-sh -c -d',
  'MODBUILT_NAMES': 'posix  errno  pwd  _sre  _codecs  _weakref  _functools  '
                    '_operator  _collections  _abc  itertools  atexit  _signal  '
@@ -758,13 +758,13 @@ build_time_vars = {'ABIFLAGS': '',
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/openssl@3/include  '
-                             '-I/Users/e/.pyenv/versions/3.10.21/include '
+                             '-I~/.pyenv/versions/3.10.21/include '
                              '-I/opt/homebrew/include '
                              '-I/opt/homebrew/opt/ncurses/include '
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/openssl@3/include  '
-                             '-I/Users/e/.pyenv/versions/3.10.21/include '
+                             '-I~/.pyenv/versions/3.10.21/include '
                              '-I/opt/homebrew/include -DPy_BUILD_CORE_BUILTIN',
  'PY_CFLAGS': '-Wno-unused-result -Wsign-compare -Wunreachable-code -DNDEBUG '
               '-g -fwrapv -O3 -Wall -isysroot '
@@ -789,21 +789,21 @@ build_time_vars = {'ABIFLAGS': '',
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/openssl@3/include  '
-                   '-I/Users/e/.pyenv/versions/3.10.21/include '
+                   '-I~/.pyenv/versions/3.10.21/include '
                    '-I/opt/homebrew/include '
                    '-I/opt/homebrew/opt/ncurses/include '
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/openssl@3/include  '
-                   '-I/Users/e/.pyenv/versions/3.10.21/include '
+                   '-I~/.pyenv/versions/3.10.21/include '
                    '-I/opt/homebrew/include -DPy_BUILD_CORE',
  'PY_CORE_LDFLAGS': '-L/opt/homebrew/opt/ncurses/lib '
                     '-L/opt/homebrew/opt/readline/lib '
                     '-L/opt/homebrew/opt/readline/lib '
                     '-L/opt/homebrew/opt/openssl@3/lib '
                     '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                    '-L/Users/e/.pyenv/versions/3.10.21/lib '
-                    '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+                    '-L~/.pyenv/versions/3.10.21/lib '
+                    '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
                     '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                     '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
                     '-L/opt/homebrew/opt/ncurses/lib '
@@ -811,20 +811,20 @@ build_time_vars = {'ABIFLAGS': '',
                     '-L/opt/homebrew/opt/readline/lib '
                     '-L/opt/homebrew/opt/openssl@3/lib '
                     '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                    '-L/Users/e/.pyenv/versions/3.10.21/lib '
-                    '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+                    '-L~/.pyenv/versions/3.10.21/lib '
+                    '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
                     '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                     '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'PY_CPPFLAGS': '-I. -I./Include -I/opt/homebrew/opt/ncurses/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/openssl@3/include  '
-                '-I/Users/e/.pyenv/versions/3.10.21/include '
+                '-I~/.pyenv/versions/3.10.21/include '
                 '-I/opt/homebrew/include -I/opt/homebrew/opt/ncurses/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/openssl@3/include  '
-                '-I/Users/e/.pyenv/versions/3.10.21/include '
+                '-I~/.pyenv/versions/3.10.21/include '
                 '-I/opt/homebrew/include',
  'PY_ENABLE_SHARED': 1,
  'PY_FORMAT_SIZE_T': '"z"',
@@ -833,8 +833,8 @@ build_time_vars = {'ABIFLAGS': '',
                '-L/opt/homebrew/opt/readline/lib '
                '-L/opt/homebrew/opt/openssl@3/lib '
                '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-               '-L/Users/e/.pyenv/versions/3.10.21/lib '
-               '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+               '-L~/.pyenv/versions/3.10.21/lib '
+               '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
                '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
                '-L/opt/homebrew/opt/ncurses/lib '
@@ -842,8 +842,8 @@ build_time_vars = {'ABIFLAGS': '',
                '-L/opt/homebrew/opt/readline/lib '
                '-L/opt/homebrew/opt/openssl@3/lib '
                '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-               '-L/Users/e/.pyenv/versions/3.10.21/lib '
-               '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib -isysroot '
+               '-L~/.pyenv/versions/3.10.21/lib '
+               '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib -isysroot '
                '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'PY_LDFLAGS_NODIST': '',
@@ -862,13 +862,13 @@ build_time_vars = {'ABIFLAGS': '',
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/openssl@3/include  '
-                        '-I/Users/e/.pyenv/versions/3.10.21/include '
+                        '-I~/.pyenv/versions/3.10.21/include '
                         '-I/opt/homebrew/include '
                         '-I/opt/homebrew/opt/ncurses/include '
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/openssl@3/include  '
-                        '-I/Users/e/.pyenv/versions/3.10.21/include '
+                        '-I~/.pyenv/versions/3.10.21/include '
                         '-I/opt/homebrew/include',
  'Py_DEBUG': 0,
  'Py_ENABLE_SHARED': 1,
@@ -879,11 +879,11 @@ build_time_vars = {'ABIFLAGS': '',
  'RESSRCDIR': 'Mac/Resources/framework',
  'RETSIGTYPE': 'void',
  'RUNSHARED': 'DYLD_LIBRARY_PATH=/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3675/Python-3.10.21',
- 'SCRIPTDIR': '/Users/e/.pyenv/versions/3.10.21/lib',
+ 'SCRIPTDIR': '~/.pyenv/versions/3.10.21/lib',
  'SETPGRP_HAVE_ARG': 0,
  'SHELL': '/bin/sh',
- 'SHLIBS': '-lintl -ldl -L/Users/e/.pyenv/versions/3.10.21/lib '
-           '-Wl,-rpath,/Users/e/.pyenv/versions/3.10.21/lib '
+ 'SHLIBS': '-lintl -ldl -L~/.pyenv/versions/3.10.21/lib '
+           '-Wl,-rpath,~/.pyenv/versions/3.10.21/lib '
            '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib  -framework '
            'CoreFoundation',
  'SHLIB_SUFFIX': '.so',
@@ -956,7 +956,7 @@ build_time_vars = {'ABIFLAGS': '',
  'XMLLIBSUBDIRS': 'xml xml/dom xml/etree xml/parsers xml/sax',
  'abs_builddir': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3675/Python-3.10.21',
  'abs_srcdir': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3675/Python-3.10.21',
- 'datarootdir': '/Users/e/.pyenv/versions/3.10.21/share',
- 'exec_prefix': '/Users/e/.pyenv/versions/3.10.21',
- 'prefix': '/Users/e/.pyenv/versions/3.10.21',
+ 'datarootdir': '~/.pyenv/versions/3.10.21/share',
+ 'exec_prefix': '~/.pyenv/versions/3.10.21',
+ 'prefix': '~/.pyenv/versions/3.10.21',
  'srcdir': '.'}

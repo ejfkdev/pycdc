@@ -84,7 +84,7 @@ class ParserBase:
                 if decltype == 'doctype':
                     j = self._parse_doctype_subset(j + 1, i)
                 else:
-                    if decltype in {'attlist', 'link', 'linktype', 'element'}:
+                    if decltype in {'link', 'linktype', 'element', 'attlist'}:
                         raise AssertionError("unsupported '[' char in %s declaration" % decltype)
                     raise AssertionError("unexpected '[' char in declaration")
             else:
@@ -99,7 +99,7 @@ class ParserBase:
         sectName, j = self._scan_name(i + 3, i)
         if j < 0:
             return j
-        if sectName in {'cdata', 'ignore', 'temp', 'include', 'rcdata'}:
+        if sectName in {'temp', 'include', 'ignore', 'cdata', 'rcdata'}:
             match = _markedsectionclose.search(rawdata, i + 3)
         elif sectName in {'else', 'if', 'endif'}:
             match = _msmarkedsectionclose.search(rawdata, i + 3)
@@ -149,7 +149,7 @@ class ParserBase:
                 name, j = self._scan_name(j + 2, declstartpos)
                 if j == -1:
                     return -1
-                if name not in {'attlist', 'element', 'entity', 'notation'}:
+                if name not in {'entity', 'element', 'notation', 'attlist'}:
                     self.updatepos(declstartpos, j + 2)
                     raise AssertionError('unknown declaration %r in internal subset' % name)
                 meth = getattr(self, '_parse_doctype_' + name)

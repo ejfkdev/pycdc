@@ -1,34 +1,34 @@
 {
  "2.6.9": {
-  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
+  "interp": "~/.pyenv/versions/2.6.9/bin/python",
   "counts": {
    "PASS": 18,
    "AST-PASS": 22
   }
  },
  "2.7.18": {
-  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
+  "interp": "~/.pyenv/versions/2.7.18/bin/python",
   "counts": {
    "PASS": 29,
    "AST-PASS": 11
   }
  },
  "3.10.21": {
-  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
+  "interp": "~/.pyenv/versions/3.10.21/bin/python3",
   "counts": {
    "PASS": 32,
    "AST-PASS": 8
   }
  },
  "3.11.16": {
-  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
+  "interp": "~/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
   "counts": {
    "PASS": 34,
    "AST-PASS": 6
   }
  },
  "3.12.14": {
-  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
+  "interp": "~/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
    "PASS": 30,
    "AST-PASS": 10
@@ -49,42 +49,42 @@
   }
  },
  "3.3.7": {
-  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
+  "interp": "~/.pyenv/versions/3.3.7/bin/python3",
   "counts": {
    "PASS": 25,
    "AST-PASS": 15
   }
  },
  "3.5.10": {
-  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
+  "interp": "~/.pyenv/versions/3.5.10/bin/python3",
   "counts": {
    "PASS": 34,
    "AST-PASS": 6
   }
  },
  "3.6.15": {
-  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
+  "interp": "~/.pyenv/versions/3.6.15/bin/python3",
   "counts": {
    "PASS": 33,
    "AST-PASS": 7
   }
  },
  "3.7.17": {
-  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
+  "interp": "~/.pyenv/versions/3.7.17/bin/python3",
   "counts": {
    "PASS": 36,
    "AST-PASS": 4
   }
  },
  "3.8.20": {
-  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
+  "interp": "~/.pyenv/versions/3.8.20/bin/python3",
   "counts": {
    "PASS": 35,
    "AST-PASS": 5
   }
  },
  "3.9.25": {
-  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
+  "interp": "~/.pyenv/versions/3.9.25/bin/python3",
   "counts": {
    "PASS": 35,
    "AST-PASS": 5

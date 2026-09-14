@@ -8,8 +8,8 @@ build_time_vars = {'ABIFLAGS': 'm',
  'BASECFLAGS': '-Wno-unused-result -Wsign-compare -Wunreachable-code',
  'BASECPPFLAGS': '',
  'BASEMODLIBS': '',
- 'BINDIR': '/Users/e/.pyenv/versions/3.7.17/bin',
- 'BINLIBDEST': '/Users/e/.pyenv/versions/3.7.17/lib/python3.7',
+ 'BINDIR': '~/.pyenv/versions/3.7.17/bin',
+ 'BINLIBDEST': '~/.pyenv/versions/3.7.17/lib/python3.7',
  'BLDLIBRARY': '-L. -lpython3.7m',
  'BLDSHARED': 'clang -bundle -undefined dynamic_lookup '
               '-L/opt/homebrew/opt/ncurses/lib '
@@ -17,8 +17,8 @@ build_time_vars = {'ABIFLAGS': 'm',
               '-L/opt/homebrew/opt/readline/lib '
               '-L/opt/homebrew/opt/openssl@3/lib '
               '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-              '-L/Users/e/.pyenv/versions/3.7.17/lib '
-              '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+              '-L~/.pyenv/versions/3.7.17/lib '
+              '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
               '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
               '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
               '-L/opt/homebrew/opt/ncurses/lib '
@@ -26,8 +26,8 @@ build_time_vars = {'ABIFLAGS': 'm',
               '-L/opt/homebrew/opt/readline/lib '
               '-L/opt/homebrew/opt/openssl@3/lib '
               '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-              '-L/Users/e/.pyenv/versions/3.7.17/lib '
-              '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+              '-L~/.pyenv/versions/3.7.17/lib '
+              '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
               '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
               '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'BUILDEXE': '.exe',
@@ -57,21 +57,21 @@ build_time_vars = {'ABIFLAGS': 'm',
                        '-I/opt/homebrew/opt/readline/include '
                        '-I/opt/homebrew/opt/readline/include '
                        '-I/opt/homebrew/opt/openssl@3/include  '
-                       '-I/Users/e/.pyenv/versions/3.7.17/include '
+                       '-I~/.pyenv/versions/3.7.17/include '
                        '-I/opt/homebrew/include',
  'CONFIGURE_LDFLAGS': '-L/opt/homebrew/opt/ncurses/lib '
                       '-L/opt/homebrew/opt/readline/lib '
                       '-L/opt/homebrew/opt/readline/lib '
                       '-L/opt/homebrew/opt/openssl@3/lib '
                       '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                      '-L/Users/e/.pyenv/versions/3.7.17/lib '
-                      '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib '
+                      '-L~/.pyenv/versions/3.7.17/lib '
+                      '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib '
                       '-isysroot '
                       '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                       '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'CONFIGURE_LDFLAGS_NODIST': '',
- 'CONFIG_ARGS': "'--prefix=/Users/e/.pyenv/versions/3.7.17' '--enable-shared' "
-                "'--libdir=/Users/e/.pyenv/versions/3.7.17/lib' "
+ 'CONFIG_ARGS': "'--prefix=~/.pyenv/versions/3.7.17' '--enable-shared' "
+                "'--libdir=~/.pyenv/versions/3.7.17/lib' "
                 "'--with-openssl=/opt/homebrew/opt/openssl@3' 'CC=clang' "
                 "'CFLAGS=-isysroot "
                 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk' "
@@ -80,22 +80,22 @@ build_time_vars = {'ABIFLAGS': 'm',
                 '-L/opt/homebrew/opt/readline/lib '
                 '-L/opt/homebrew/opt/openssl@3/lib '
                 '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                '-L/Users/e/.pyenv/versions/3.7.17/lib '
-                '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+                '-L~/.pyenv/versions/3.7.17/lib '
+                '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
                 '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                 "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib' "
-                "'LIBS=-L/Users/e/.pyenv/versions/3.7.17/lib "
-                '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib '
+                "'LIBS=-L~/.pyenv/versions/3.7.17/lib "
+                '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib '
                 "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib' "
                 "'CPPFLAGS=-I/opt/homebrew/opt/ncurses/include "
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/openssl@3/include  '
-                '-I/Users/e/.pyenv/versions/3.7.17/include '
+                '-I~/.pyenv/versions/3.7.17/include '
                 "-I/opt/homebrew/include' "
                 "'PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@3/lib/pkgconfig/:'",
- 'CONFINCLUDEDIR': '/Users/e/.pyenv/versions/3.7.17/include',
- 'CONFINCLUDEPY': '/Users/e/.pyenv/versions/3.7.17/include/python3.7m',
+ 'CONFINCLUDEDIR': '~/.pyenv/versions/3.7.17/include',
+ 'CONFINCLUDEPY': '~/.pyenv/versions/3.7.17/include/python3.7m',
  'COREPYTHONPATH': '',
  'COVERAGE_INFO': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3609/Python-3.7.17/coverage.info',
  'COVERAGE_REPORT': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3609/Python-3.7.17/lcov-report',
@@ -105,21 +105,21 @@ build_time_vars = {'ABIFLAGS': 'm',
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/openssl@3/include  '
-             '-I/Users/e/.pyenv/versions/3.7.17/include '
+             '-I~/.pyenv/versions/3.7.17/include '
              '-I/opt/homebrew/include -I/opt/homebrew/opt/ncurses/include '
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/readline/include '
              '-I/opt/homebrew/opt/openssl@3/include  '
-             '-I/Users/e/.pyenv/versions/3.7.17/include '
+             '-I~/.pyenv/versions/3.7.17/include '
              '-I/opt/homebrew/include',
  'CXX': 'clang++',
- 'DESTDIRS': '/Users/e/.pyenv/versions/3.7.17 '
-             '/Users/e/.pyenv/versions/3.7.17/lib '
-             '/Users/e/.pyenv/versions/3.7.17/lib/python3.7 '
-             '/Users/e/.pyenv/versions/3.7.17/lib/python3.7/lib-dynload',
- 'DESTLIB': '/Users/e/.pyenv/versions/3.7.17/lib/python3.7',
+ 'DESTDIRS': '~/.pyenv/versions/3.7.17 '
+             '~/.pyenv/versions/3.7.17/lib '
+             '~/.pyenv/versions/3.7.17/lib/python3.7 '
+             '~/.pyenv/versions/3.7.17/lib/python3.7/lib-dynload',
+ 'DESTLIB': '~/.pyenv/versions/3.7.17/lib/python3.7',
  'DESTPATH': '',
- 'DESTSHARED': '/Users/e/.pyenv/versions/3.7.17/lib/python3.7/lib-dynload',
+ 'DESTSHARED': '~/.pyenv/versions/3.7.17/lib/python3.7/lib-dynload',
  'DFLAGS': '',
  'DIRMODE': 755,
  'DIST': 'README.rst ChangeLog configure configure.ac acconfig.h pyconfig.h.in '
@@ -554,12 +554,12 @@ build_time_vars = {'ABIFLAGS': 'm',
  'HAVE_ZLIB_COPY': 1,
  'HAVE__GETPTY': 0,
  'HOST_GNU_TYPE': 'arm-apple-darwin25.6.0',
- 'INCLDIRSTOMAKE': '/Users/e/.pyenv/versions/3.7.17/include '
-                   '/Users/e/.pyenv/versions/3.7.17/include '
-                   '/Users/e/.pyenv/versions/3.7.17/include/python3.7m '
-                   '/Users/e/.pyenv/versions/3.7.17/include/python3.7m',
- 'INCLUDEDIR': '/Users/e/.pyenv/versions/3.7.17/include',
- 'INCLUDEPY': '/Users/e/.pyenv/versions/3.7.17/include/python3.7m',
+ 'INCLDIRSTOMAKE': '~/.pyenv/versions/3.7.17/include '
+                   '~/.pyenv/versions/3.7.17/include '
+                   '~/.pyenv/versions/3.7.17/include/python3.7m '
+                   '~/.pyenv/versions/3.7.17/include/python3.7m',
+ 'INCLUDEDIR': '~/.pyenv/versions/3.7.17/include',
+ 'INCLUDEPY': '~/.pyenv/versions/3.7.17/include/python3.7m',
  'INSTALL': '/usr/bin/install -c',
  'INSTALL_DATA': '/usr/bin/install -c -m 644',
  'INSTALL_PROGRAM': '/usr/bin/install -c',
@@ -573,16 +573,16 @@ build_time_vars = {'ABIFLAGS': 'm',
             '-L/opt/homebrew/opt/readline/lib '
             '-L/opt/homebrew/opt/openssl@3/lib '
             '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-            '-L/Users/e/.pyenv/versions/3.7.17/lib '
-            '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+            '-L~/.pyenv/versions/3.7.17/lib '
+            '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
             '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
             '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
             '-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/readline/lib '
             '-L/opt/homebrew/opt/readline/lib '
             '-L/opt/homebrew/opt/openssl@3/lib '
             '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-            '-L/Users/e/.pyenv/versions/3.7.17/lib '
-            '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+            '-L~/.pyenv/versions/3.7.17/lib '
+            '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
             '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
             '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'LDFLAGS_NODIST': '',
@@ -594,33 +594,33 @@ build_time_vars = {'ABIFLAGS': 'm',
              '-L/opt/homebrew/opt/readline/lib '
              '-L/opt/homebrew/opt/openssl@3/lib '
              '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-             '-L/Users/e/.pyenv/versions/3.7.17/lib '
-             '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+             '-L~/.pyenv/versions/3.7.17/lib '
+             '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
              '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
              '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
              '-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/readline/lib '
              '-L/opt/homebrew/opt/readline/lib '
              '-L/opt/homebrew/opt/openssl@3/lib '
              '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-             '-L/Users/e/.pyenv/versions/3.7.17/lib '
-             '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+             '-L~/.pyenv/versions/3.7.17/lib '
+             '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
              '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
              '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'LDVERSION': '3.7m',
  'LIBC': '',
- 'LIBDEST': '/Users/e/.pyenv/versions/3.7.17/lib/python3.7',
- 'LIBDIR': '/Users/e/.pyenv/versions/3.7.17/lib',
+ 'LIBDEST': '~/.pyenv/versions/3.7.17/lib/python3.7',
+ 'LIBDIR': '~/.pyenv/versions/3.7.17/lib',
  'LIBFFI_INCLUDEDIR': '',
  'LIBM': '',
  'LIBOBJDIR': 'Python/',
  'LIBOBJS': '',
- 'LIBPC': '/Users/e/.pyenv/versions/3.7.17/lib/pkgconfig',
- 'LIBPL': '/Users/e/.pyenv/versions/3.7.17/lib/python3.7/config-3.7m-darwin',
+ 'LIBPC': '~/.pyenv/versions/3.7.17/lib/pkgconfig',
+ 'LIBPL': '~/.pyenv/versions/3.7.17/lib/python3.7/config-3.7m-darwin',
  'LIBRARY': 'libpython3.7m.a',
  'LIBRARY_OBJS': '\\',
  'LIBRARY_OBJS_OMIT_FROZEN': '\\',
- 'LIBS': '-lintl -ldl -L/Users/e/.pyenv/versions/3.7.17/lib '
-         '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -L/opt/homebrew/lib '
+ 'LIBS': '-lintl -ldl -L~/.pyenv/versions/3.7.17/lib '
+         '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -L/opt/homebrew/lib '
          '-Wl,-rpath,/opt/homebrew/lib -framework CoreFoundation',
  'LIBSUBDIRS': 'tkinter tkinter/test tkinter/test/test_tkinter \\',
  'LINKCC': 'clang',
@@ -635,13 +635,13 @@ build_time_vars = {'ABIFLAGS': 'm',
  'LOG1P_DROPS_ZERO_SIGN': 0,
  'MACHDEP': 'darwin',
  'MACHDEP_OBJS': '',
- 'MACHDESTLIB': '/Users/e/.pyenv/versions/3.7.17/lib/python3.7',
+ 'MACHDESTLIB': '~/.pyenv/versions/3.7.17/lib/python3.7',
  'MACOSX_DEPLOYMENT_TARGET': '26.6',
  'MAINCC': 'clang',
  'MAJOR_IN_MKDEV': 0,
  'MAJOR_IN_SYSMACROS': 0,
  'MAKESETUP': './Modules/makesetup',
- 'MANDIR': '/Users/e/.pyenv/versions/3.7.17/share/man',
+ 'MANDIR': '~/.pyenv/versions/3.7.17/share/man',
  'MKDIR_P': './install-sh -c -d',
  'MODBUILT_NAMES': 'posix  errno  pwd  _sre  _codecs  _weakref  _functools  '
                    '_operator  _collections  _abc  itertools  atexit  _signal  '
@@ -719,13 +719,13 @@ build_time_vars = {'ABIFLAGS': 'm',
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/openssl@3/include  '
-                             '-I/Users/e/.pyenv/versions/3.7.17/include '
+                             '-I~/.pyenv/versions/3.7.17/include '
                              '-I/opt/homebrew/include '
                              '-I/opt/homebrew/opt/ncurses/include '
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/readline/include '
                              '-I/opt/homebrew/opt/openssl@3/include  '
-                             '-I/Users/e/.pyenv/versions/3.7.17/include '
+                             '-I~/.pyenv/versions/3.7.17/include '
                              '-I/opt/homebrew/include -DPy_BUILD_CORE_BUILTIN',
  'PY_CFLAGS': '-Wno-unused-result -Wsign-compare -Wunreachable-code -DNDEBUG '
               '-g -fwrapv -O3 -Wall -isysroot '
@@ -749,21 +749,21 @@ build_time_vars = {'ABIFLAGS': 'm',
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/openssl@3/include  '
-                   '-I/Users/e/.pyenv/versions/3.7.17/include '
+                   '-I~/.pyenv/versions/3.7.17/include '
                    '-I/opt/homebrew/include '
                    '-I/opt/homebrew/opt/ncurses/include '
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/readline/include '
                    '-I/opt/homebrew/opt/openssl@3/include  '
-                   '-I/Users/e/.pyenv/versions/3.7.17/include '
+                   '-I~/.pyenv/versions/3.7.17/include '
                    '-I/opt/homebrew/include -DPy_BUILD_CORE',
  'PY_CORE_LDFLAGS': '-L/opt/homebrew/opt/ncurses/lib '
                     '-L/opt/homebrew/opt/readline/lib '
                     '-L/opt/homebrew/opt/readline/lib '
                     '-L/opt/homebrew/opt/openssl@3/lib '
                     '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                    '-L/Users/e/.pyenv/versions/3.7.17/lib '
-                    '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+                    '-L~/.pyenv/versions/3.7.17/lib '
+                    '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
                     '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                     '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
                     '-L/opt/homebrew/opt/ncurses/lib '
@@ -771,20 +771,20 @@ build_time_vars = {'ABIFLAGS': 'm',
                     '-L/opt/homebrew/opt/readline/lib '
                     '-L/opt/homebrew/opt/openssl@3/lib '
                     '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-                    '-L/Users/e/.pyenv/versions/3.7.17/lib '
-                    '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+                    '-L~/.pyenv/versions/3.7.17/lib '
+                    '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
                     '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                     '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'PY_CPPFLAGS': '-I. -I./Include -I/opt/homebrew/opt/ncurses/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/openssl@3/include  '
-                '-I/Users/e/.pyenv/versions/3.7.17/include '
+                '-I~/.pyenv/versions/3.7.17/include '
                 '-I/opt/homebrew/include -I/opt/homebrew/opt/ncurses/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/readline/include '
                 '-I/opt/homebrew/opt/openssl@3/include  '
-                '-I/Users/e/.pyenv/versions/3.7.17/include '
+                '-I~/.pyenv/versions/3.7.17/include '
                 '-I/opt/homebrew/include',
  'PY_FORMAT_SIZE_T': '"z"',
  'PY_LDFLAGS': '-L/opt/homebrew/opt/ncurses/lib '
@@ -792,8 +792,8 @@ build_time_vars = {'ABIFLAGS': 'm',
                '-L/opt/homebrew/opt/readline/lib '
                '-L/opt/homebrew/opt/openssl@3/lib '
                '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-               '-L/Users/e/.pyenv/versions/3.7.17/lib '
-               '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+               '-L~/.pyenv/versions/3.7.17/lib '
+               '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
                '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib '
                '-L/opt/homebrew/opt/ncurses/lib '
@@ -801,8 +801,8 @@ build_time_vars = {'ABIFLAGS': 'm',
                '-L/opt/homebrew/opt/readline/lib '
                '-L/opt/homebrew/opt/openssl@3/lib '
                '-Wl,-rpath,/opt/homebrew/opt/openssl@3/lib '
-               '-L/Users/e/.pyenv/versions/3.7.17/lib '
-               '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -isysroot '
+               '-L~/.pyenv/versions/3.7.17/lib '
+               '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -isysroot '
                '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk '
                '-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib',
  'PY_LDFLAGS_NODIST': '',
@@ -821,13 +821,13 @@ build_time_vars = {'ABIFLAGS': 'm',
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/openssl@3/include  '
-                        '-I/Users/e/.pyenv/versions/3.7.17/include '
+                        '-I~/.pyenv/versions/3.7.17/include '
                         '-I/opt/homebrew/include '
                         '-I/opt/homebrew/opt/ncurses/include '
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/readline/include '
                         '-I/opt/homebrew/opt/openssl@3/include  '
-                        '-I/Users/e/.pyenv/versions/3.7.17/include '
+                        '-I~/.pyenv/versions/3.7.17/include '
                         '-I/opt/homebrew/include',
  'Py_DEBUG': 0,
  'Py_ENABLE_SHARED': 1,
@@ -837,12 +837,12 @@ build_time_vars = {'ABIFLAGS': 'm',
  'RESSRCDIR': 'Mac/Resources/framework',
  'RETSIGTYPE': 'void',
  'RUNSHARED': 'DYLD_LIBRARY_PATH=/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3609/Python-3.7.17',
- 'SCRIPTDIR': '/Users/e/.pyenv/versions/3.7.17/lib',
+ 'SCRIPTDIR': '~/.pyenv/versions/3.7.17/lib',
  'SETPGRP_HAVE_ARG': 0,
  'SGI_ABI': '@SGI_ABI@',
  'SHELL': '/bin/sh',
- 'SHLIBS': '-lintl -ldl -L/Users/e/.pyenv/versions/3.7.17/lib '
-           '-Wl,-rpath,/Users/e/.pyenv/versions/3.7.17/lib -L/opt/homebrew/lib '
+ 'SHLIBS': '-lintl -ldl -L~/.pyenv/versions/3.7.17/lib '
+           '-Wl,-rpath,~/.pyenv/versions/3.7.17/lib -L/opt/homebrew/lib '
            '-Wl,-rpath,/opt/homebrew/lib -framework CoreFoundation',
  'SHLIB_SUFFIX': '.so',
  'SIGNED_RIGHT_SHIFT_ZERO_FILLS': 1,
@@ -907,7 +907,7 @@ build_time_vars = {'ABIFLAGS': 'm',
  'XMLLIBSUBDIRS': 'xml xml/dom xml/etree xml/parsers xml/sax',
  'abs_builddir': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3609/Python-3.7.17',
  'abs_srcdir': '/var/folders/2t/hs0vl5yj4pl0px2tnbwxz0880000gq/T/python-build.20260903212151.3609/Python-3.7.17',
- 'datarootdir': '/Users/e/.pyenv/versions/3.7.17/share',
- 'exec_prefix': '/Users/e/.pyenv/versions/3.7.17',
- 'prefix': '/Users/e/.pyenv/versions/3.7.17',
+ 'datarootdir': '~/.pyenv/versions/3.7.17/share',
+ 'exec_prefix': '~/.pyenv/versions/3.7.17',
+ 'prefix': '~/.pyenv/versions/3.7.17',
  'srcdir': '.'}

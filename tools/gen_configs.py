@@ -20,7 +20,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DEFAULT_XDIS = "/Users/e/Documents/github/python-decompile/python-xdis"
+DEFAULT_XDIS = os.environ.get("XDIS_DIR", "")
 
 XDIS_VERSIONS = [
     (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7),
@@ -127,12 +127,16 @@ def gen_from_native(uv_versions):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--xdis", default=DEFAULT_XDIS)
+    ap.add_argument("--xdis", default=DEFAULT_XDIS,
+                    help="path to a python-xdis checkout (or $XDIS_DIR)")
     ap.add_argument("--native", action="store_true", default=True,
                     help="also generate 3.11+ configs from live interpreters via uv")
     ap.add_argument("--no-native", dest="native", action="store_false")
     args = ap.parse_args()
 
+    if not args.xdis or not os.path.isdir(args.xdis):
+        ap.error("xdis generation needs --xdis /path/to/xdis-checkout "
+                 "or $XDIS_DIR; use --native for 3.11+ only")
     gen_magics(args.xdis)
     gen_from_xdis(args.xdis)
     if args.native:
