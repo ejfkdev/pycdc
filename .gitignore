@@ -8,3 +8,6 @@ __pycache__/
 !tests/pyc/*.pyc
 !tests/fixtures/*.pyc
 tools/ast_compare.pyc
+
+# real-world benchmark corpus (recreate with tools/fetch_realworld.sh)
+tests/realworld/

@@ -93,6 +93,32 @@ Apple Silicon, 526 real `.pyc` files (~9.5 MB, Python 2.6–3.14 stdlib):
 | Largest single file (74 KB, incl. startup) | ≈5.5 ms | ≈4.4 MB |
 | Process startup | ≈2 ms | — |
 
+### Real-world corpus (seven large projects, latest release tags)
+
+`tools/fetch_realworld.sh` sparse-checks-out one directory from each of
+seven projects **at its latest release tag**, compiles every `.py` to
+`.pyc` (`compileall -b`), and lands the tree in `tests/realworld/`
+(git-ignored — the script is the way to recreate it):
+
+| Project (tag) | modules | serial `-j 1` | parallel (default) | decompiled output recompiles |
+|---|---|---|---|---|
+| yt-dlp (2026.08.19) | 1045 | 0.52 s | 0.09 s | 1043/1045 |
+| matplotlib (v3.11.2) | 253 | 0.36 s | 0.07 s | 252/253 |
+| pandas (v3.0.5) | 1420 | 1.12 s | 0.16 s | 1417/1420 |
+| django (6.1.1) | 907 | 0.45 s | 0.12 s | **907/907** |
+| sympy (1.14.0) | 1532 | 3.24 s | 1.56 s | 1523/1532 |
+| scikit-learn (1.9.1) | 671 | 0.61 s | 0.09 s | 669/671 |
+| ansible (v2.21.4) | 583 | 0.31 s | 0.05 s | **583/583** |
+| **total** | **6411** | **6.61 s** | **2.14 s** | **6394/6411 (99.7 %)** |
+
+One pycdc process per project: ~1.0 ms per module serial, peak RSS
+≈102 MB for the whole 6.4 k-module batch. The 17 remaining modules are
+the negated multi-link condition family (chained `is`/comparison guards
+under `not`) plus a few lambda/comprehension shapes — marked incomplete,
+never a crash. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
+harness: [`tools/bench_realworld.py`](tools/bench_realworld.py).
+
+
 ## Verification
 
 Three independent harnesses, all runnable locally (need pyenv/uv interpreters 2.6–3.14):

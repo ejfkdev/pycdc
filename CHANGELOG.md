@@ -6,6 +6,25 @@ cargo tests, on 13 interpreters (2.6–3.14).
 
 ## Unreleased
 
+### Fixed
+- dict displays rendered `**` entries without parentheses
+  (`{**a or b}`, `{**x if c else y}` are syntax errors) — django
+  contrib/gis/measure and matplotlib figure.py
+- `CALL_FUNCTION_EX` kwargs dicts with a non-constant or non-identifier
+  key were split into named keywords, producing a positional argument
+  after keywords (`f(kw=1, v)`) or `my col=v` — they now stay in the
+  `**{...}` form (django, pandas)
+
+### Real-world corpus
+- `tools/fetch_realworld.sh` builds a 6411-module corpus from seven
+  large projects **at their latest release tags** (yt-dlp, matplotlib,
+  pandas, django, sympy, scikit-learn, ansible) into the git-ignored
+  `tests/realworld/`; `tools/bench_realworld.py` measures it. Current
+  numbers: 6.61 s serial / 2.14 s parallel for the whole corpus
+  (~1.0 ms/module), peak RSS ≈102 MB, 6394/6411 = 99.7 % of outputs
+  recompile (README "Performance" section).
+
+
 Benchmark-driven fixes: decompiling the full 3.12 and 3.8 stdlib corpora
 (1017 + 1251 modules) surfaced one crash and nineteen modules whose
 output did not parse. After this batch both corpora recompile at 99.9%

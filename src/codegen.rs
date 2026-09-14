@@ -1194,8 +1194,12 @@ impl Printer {
                         self.write(", ");
                     }
                     if let Expr::Starred(inner) = &**k {
+                        // `{**a or b}` / `{**x if c else y}` are syntax
+                        // errors: a **-entry operand must carry its own
+                        // parens (django forms/widgets `{**(attrs or {})}`,
+                        // matplotlib figure `{**fontdict}` chains)
                         self.write("**");
-                        self.expr(inner, 0);
+                        self.expr(inner, prec::ATOM);
                         continue;
                     }
                     self.expr(k, prec::TERNARY);

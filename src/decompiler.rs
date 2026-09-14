@@ -41890,6 +41890,30 @@ fn flatten_ex_args(e: ExprRef) -> (Vec<ExprRef>, Option<ExprRef>) {
     (pos, star)
 }
 
+/// A dict key may only be rendered as a source-level keyword argument
+/// when it is a real Python identifier and not a keyword: `**{'my col':
+/// v}` cannot become `my col=v` (pandas agg(**{"my col": ...})).
+fn is_kw_name_ok(name: &str) -> bool {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !(first.is_alphabetic() || first == '_') {
+        return false;
+    }
+    if !chars.all(|c| c.is_alphanumeric() || c == '_') {
+        return false;
+    }
+    !matches!(
+        name,
+        "False" | "None" | "True" | "and" | "as" | "assert" | "async" | "await"
+            | "break" | "class" | "continue" | "def" | "del" | "elif" | "else"
+            | "except" | "finally" | "for" | "from" | "global" | "if" | "import"
+            | "in" | "is" | "lambda" | "nonlocal" | "not" | "or" | "pass"
+            | "raise" | "return" | "try" | "while" | "with" | "yield"
+    )
+}
+
 fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<ExprRef>) {
     match &*e {
         Expr::Dict(entries) => {
@@ -41929,7 +41953,12 @@ fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<Expr
                         },
                         _ => None,
                     };
-                    kws.push((name, v.clone()));
+                    let Some(name) = name.filter(|n| is_kw_name_ok(n)) else {
+                        // not a legal keyword name (`**{'my col': v}`):
+                        // keep the dict form instead of `my col=v`
+                        return (Vec::new(), Some(e.clone()));
+                    };
+                    kws.push((Some(name), v.clone()));
                 }
                 return (kws, Some(star));
             }
@@ -41951,7 +41980,16 @@ fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<Expr
                     },
                     _ => None,
                 };
-                kws.push((name, v.clone()));
+                let Some(name) = name.filter(|n| is_kw_name_ok(n)) else {
+                    // a non-constant key is not a source-level keyword
+                    // name: keep the whole dict as **{...} instead of
+                    // emitting an anonymous entry, which rendered as a
+                    // positional argument after the keywords (django
+                    // contrib/gis/measure `f(kw=..., **{expr_key: v})`
+                    // came out as `f(kw=..., v)` — a syntax error)
+                    return (Vec::new(), Some(e.clone()));
+                };
+                kws.push((Some(name), v.clone()));
             }
             (kws, None)
         }

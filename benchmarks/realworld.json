@@ -1,0 +1,98 @@
+{
+ "corpus": "/Users/e/Documents/project/pycdc/tests/realworld",
+ "pycdc": "/Users/e/Documents/project/pycdc/target/release/pycdc",
+ "interp": "/Users/e/.local/share/uv/python/cpython-3.12.14-macos-aarch64-none/bin/python3.12",
+ "host": "Darwin 25.6.0 arm64",
+ "generated": "2026-09-15 03:24:02",
+ "note": "one pycdc process per project (batch directory mode); serial = -j 1, parallel = default worker count; recompiles = decompiled output parses under the corpus interpreter",
+ "projects": [
+  {
+   "project": "ansible",
+   "files": 583,
+   "source_bytes": 5372361,
+   "serial_wall_s": 0.31,
+   "serial_rss_mb": 13.8,
+   "parallel_wall_s": 0.05,
+   "parallel_rss_mb": 24.6,
+   "decompiled": 583,
+   "recompiles": 583
+  },
+  {
+   "project": "django",
+   "files": 907,
+   "source_bytes": 5914265,
+   "serial_wall_s": 0.45,
+   "serial_rss_mb": 15.6,
+   "parallel_wall_s": 0.12,
+   "parallel_rss_mb": 28.3,
+   "decompiled": 907,
+   "recompiles": 907
+  },
+  {
+   "project": "matplotlib",
+   "files": 253,
+   "source_bytes": 7415404,
+   "serial_wall_s": 0.36,
+   "serial_rss_mb": 27.7,
+   "parallel_wall_s": 0.07,
+   "parallel_rss_mb": 50.0,
+   "decompiled": 253,
+   "recompiles": 252
+  },
+  {
+   "project": "pandas",
+   "files": 1420,
+   "source_bytes": 21287834,
+   "serial_wall_s": 1.12,
+   "serial_rss_mb": 25.5,
+   "parallel_wall_s": 0.16,
+   "parallel_rss_mb": 50.6,
+   "decompiled": 1420,
+   "recompiles": 1417
+  },
+  {
+   "project": "sklearn",
+   "files": 671,
+   "source_bytes": 13444062,
+   "serial_wall_s": 0.61,
+   "serial_rss_mb": 22.5,
+   "parallel_wall_s": 0.09,
+   "parallel_rss_mb": 39.9,
+   "decompiled": 671,
+   "recompiles": 669
+  },
+  {
+   "project": "sympy",
+   "files": 1532,
+   "source_bytes": 26169877,
+   "serial_wall_s": 3.24,
+   "serial_rss_mb": 54.5,
+   "parallel_wall_s": 1.56,
+   "parallel_rss_mb": 102.1,
+   "decompiled": 1532,
+   "recompiles": 1523
+  },
+  {
+   "project": "yt_dlp",
+   "files": 1045,
+   "source_bytes": 9208581,
+   "serial_wall_s": 0.52,
+   "serial_rss_mb": 25.1,
+   "parallel_wall_s": 0.09,
+   "parallel_rss_mb": 33.4,
+   "decompiled": 1045,
+   "recompiles": 1043
+  }
+ ],
+ "total": {
+  "project": "TOTAL",
+  "files": 6411,
+  "source_bytes": 88812384,
+  "serial_wall_s": 6.61,
+  "parallel_wall_s": 2.14,
+  "serial_rss_mb": 54.5,
+  "parallel_rss_mb": 102.1,
+  "decompiled": 6411,
+  "recompiles": 6394
+ }
+}
