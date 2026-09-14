@@ -4,6 +4,19 @@ All notable changes to pycdc-rs. The full verification baseline for every
 release: 520-module stdlib corpus (semantic 520/520) + behavior matrix +
 cargo tests, on 13 interpreters (2.6–3.14).
 
+## v0.6.0 — 2026-09-14
+
+### CLI
+- `pycdas` is merged into `pycdc` as the `dis` subcommand (`disasm` is an
+  alias): `pycdc dis [OPTIONS] <INPUT>...` produces byte-identical output
+  to the standalone binary; the disasm CLI now lives in the library
+  (`pycdc::cli_disasm`) and `pycdas` remains as a thin compatibility
+  wrapper so existing invocations keep working
+- release artifacts cover six platforms: Linux/Windows x86_64 + arm64
+  (Windows arm64 cross-compiled), macOS arm64 + x86_64; Linux/Windows
+  binaries UPX-compressed, macOS uncompressed; artifacts are the raw
+  binaries (no zip wrappers)
+
 ## v0.5.0 — 2026-09-14
 
 ### CLI

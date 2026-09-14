@@ -1,32 +1,29 @@
-//! pycdc — multi-version Python bytecode decompiler.
-//!
-//! pycdc [OPTIONS] <INPUT>...   decompile .pyc files or directories
-//! pycdc version | help         tool information
+//! The disassembler CLI, shared by the standalone `pycdas` binary and
+//! the `pycdc dis` subcommand.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use pycdc::codegen::generate;
-use pycdc::decompiler::decompile;
-use pycdc::loader;
+use crate::disasm::{disassemble, DisasmOptions};
+use crate::loader;
+use crate::version::FLAG_HASH_BASED;
 
-fn help_text() -> String {
+/// The help screen; `prog` is the invocation name ("pycdas" or
+/// "pycdc dis").
+pub fn help_text(prog: &str) -> String {
     format!(
         "\
-pycdc {version} — multi-version Python bytecode decompiler
+{prog} {version} — multi-version Python bytecode disassembler
 
-Decompiles Python .pyc/.pyo bytecode back to readable source.
-Supports Python 2.0 - 3.15 (CPython, PyPy and other implementations).
+Disassembles Python .pyc/.pyo bytecode with full per-version opcode
+resolution. Supports Python 2.0 - 3.15 (CPython, PyPy and others).
 
 Repository: https://github.com/ejfkdev/pycdc
 
 Usage:
-  pycdc [OPTIONS] <INPUT>...     decompile .pyc/.pyo files or directories
-  pycdc dis [OPTIONS] <INPUT>... disassemble instead of decompile
-                                 (same functionality as the standalone
-                                 pycdas binary; `disasm` is an alias)
-  pycdc version                  print version information
-  pycdc help                     print this help
+  pycdas [OPTIONS] <INPUT>...    disassemble .pyc/.pyo files or directories
+  pycdas version                 print version information
+  pycdas help                    print this help
 
 Arguments:
   <INPUT>...                     one or more .pyc/.pyo files, directories
@@ -47,40 +44,32 @@ Options:
   -V, --version          print version information
 
 Examples:
-  pycdc program.pyc                  decompile a file to stdout
-  pycdc program.pyc -o program.py    decompile into a specific .py file
-  pycdc app/ -o out/                 decompile a directory tree, mirroring
-                                     its layout (.pyc -> .py)
-  pycdc -q app/ -j 8 -o out/         quiet batch, 8 parallel workers
-  cat program.pyc | pycdc -          decompile from stdin
-  pycdc -v 3.8 data.marshal          decompile raw marshal data as 3.8
-  pycdc dis program.pyc              disassemble (see `pycdc dis --help`)
-
-Input:
-  * a dash (-) reads the pyc (or, with -v, raw marshal) from stdin
-  * directories are scanned recursively for .pyc/.pyo files
-
-Exit codes: 0 success, 1 a file failed to load/decompile/write,
-2 usage error.
+  pycdas program.pyc                 disassemble a file to stdout
+  pycdas program.pyc -o program.dis  disassemble into a specific file
+  pycdas app/ -o out/                disassemble a directory tree,
+                                     mirroring its layout (.pyc -> .dis)
+  pycdas -q app/ -j 8 -o out/        quiet batch, 8 parallel workers
+  cat program.pyc | pycdas -         disassemble from stdin
+  pycdas -v 3.8 data.marshal         disassemble raw marshal data as 3.8
 
 Output:
-  * one input file without -o:  the source is printed to stdout
-  * -o PATH with one input file:  PATH is the output .py file — unless
-    PATH is an existing directory or ends with a path separator, in
-    which case the result lands in PATH/<stem>.py
+  * one input file (or -) without -o:  printed to stdout
+  * -o PATH with one input:  PATH is the output file — unless PATH is an
+    existing directory or ends with a path separator, in which case the
+    result lands in PATH/<stem>.dis
   * directory inputs (or several inputs):  results are written into an
-    output directory, mirroring the input layout (.pyc -> .py).
-    -o selects the directory (created if missing); without -o every
-    directory input gets a default sibling directory named
-    \"<input-name>-decompiled\" at the same level, and multiple file
-    inputs write <stem>.py next to each input.
+    output directory mirroring the input layout (.pyc -> .dis); without
+    -o each directory input gets a sibling <input-name>-disasm directory
+
+Exit codes: 0 success, 1 a file failed to load/disassemble/write,
+2 usage error.
 ",
+        prog = prog,
         version = env!("CARGO_PKG_VERSION")
     )
 }
 
-/// Write to stdout, exiting quietly when the reader closed the pipe
-/// (`pycdc foo.pyc | head` must not panic-print a BrokenPipe message).
+/// Write to stdout, exiting quietly when the reader closed the pipe.
 fn print_stdout(text: &str) {
     use std::io::Write;
     let stdout = std::io::stdout();
@@ -94,13 +83,9 @@ fn print_stdout(text: &str) {
     }
 }
 
-fn print_help() {
-    print_stdout(&help_text());
-}
-
-fn print_version() {
+fn print_version(prog: &str) {
     print_stdout(&format!(
-        "pycdc {}\nsupported: Python 2.0 - 3.15 pyc (CPython, PyPy and other implementations)\n",
+        "{prog} {}\nsupported: Python 2.0 - 3.15 pyc (CPython, PyPy and other implementations)\n",
         env!("CARGO_PKG_VERSION")
     ));
 }
@@ -114,7 +99,7 @@ struct Cli {
     quiet: bool,
 }
 
-fn parse_args(args: &[String]) -> Result<Cli, String> {
+fn parse_args(prog: &str, args: &[String]) -> Result<Cli, String> {
     let mut cli = Cli {
         inputs: Vec::new(),
         output: None,
@@ -157,17 +142,17 @@ fn parse_args(args: &[String]) -> Result<Cli, String> {
                 }
             }
             "-h" | "--help" => {
-                print_help();
+                print_stdout(&help_text(prog));
                 std::process::exit(0);
             }
             "-V" | "--version" => {
-                print_version();
+                print_version(prog);
                 std::process::exit(0);
             }
             other => {
                 if other.starts_with('-') && other.len() > 1 {
                     return Err(format!(
-                        "unknown option: {other} (see `pycdc --help`)"
+                        "unknown option: {other} (see `{prog} --help`)"
                     ));
                 }
                 cli.inputs.push(PathBuf::from(other));
@@ -198,28 +183,35 @@ fn collect_pycs(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
     Ok(())
 }
 
-/// Decompile one pyc to source text (no trailing-newline normalization —
-/// the file-writing path appends one; stdout stays byte-identical to the
-/// historical output).
-fn decompile_file(
-    file: &Path,
-    version_override: Option<(u8, u8)>,
-) -> Result<String, String> {
+/// Disassemble one input (path or `-` for stdin) into the full report text.
+fn disasm_file(file: &Path, version_override: Option<(u8, u8)>) -> Result<String, String> {
     let data = loader::read_input(file)
         .map_err(|e| format!("{}: error: {e}", file.display()))?;
     let loaded = loader::load_bytes(&data, version_override)
         .map_err(|e| format!("{}: error: {e}", file.display()))?;
-    let d = decompile(&loaded.code, loaded.version)
-        .map_err(|e| format!("{}: decompile error: {e}", file.display()))?;
-    let text = generate(&d.body, loaded.version, d.clean);
-    if !d.clean {
-        eprintln!(
-            "{}: WARNING: decompilation incomplete (Python {})",
-            file.display(),
-            loaded.version.display()
-        );
+    let mut out = format!(
+        "{} (Python {} {}, magic {})\n",
+        file.display(),
+        loaded.version.display(),
+        loaded.version.implementation.name(),
+        loaded.version.magic
+    );
+    if let Some(h) = &loaded.header {
+        if h.kind == crate::version::HeaderKind::Pep552 && h.flags & FLAG_HASH_BASED != 0 {
+            out.push_str(&format!("  hash-based pyc, flags {:#x}\n", h.flags));
+        } else {
+            out.push_str(&format!(
+                "  timestamp {} source size {}\n",
+                h.timestamp, h.source_size
+            ));
+        }
     }
-    Ok(text)
+    out.push('\n');
+    let text = disassemble(&loaded.code, loaded.version, &DisasmOptions::default(), 0)
+        .map_err(|e| format!("{}: disassembly error: {e}", file.display()))?;
+    out.push_str(&text);
+    out.push('\n');
+    Ok(out)
 }
 
 fn write_output(path: &Path, text: &str) -> Result<(), String> {
@@ -233,15 +225,15 @@ fn write_output(path: &Path, text: &str) -> Result<(), String> {
 }
 
 /// The directory a batch input writes into when no -o was given: a
-/// sibling of the input named "<input-name>-decompiled".
+/// sibling of the input named "<input-name>-disasm".
 fn default_out_dir(input: &Path) -> PathBuf {
     let name = input
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "decompiled".to_string());
+        .unwrap_or_else(|| "disasm".to_string());
     match input.parent() {
-        Some(p) if !p.as_os_str().is_empty() => p.join(format!("{name}-decompiled")),
-        _ => PathBuf::from(format!("{name}-decompiled")),
+        Some(p) if !p.as_os_str().is_empty() => p.join(format!("{name}-disasm")),
+        _ => PathBuf::from(format!("{name}-disasm")),
     }
 }
 
@@ -257,39 +249,32 @@ struct Job {
     dst: PathBuf,
 }
 
-fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-
+/// Entry point for both the standalone binary and the subcommand.
+pub fn run(prog: &str, args: &[String]) -> ExitCode {
     if args.is_empty() {
-        print_help();
+        print_stdout(&help_text(prog));
         return ExitCode::SUCCESS;
     }
     if args[0] == "version" {
-        print_version();
+        print_version(prog);
         return ExitCode::SUCCESS;
     }
     if args[0] == "help" {
-        print_help();
+        print_stdout(&help_text(prog));
         return ExitCode::SUCCESS;
     }
-    if args[0] == "dis" || args[0] == "disasm" {
-        return pycdc::cli_disasm::run("pycdc dis", &args[1..]);
-    }
 
-    let cli = match parse_args(&args) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("error: {e}");
-            return ExitCode::from(2);
-        }
-    };
     let usage_err = |m: String| {
         eprintln!("error: {m}");
         ExitCode::from(2)
     };
+    let cli = match parse_args(prog, args) {
+        Ok(c) => c,
+        Err(e) => return usage_err(e),
+    };
     if cli.inputs.is_empty() {
         // missing required input: default to the help screen (exit 2)
-        print_help();
+        print_stdout(&help_text(prog));
         return ExitCode::from(2);
     }
     if cli.inputs.iter().any(|p| p == Path::new("-")) && cli.inputs.len() > 1 {
@@ -297,45 +282,32 @@ fn main() -> ExitCode {
     }
     for input in &cli.inputs {
         if input != Path::new("-") && !input.exists() {
-            return usage_err(format!(
-                "{}: no such file or directory",
-                input.display()
-            ));
+            return usage_err(format!("{}: no such file or directory", input.display()));
         }
     }
     if let Some(dir) = &cli.opcode_dir {
-        if let Err(e) = pycdc::opcode::set_override_dir(dir) {
+        if let Err(e) = crate::opcode::set_override_dir(dir) {
             return usage_err(e.to_string());
         }
     }
 
-    // stdout mode: exactly one input, it is a file (or stdin), and no -o
-    // was given
+    // stdout mode: exactly one input, it is a file (or stdin), no -o
     let stdout_mode = cli.output.is_none()
         && cli.inputs.len() == 1
         && (cli.inputs[0].is_file() || cli.inputs[0] == Path::new("-"));
-
     if stdout_mode {
-        return run_stdout(&cli);
+        return match disasm_file(&cli.inputs[0], cli.version_override) {
+            Ok(text) => {
+                print_stdout(&text);
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                ExitCode::FAILURE
+            }
+        };
     }
-    run_batch(&cli)
-}
 
-fn run_stdout(cli: &Cli) -> ExitCode {
-    let file = &cli.inputs[0];
-    match decompile_file(file, cli.version_override) {
-        Ok(text) => {
-            print_stdout(&text);
-            ExitCode::SUCCESS
-        }
-        Err(e) => {
-            eprintln!("{e}");
-            ExitCode::FAILURE
-        }
-    }
-}
-
-fn run_batch(cli: &Cli) -> ExitCode {
     // plan every write up front so a bad -o fails before any work
     let mut jobs: Vec<Job> = Vec::new();
     for input in &cli.inputs {
@@ -345,34 +317,40 @@ fn run_batch(cli: &Cli) -> ExitCode {
                 None => default_out_dir(input),
             };
             if root.exists() && !root.is_dir() {
-                eprintln!("error: {}: output path exists and is not a directory", root.display());
-                return ExitCode::from(2);
+                return usage_err(format!(
+                    "{}: output path exists and is not a directory",
+                    root.display()
+                ));
             }
             let mut pycs = Vec::new();
             if let Err(e) = collect_pycs(input, &mut pycs) {
-                eprintln!("error: {e}");
-                return ExitCode::from(2);
+                return usage_err(e);
             }
             for pyc in pycs {
                 let rel = pyc.strip_prefix(input).unwrap_or(pyc.as_path());
-                let dst = rel.with_extension("py");
+                let dst = rel.with_extension("dis");
                 jobs.push(Job {
                     src: pyc,
                     dst: root.join(dst),
                 });
             }
         } else {
-            // file input
+            // file input (or stdin: named "stdin" for placement purposes)
+            let stem = if input == Path::new("-") {
+                PathBuf::from("stdin")
+            } else {
+                input.clone()
+            };
             let dst = match &cli.output {
                 Some(o) => {
                     let single = cli.inputs.len() == 1;
                     if single && !o.is_dir() && !ends_with_sep(o) {
                         o.clone()
                     } else {
-                        o.join(input.file_name().unwrap_or_default()).with_extension("py")
+                        o.join(stem.file_name().unwrap_or_default()).with_extension("dis")
                     }
                 }
-                None => input.with_extension("py"),
+                None => stem.with_extension("dis"),
             };
             jobs.push(Job {
                 src: input.clone(),
@@ -384,7 +362,6 @@ fn run_batch(cli: &Cli) -> ExitCode {
         eprintln!("error: no .pyc/.pyo files found in the given inputs");
         return ExitCode::FAILURE;
     }
-    let quiet = cli.quiet;
 
     let n_threads = cli
         .jobs
@@ -395,14 +372,8 @@ fn run_batch(cli: &Cli) -> ExitCode {
         })
         .min(jobs.len());
 
-    // run_job: decompile + write one job; the per-job message is returned
-    // instead of printed so batch output stays in deterministic order.
     let run_job = |job: &Job| -> Result<String, String> {
-        let text = decompile_file(&job.src, cli.version_override)?;
-        let mut text = text;
-        if !text.ends_with('\n') {
-            text.push('\n');
-        }
+        let text = disasm_file(&job.src, cli.version_override)?;
         write_output(&job.dst, &text)?;
         Ok(format!("{} -> {}", job.src.display(), job.dst.display()))
     };
@@ -440,7 +411,7 @@ fn run_batch(cli: &Cli) -> ExitCode {
     for r in results {
         match r {
             Ok(line) => {
-                if !quiet {
+                if !cli.quiet {
                     print_stdout(&format!("{line}\n"));
                 }
             }

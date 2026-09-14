@@ -50,13 +50,16 @@ pycdc ./pyc-corpus -o ./src-out -q -j 8
 # raw marshal (no pyc header) with an explicit version
 pycdc -v 3.8 payload.marshal
 
-# disassembly — same CLI surface (files, dirs, stdin, -o/-j/-q)
+# disassembly — same CLI surface (files, dirs, stdin, -o/-j/-q);
+# also reachable as the `pycdc dis` subcommand (identical output)
 pycdas program.pyc
+pycdc dis program.pyc
 pycdas ./pyc-corpus -o ./dis-out # -> mirrored .dis files
 ```
 
-`pycdc --help` / `pycdas --help` document every flag. Exit codes: `0`
-success, `1` a file failed to process, `2` usage error.
+`pycdc --help`, `pycdc dis --help` and `pycdas --help` document every
+flag. Exit codes: `0` success, `1` a file failed to process, `2` usage
+error.
 
 ## Performance
 

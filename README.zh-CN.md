@@ -51,10 +51,11 @@ pycdc -v 3.8 payload.marshal
 
 # 反汇编——与 pycdc 相同的 CLI 能力（文件/目录/stdin、-o/-j/-q）
 pycdas program.pyc
+pycdc dis program.pyc            # 与 pycdas 输出完全一致
 pycdas ./pyc-corpus -o ./dis-out # 镜像生成 .dis 文件
 ```
 
-全部参数见 `pycdc --help` / `pycdas --help`。退出码：`0` 成功，
+全部参数见 `pycdc --help`、`pycdc dis --help`、`pycdas --help`。退出码：`0` 成功，
 `1` 存在处理失败的文件，`2` 用法错误。
 
 ## 性能

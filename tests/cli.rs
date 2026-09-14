@@ -130,3 +130,42 @@ fn empty_directory_and_non_pyc_only_fail_cleanly() {
     assert!(se.contains("no .pyc/.pyo files found"));
     std::fs::remove_dir_all(&tmp).ok();
 }
+
+#[test]
+fn dis_subcommand_matches_standalone_pycdas() {
+    // `pycdc dis` is the merged form of the standalone pycdas binary;
+    // both must produce byte-identical disassembly.
+    let pyc = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(pyc_fixture());
+    let sub = Command::new(bin())
+        .args(["dis", pyc.to_str().unwrap()])
+        .output()
+        .unwrap();
+    let standalone = Command::new(env!("CARGO_BIN_EXE_pycdas"))
+        .arg(pyc.to_str().unwrap())
+        .output()
+        .unwrap();
+    assert!(sub.status.success(), "dis failed: {:?}", sub.status);
+    assert!(standalone.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&sub.stdout),
+        String::from_utf8_lossy(&standalone.stdout)
+    );
+    // the alias behaves the same
+    let alias = Command::new(bin())
+        .args(["disasm", pyc.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&alias.stdout),
+        String::from_utf8_lossy(&standalone.stdout)
+    );
+}
+
+#[test]
+fn dis_help_mentions_subcommand_form() {
+    let (so, _, st) = run(&["dis", "--help"]);
+    assert!(st.success());
+    assert!(so.starts_with("pycdc dis "), "dis help header: {so}");
+    let (so, _, st) = run(&["--help"]);
+    assert!(st.success() && so.contains("pycdc dis"), "top help lacks dis: {so}");
+}

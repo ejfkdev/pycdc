@@ -9,6 +9,7 @@
 
 pub mod ast;
 pub mod bytecode;
+pub mod cli_disasm;
 pub mod code;
 pub mod codegen;
 pub mod decompiler;
