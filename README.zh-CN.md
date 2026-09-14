@@ -100,7 +100,9 @@ Apple Silicon 实测，526 个真实 `.pyc`（约 9.5MB，2.6–3.14 标准库�
 | [`tools/run_behavior.py`](tools/run_behavior.py) | 50 用例 × 13 解释器：原始与反编译代码同解释器运行，对比 stdout+返回码 | **516/516 = 100%** |
 | [`tests/roundtrip.py`](tests/roundtrip.py) | fixture 矩阵：编译 → 反编译 → 重编译 → 严格字节码对比 | 49/54 严格一致（exceptions fixture 仅结构差，语义等价） |
 
-分版本结果见 `tests/corpus/<version>/report.json`。除上述设施外，发布前还经
+分版本结果见 `tests/corpus/<version>/report.json`。
+跨工具对比（与 Decompyle++、uncompyle6、decompyle3 的速度、内存、
+输出质量）见 [benchmarks/](benchmarks/README.md)。除上述设施外，发布前还经
 三类专项质量电池把关：25 语法族模糊矩阵（×10 解释器）、恶意输入鲁棒性套件
 （截断/损坏/OOM 炸弹 pyc——零崩溃）、第三方包 venv 实战冒烟（six/packaging/
 click/attrs/pluggy）。详细已知缺口与第三方长尾队列见
