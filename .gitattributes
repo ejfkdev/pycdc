@@ -1,0 +1,5 @@
+# GitHub Linguist: the test tree holds verification fixtures — verbatim
+# copies of CPython stdlib sources (.py) plus compiled .pyc artifacts and
+# generated reports — not project source. Keep the language bar on the
+# implementation (Rust) and first-party tooling (tools/).
+tests/** linguist-vendored
