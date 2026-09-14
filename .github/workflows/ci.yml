@@ -79,7 +79,7 @@ jobs:
             target: aarch64-apple-darwin
             label: aarch64-macos
             upx: false
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             label: x86_64-macos
             upx: false
@@ -108,6 +108,8 @@ jobs:
           grep -n '^version' Cargo.toml
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
           key: release-${{ matrix.label }}
