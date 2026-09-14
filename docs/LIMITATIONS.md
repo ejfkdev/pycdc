@@ -105,6 +105,44 @@ the installed source):
   packaging/pylock (CALL-chain underflow in `select`: three stacked CALLs
   after an arg-position ternary)
 
+## Remaining non-parsing shapes (2 files of the full-stdlib corpora)
+
+Full-stdlib benchmarks (1017 modules of 3.12.14, 1251 of 3.8.20) leave
+exactly two modules whose decompiled output does not parse. Both are
+marked incomplete (never a crash, never silent corruption) and both are
+structural reconstruction gaps in the loop-guard machinery rather than
+rendering bugs:
+
+- `multiprocessing/connection.pyc` 3.12 — `try: ... except OSError: ...
+  else: <nested try/except/finally>` : the else body is emitted as a
+  sibling statement and the outer `else:`/`finally:` labels then land
+  after it, so the file dies with `expected 'except' or 'finally'
+  block`. Reproduces in `PipeListener.accept` (win32 branch).
+- `random.pyc` 3.8 — `while True: if not 1e-7 < u1 < 0.9999999:
+  continue` : a negated multi-link guard at a loop top loses the
+  enclosing `while True` entirely and degrades into
+  `if <A>: pass` + `while not <B>: pass` with the tail statement
+  ejected from the loop. Minimal repro (3.8, also 2.7–3.13):
+
+  ```python
+  def w2(a, b):
+      while True:
+          if not (a < b and b < 10):
+              continue
+          return 2
+  ```
+
+  Single-link guards and negated *or* guards are handled correctly
+  (`while not <C>: pass` normalization); only the negated two-link
+  *and* form falls into the unmerged path, and the De Morgan refold
+  (`refold_demorgan`) cannot see it because the or-chain never gets
+  assembled into one expression. Fixing this needs the loop-top guard
+  chain (handle_cond_jump / try_or_and_chain / try_fwd_or_continue
+  family) to merge the operand run into `And[A, B]` before the
+  while-ification — the most heavily tuned subsystem in the codebase
+  (300+ regression-driven special cases), so it is left documented
+  rather than patched blind.
+
 ## Fixed recently (no longer limitations) / 近期已修复
 
 - Syntax-family fuzz battery (25 shapes × 10 interpreters) driven fixes:
