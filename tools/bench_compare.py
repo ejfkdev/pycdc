@@ -44,6 +44,21 @@ DEFAULT_TOOLS = {
     "decompyle3": os.environ.get("BENCH_DECOMPYLE3", "/tmp/venv38/bin/decompyle3"),
 }
 
+def sanitize_paths(obj):
+    """Replace the local home dir with ~ and repo-internal paths with
+    repo-relative ones, so committed benchmark data carries no personal
+    paths."""
+    home = os.path.expanduser("~")
+    if isinstance(obj, str):
+        root = ROOT + os.sep
+        s = obj[len(root):] if obj.startswith(root) else obj
+        return s.replace(home, "~")
+    if isinstance(obj, dict):
+        return {k: sanitize_paths(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_paths(v) for v in obj]
+    return obj
+
 TIME_RE = re.compile(r"^\s*([\d.]+)\s+real", re.M)
 RSS_RE = re.compile(r"(\d+)\s+maximum resident set size", re.M)
 
@@ -195,7 +210,7 @@ def main():
     }
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w") as f:
-        json.dump(meta, f, indent=1)
+        json.dump(sanitize_paths(meta), f, indent=1)
     print(f"wrote {a.out}")
 
 

@@ -35,6 +35,22 @@ INTERP = os.environ.get(
 RSS_RE = __import__("re").compile(r"(\d+)\s+maximum resident set size")
 
 
+def sanitize_paths(obj):
+    """Home dir -> ~, repo-internal paths -> repo-relative (the committed
+    realworld.json must not leak local paths)."""
+    home = os.path.expanduser("~")
+    if isinstance(obj, str):
+        # repo-relative first (ROOT starts with the home dir, so the
+        # order matters), then the home dir -> ~
+        root = ROOT + os.sep
+        out = obj[len(root):] if obj.startswith(root) else obj
+        return out.replace(home, "~")
+    if isinstance(obj, dict):
+        return {k: sanitize_paths(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_paths(v) for v in obj]
+    return obj
+
 def timed(cmd):
     """/usr/bin/time -l wrapped run -> (rc, wall_seconds, peak_rss_mb, stderr)"""
     t0 = time.monotonic()
@@ -160,7 +176,7 @@ def main():
     }
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w") as f:
-        json.dump(doc, f, indent=1)
+        json.dump(sanitize_paths(doc), f, indent=1)
     print(f"wrote {a.out}")
 
 

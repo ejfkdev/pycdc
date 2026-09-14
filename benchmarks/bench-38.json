@@ -1,6 +1,6 @@
 {
  "corpus": "/tmp/bench38/src",
- "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3.8",
+ "interp": "~/.pyenv/versions/3.8.20/bin/python3.8",
  "host": "Darwin 25.6.0 arm64",
  "generated": "2026-09-15 00:33:12",
  "note": "serial per-file CLI invocations; semantic_exact_ast = decompiled output parses and its docstring-stripped AST equals the original source's",
@@ -8,7 +8,7 @@
   {
    "tool": "pycdc-rs",
    "cmd": [
-    "/Users/e/Documents/project/pycdc/target/release/pycdc"
+    "~/Documents/project/pycdc/target/release/pycdc"
    ],
    "files": 1251,
    "success": 1229,
@@ -30,7 +30,7 @@
   {
    "tool": "pycdc-cpp",
    "cmd": [
-    "/Users/e/Documents/github/python-decompile/pycdc/build/pycdc"
+    "~/Documents/github/python-decompile/pycdc/build/pycdc"
    ],
    "files": 1251,
    "success": 890,
