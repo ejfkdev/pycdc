@@ -4,7 +4,7 @@ All notable changes to pycdc-rs. The full verification baseline for every
 release: 520-module stdlib corpus (semantic 520/520) + behavior matrix +
 cargo tests, on 13 interpreters (2.6–3.14).
 
-## Unreleased
+## v0.5.0 — 2026-09-14
 
 ### CLI
 - stdin input: `-` reads a pyc (or with `-v`, raw marshal) from stdin
