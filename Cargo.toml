@@ -11,6 +11,17 @@ repository = "https://github.com/ejfkdev/pycdc"
 homepage = "https://github.com/ejfkdev/pycdc"
 keywords = ["python", "bytecode", "decompiler", "disassembler", "pyc"]
 categories = ["command-line-utilities", "development-tools::debugging"]
+# keep the published .crate lean: the 520-module verification corpus,
+# behavior matrix, python tooling and docs stay in the git repo only
+exclude = [
+    "/tests/corpus",
+    "/tests/behavior",
+    "/tests/data",
+    "/tests/fixtures",
+    "/tools",
+    "/docs",
+    "/.github",
+]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

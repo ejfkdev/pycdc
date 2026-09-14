@@ -8,8 +8,10 @@ fn bin() -> &'static str {
 }
 
 fn pyc_fixture() -> &'static str {
-    // a small, stable corpus module for output-shape assertions
-    "tests/corpus/3.8.20/base64.pyc"
+    // a small, stable module for output-shape assertions (a copy of the
+    // 3.8 corpus fixture, so cli tests don't depend on tests/corpus —
+    // that tree is excluded from the packaged crate)
+    "tests/pyc/base64.3.8.pyc"
 }
 
 fn out(tmp: &std::path::Path, name: &str) -> std::path::PathBuf {
@@ -81,7 +83,7 @@ fn output_to_directory_places_stem_dot_py() {
     // trailing separator forces directory interpretation
     let (logged, _, st) = run(&[pyc.to_str().unwrap(), "-o", &format!("{}/", d.display())]);
     assert!(st.success());
-    let f = d.join("base64.py");
+    let f = d.join(format!("{}.py", pyc.file_stem().unwrap().to_string_lossy()));
     assert!(f.is_file(), "expected {f:?} (log: {logged})");
     // existing directory also lands inside
     let (_, _, st) = run(&[pyc.to_str().unwrap(), "-o", d.to_str().unwrap()]);

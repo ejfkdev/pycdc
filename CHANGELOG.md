@@ -30,6 +30,11 @@ cargo tests, on 13 interpreters (2.6–3.14).
   before building and the binaries' printed version is asserted to equal
   the tag, then artifacts are uploaded to the GitHub Release
 - `repository`/`homepage` metadata point at the GitHub project
+- crate package slimmed from ~14 MB to ~0.6 MB: the verification corpus,
+  behavior matrix, python tooling, docs and `.github/` are excluded from
+  the published `.crate` (they stay in the git repo); the cli test
+  fixture moved to `tests/pyc/base64.3.8.pyc` so `cargo package`
+  verification is self-contained
 - `rust-version = "1.70"` (MSRV), CHANGELOG, sanitized `report.json`
   (no local home paths)
 
