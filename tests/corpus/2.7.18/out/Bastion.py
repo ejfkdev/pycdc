@@ -84,7 +84,7 @@ class BastionClass:
         return attribute
 
 
-def Bastion(object, filter=lambda name: name[:1] != '_', name=None, bastionclass=BastionClass):
+def Bastion(object, filter=(lambda name: name[:1] != '_'), name=None, bastionclass=BastionClass):
     """Create a bastion for an object, using an optional filter.
 
     See the Bastion module's documentation for background.

@@ -31,7 +31,7 @@ class DecompressReader(io.RawIOBase):
     def readable(self):
         return True
 
-    def __init__(self, fp, decomp_factory, trailing_error=(), **decomp_args):
+    def __init__(self, fp, decomp_factory, trailing_error=(()), **decomp_args):
         self._fp = fp
         self._eof = False
         self._pos = 0

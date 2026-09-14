@@ -476,6 +476,11 @@ struct Ctx<'a> {
     tail_pair_at: Option<usize>,
     /// try context awaiting else/finally emission
     pending_try_ctx: Option<TryCtx>,
+    /// try spans whose tail emission is currently in progress: a nested
+    /// region walk triggered from inside the emission can re-detect the
+    /// same try and re-arm the deferral, nesting the same tail forever
+    /// (locale 3.12 module-level `try: CODESET` -> stack overflow)
+    emitting_try: std::collections::HashSet<(usize, usize, usize)>,
     /// (copy start, out-of-line handler head) of an inline finally copy
     /// a mirror probe confirmed and armed into skip_until - the zone-hop
     /// re-validates against it before lowering the skip (pending_try_ctx
@@ -1137,6 +1142,7 @@ pub fn decompile_in_scope(
         pending_post_chain_stmt: None,
         tail_pair_at: None,
         pending_try_ctx: None,
+        emitting_try: std::collections::HashSet::new(),
         fin_copy_guard: None,
         pending_nested_finally: None,
         nested_inner_handlers: Vec::new(),
@@ -4044,6 +4050,17 @@ impl<'a> Ctx<'a> {
     }
 
     fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
+        let key = (tc.start, tc.body_end, tc.region_end);
+        if !self.emitting_try.insert(key) {
+            // the identical try's tail is already being emitted further
+            // up the stack; emitting it again here would nest forever
+            return;
+        }
+        self.emit_try_tail_inner(tc, pos);
+        self.emitting_try.remove(&key);
+    }
+
+    fn emit_try_tail_inner(&mut self, tc: TryCtx, pos: usize) {
         // 3.11 except* + else + finally: the chain is laid out INLINE
         // between the body's terminal JUMP_FORWARD and the else region,
         // and the walk leaked body/else statements into the enclosing
@@ -43046,6 +43063,10 @@ impl<'a> Ctx<'a> {
             }
         }
         // `with ctx as target:` — the stored value is the __enter__ result
+        // (a tuple `as (a, b)` target arrives through UNPACK_SEQUENCE:
+        // its N placeholder copies must gather in the unpack frame, so
+        // the single-name shortcut only applies outside a collect)
+        if self.unpack_frames.is_empty() {
         if let Expr::Name(n) = &*val {
             if n == WITH_RESULT_PLACEHOLDER {
                 for blk in self.blocks.iter_mut().rev() {
@@ -43063,6 +43084,7 @@ impl<'a> Ctx<'a> {
                     }
                 }
             }
+        }
         }
         if self.collect_unpack_target(target.clone()) {
             return;
@@ -43090,6 +43112,34 @@ impl<'a> Ctx<'a> {
                 }
                 comp.target_seen = true;
                 return;
+            }
+        }
+        // `with ctx as (a, b):` — a completed unpack frame whose value is
+        // the __enter__ placeholder is the with item's tuple target, not
+        // an assignment (xml.etree.ElementTree 3.12 write: the frame and
+        // the following statements merged into one bogus tuple target)
+        if let Expr::Name(n) = &*value {
+            if n == WITH_RESULT_PLACEHOLDER {
+                for blk in self.blocks.iter_mut().rev() {
+                    if blk.kind == BlockType::With {
+                        if let Some(item) = blk.with_item.as_mut() {
+                            if item.target.is_none() {
+                                item.target = Some(target);
+                                return;
+                            }
+                        }
+                    }
+                }
+                // the item may already have been moved into pending_with
+                // (same fallback the single-name path in emit_store uses)
+                if let Some(items) = self.pending_with.last_mut() {
+                    if let Some(item) = items.last_mut() {
+                        if item.target.is_none() {
+                            item.target = Some(target);
+                            return;
+                        }
+                    }
+                }
             }
         }
         self.emit_assign_single(target, value);
@@ -52067,8 +52117,16 @@ fn genexpr_ternary_merge(
                         if is_null_marker(&f) {
                             // PUSH_NULL sat above the callable (plain call)
                             stack.pop().unwrap_or_else(underflow)
-                        } else if matches!(&*f, Expr::Attribute { .. }) {
-                            stack.pop(); // method receiver slot
+                        } else if let Expr::Attribute { value, .. } = &*f {
+                            // a method-flagged LOAD_ATTR pushed the pair
+                            // [receiver, attr]; a plain attribute callable
+                            // (`pathlib.Path(...)`) has no receiver slot,
+                            // and popping blindly consumed the enclosing
+                            // expression (pip 3.12 `str(pathlib.Path(
+                            // row[0]))` genexp lost the `str` callee)
+                            if matches!(stack.last(), Some(b) if expr_eq(b, value)) {
+                                stack.pop(); // method receiver slot
+                            }
                             f
                         } else {
                             if matches!(stack.last(), Some(m) if is_null_marker(m)) {
@@ -52134,6 +52192,57 @@ fn genexpr_ternary_merge(
                         _ => Expr::Set(items),
                     };
                     stack.push(Rc::new(e));
+                }
+                // a dict display as an element/value (`{v: {} for v in
+                // ORDER}`): without this arm the built dict never lands on
+                // the walker's stack and MAP_ADD pairs the wrong operands
+                Op::BUILD_MAP => {
+                    if !self.version.at_least(3, 5) {
+                        stack.push(Rc::new(Expr::Dict(Vec::new())));
+                    } else {
+                        let n = inst.arg as usize;
+                        let mut flat = Vec::new();
+                        for _ in 0..2 * n {
+                            if let Some(v) = stack.pop() {
+                                flat.push(v);
+                            }
+                        }
+                        flat.reverse();
+                        let mut entries = Vec::with_capacity(n);
+                        for chunk in flat.chunks(2) {
+                            if chunk.len() == 2 {
+                                entries.push((chunk[0].clone(), chunk[1].clone()));
+                            }
+                        }
+                        stack.push(Rc::new(Expr::Dict(entries)));
+                    }
+                }
+                Op::BUILD_CONST_KEY_MAP => {
+                    let keys_e = stack.pop();
+                    let n = inst.arg as usize;
+                    let mut values = Vec::new();
+                    for _ in 0..n {
+                        if let Some(v) = stack.pop() {
+                            values.push(v);
+                        }
+                    }
+                    values.reverse();
+                    let keys: Vec<ObjectRef> = match keys_e.as_deref() {
+                        Some(Expr::Const(o)) => match &**o {
+                            PyObject::Tuple(t) => t.clone(),
+                            _ => Vec::new(),
+                        },
+                        _ => Vec::new(),
+                    };
+                    let mut entries = Vec::with_capacity(values.len());
+                    for (i, v) in values.into_iter().enumerate() {
+                        let k = keys
+                            .get(i)
+                            .map(|k| Rc::new(Expr::Const(k.clone())) as ExprRef)
+                            .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                        entries.push((k, v));
+                    }
+                    stack.push(Rc::new(Expr::Dict(entries)));
                 }
                 Op::TO_BOOL => {}
                 // slice construction inside a comprehension element:

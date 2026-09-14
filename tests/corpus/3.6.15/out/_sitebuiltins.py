@@ -25,7 +25,7 @@ class _Printer(object):
     contributors and the copyright notice.'''
 
     MAXLINES = 23
-    def __init__(self, name, data, files=(), dirs=()):
+    def __init__(self, name, data, files=(()), dirs=(())):
         import os
         self.__name = name
         self.__data = data

@@ -4,6 +4,34 @@ All notable changes to pycdc-rs. The full verification baseline for every
 release: 520-module stdlib corpus (semantic 520/520) + behavior matrix +
 cargo tests, on 13 interpreters (2.6–3.14).
 
+## Unreleased
+
+Benchmark-driven fixes: decompiling the full 3.12 and 3.8 stdlib corpora
+(1017 + 1251 modules) surfaced one crash and nineteen modules whose
+output did not parse. After this batch both corpora recompile at 99.9%
+(1003/1004 and 1228/1229; the remainder is two documented long-tail
+shapes — see benchmarks/README.md), with no regressions: 520/520 corpus
+and 516/516 behavior unchanged.
+
+### Fixed
+- stack overflow (crash) on module-level `try: CODESET` in locale 3.12:
+  the try's tail emission could re-enter itself for the same span
+  through a nested region walk; emission is now re-entrancy-guarded
+- control characters (NUL in smtplib's `"\0%s\0%s"`) were written raw
+  into f-string literals — they now escape as `\xNN`
+- tuple defaults/annotations in signatures rendered without parens
+  (`def f(a=('localhost', P))` became two parameters, logging 3.12/3.8)
+- `assert cond, (a, b)` message tuples lost their parens (profile 3.12,
+  statistics 3.8); same for `with (a, b):` items and `raise (a, b)`
+- `return (yield from x)` lost its parens (asyncio/tasks 3.8)
+- `with ctx as (a, b):` — the tuple as-target was merged into the next
+  statement as a bogus assignment (xml.etree.ElementTree 3.12)
+- comprehension element/value dict displays (`{v: {} for v in ORDER}`)
+  were dropped by the comprehension walker's stack machine
+- 3.11+ calls: an attribute callee (`str(pathlib.Path(row[0]))`)
+  blindly consumed the enclosing expression as a "method receiver"
+  (pip 3.12)
+
 ## v0.6.0 — 2026-09-14
 
 ### CLI

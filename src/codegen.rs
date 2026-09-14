@@ -403,7 +403,16 @@ impl Printer {
             Stmt::Return(None) => self.write_line("return"),
             Stmt::Return(Some(e)) => {
                 self.write("return ");
-                self.expr(e, 0);
+                // `return yield from x` / `return yield x` are syntax
+                // errors — the yield must carry its own parens
+                // (asyncio/tasks 3.8 `_wrap_awaitable`)
+                if matches!(&**e, Expr::Yield(_) | Expr::YieldFrom(_)) {
+                    self.write("(");
+                    self.expr(e, 0);
+                    self.write(")");
+                } else {
+                    self.expr(e, 0);
+                }
                 self.newline();
             }
             Stmt::Delete(targets) => {
@@ -612,7 +621,7 @@ impl Printer {
                     if i > 0 {
                         self.write(", ");
                     }
-                    self.expr(&item.ctx, 0);
+                    self.expr(&item.ctx, prec::TERNARY);
                     if let Some(t) = &item.target {
                         self.write(" as ");
                         self.expr(t, prec::ATOM);
@@ -632,7 +641,18 @@ impl Printer {
                     None => self.write("raise"),
                     Some(e) => {
                         self.write("raise ");
-                        self.expr(e, 0);
+                        // `raise a, b` is py2-only syntax; a py3 tuple
+                        // operand needs its parens (setuptools
+                        // easy_install `raise (ev[0], ev[1] + ...)`)
+                        if self.version.major >= 3
+                            && matches!(&**e, Expr::Tuple(v) if !v.is_empty())
+                        {
+                            self.write("(");
+                            self.expr(e, 0);
+                            self.write(")");
+                        } else {
+                            self.expr(e, 0);
+                        }
                         if let Some(i) = py2_inst {
                             // py2 native triple/pair form
                             self.write(", ");
@@ -657,8 +677,10 @@ impl Printer {
                 self.write("assert ");
                 self.expr(test, 0);
                 if let Some(m) = msg {
+                    // `assert x, a, b` is a syntax error — a tuple
+                    // message needs its parens (profile 3.12)
                     self.write(", ");
-                    self.expr(m, 0);
+                    self.expr(m, prec::TERNARY);
                 }
                 self.newline();
             }
@@ -910,7 +932,7 @@ impl Printer {
             self.write(&a.name);
             if let Some(ann) = &a.annotation {
                 self.write(": ");
-                self.expr(ann, 0);
+                self.expr(ann, prec::TERNARY);
             }
             if i >= nargs - ndef {
                 let d = &p.defaults[i - (nargs - ndef)];
@@ -919,7 +941,7 @@ impl Printer {
                 } else {
                     self.write("=");
                 }
-                self.expr(d, 0);
+                self.expr(d, prec::TERNARY);
             }
             if p.posonly_count > 0 && i + 1 == p.posonly_count {
                 self.write(", /");
@@ -933,7 +955,7 @@ impl Printer {
             self.write(&format!("*{}", v.name));
             if let Some(ann) = &v.annotation {
                 self.write(": ");
-                self.expr(ann, 0);
+                self.expr(ann, prec::TERNARY);
             }
         } else if !p.kwonly.is_empty() {
             if !first {
@@ -950,11 +972,11 @@ impl Printer {
             self.write(&k.name);
             if let Some(ann) = &k.annotation {
                 self.write(": ");
-                self.expr(ann, 0);
+                self.expr(ann, prec::TERNARY);
             }
             if let Some(Some(d)) = p.kw_defaults.get(i) {
                 self.write("=");
-                self.expr(d, 0);
+                self.expr(d, prec::TERNARY);
             }
         }
         if let Some(k) = &p.kwarg {
@@ -964,7 +986,7 @@ impl Printer {
             self.write(&format!("**{}", k.name));
             if let Some(ann) = &k.annotation {
                 self.write(": ");
-                self.expr(ann, 0);
+                self.expr(ann, prec::TERNARY);
             }
         }
     }
@@ -1374,6 +1396,12 @@ impl Printer {
                             c if c == quote => {
                                 self.write("\\");
                                 self.write(&c.to_string());
+                            }
+                            // a raw control char (NUL in smtplib's
+                            // "\0%s\0%s" auth_plain f-string-folded
+                            // form) is not valid source text
+                            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                                self.write(&format!("\\x{:02x}", c as u32));
                             }
                             c => self.write(&c.to_string()),
                         }

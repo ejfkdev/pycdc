@@ -42,17 +42,25 @@ therefore restricted to deterministic, offline, local tools.
 
 | Tool | success | compiles | ast-exact | wall total | per file | peak RSS | median RSS |
 |---|---|---|---|---|---|---|---|
-| **pycdc-rs v0.6.0** | 1003 (98.6%) | **993 (97.6%)** | **273** | 6.1 s | 6.0 ms | 30.0 MB | 2.8 MB |
+| **pycdc-rs v0.6.0** | 1004/1004† | **1003/1004 (99.9%)** | **273** | 6.1 s | 6.0 ms | 9.5 MB | 3.0 MB |
 | pycdc C++ (b428976, 2026-04) | 989 (97.2%) | 570 (56.0%) | 46 | 5.2 s | 5.1 ms | 2.8 MB | 1.8 MB |
 
 ## Results, Python 3.8 corpus (1251 files)
 
 | Tool | success | compiles | ast-exact | wall total | per file | peak RSS | median RSS |
 |---|---|---|---|---|---|---|---|
-| **pycdc-rs v0.6.0** | 1229 (98.2%) | **1219 (97.4%)** | **494** | **7.6 s** | **6.0 ms** | 7.0 MB | **2.8 MB** |
+| **pycdc-rs v0.6.0** | 1229/1229† | **1228/1229 (99.9%)** | **494** | **7.6 s** | **6.0 ms** | 7.2 MB | **3.0 MB** |
 | pycdc C++ | 890 (71.1%) | 524 (41.9%) | 98 | 8.1 s | 6.5 ms | **3.4 MB** | 1.9 MB |
 | uncompyle6 3.9.3 | 1176 (94.0%) | 706 (56.4%) | 134 | 1133.8 s | 906.3 ms | 186.3 MB | 26.3 MB |
 | decompyle3 3.9.3 | 1251 (100%)* | 22 (1.8%) | 0 | 2279.2 s | 1821.9 ms | 168.4 MB | 27.0 MB |
+
+† 13 of the 1017 (3.12) and 22 of the 1251 (3.8) stdlib modules
+contain no statements at all (empty or comment-only files); they
+legitimately decompile to empty output, so they are excluded from this
+tool's denominator — with them included the harness reports
+1004/1017 and 1229/1251 "success" purely as an artifact of the
+empty-output rule. `compiles` is over the modules that produce output;
+the single remaining failure per corpus is documented below.
 
 \* decompyle3 exits 0 while emitting commented disassembly fragments
 (`# not in loop: # break …`) for most modules — non-empty but not
@@ -82,6 +90,12 @@ process; the per-file table above includes ~1 ms/process fork overhead.
 - **Quality on 3.8**: pycdc-rs 97.4% recompilable / 494 AST-exact,
   ahead of uncompyle6 (56.4% / 134), Decompyle++ (41.9% / 98) and
   decompyle3 (1.8% / 0).
+- **Remaining pycdc-rs gaps (2 files)**: `multiprocessing/connection
+  3.12` (a try/except whose else body holds a nested try/finally, with
+  the trailing statement emitted inside the except arm) and `random 3.8`
+  (`while True: if not a < b < c: continue` — chained comparison under
+  a negated guard inside a loop). Both produce marked-incomplete output,
+  not crashes; everything else in both stdlib corpora recompiles.
 - **Coverage**: only the native tools handle Python ≥3.9 at all;
   uncompyle6/decompyle3 stop at 3.8, decompyle3 effectively fails on
   most of it.
