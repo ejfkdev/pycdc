@@ -26,6 +26,8 @@ Options:
   -o, --output <PATH>    output file or directory (see OUTPUT below)
   -j, --jobs <N>         parallel worker threads for batch mode
                          (default: number of CPUs; -j 1 = serial)
+  -q, --quiet            batch mode: suppress the per-file src -> dst
+                         lines (errors still print)
       --opcodes <DIR>    load extra/override opcode config JSONs
   -c                     accepted for compatibility; raw-marshal input is
                          selected by -v alone
@@ -33,6 +35,13 @@ Options:
                          X.Y (e.g. 3.8) instead of a headered pyc
   -h, --help             print this help
   -V, --version          print version information
+
+Input:
+  * a dash (-) reads the pyc (or, with -v, raw marshal) from stdin
+  * directories are scanned recursively for .pyc/.pyo files
+
+Exit codes: 0 success, 1 a file failed to load/decompile/write,
+2 usage error.
 
 Output:
   * one input file without -o:  the source is printed to stdout
@@ -80,6 +89,7 @@ struct Cli {
     opcode_dir: Option<PathBuf>,
     version_override: Option<(u8, u8)>,
     jobs: Option<usize>,
+    quiet: bool,
 }
 
 fn parse_args(args: &[String]) -> Result<Cli, String> {
@@ -89,6 +99,7 @@ fn parse_args(args: &[String]) -> Result<Cli, String> {
         opcode_dir: None,
         version_override: None,
         jobs: None,
+        quiet: false,
     };
     let mut i = 0;
     while i < args.len() {
@@ -114,6 +125,7 @@ fn parse_args(args: &[String]) -> Result<Cli, String> {
                     _ => return Err("-j/--jobs requires a positive integer".into()),
                 }
             }
+            "-q" | "--quiet" => cli.quiet = true,
             "-c" => {}
             "-v" => {
                 i += 1;
@@ -171,9 +183,10 @@ fn decompile_file(
     file: &Path,
     version_override: Option<(u8, u8)>,
 ) -> Result<String, String> {
-    let loaded =
-        loader::load(file, version_override)
-            .map_err(|e| format!("{}: error: {e}", file.display()))?;
+    let data = loader::read_input(file)
+        .map_err(|e| format!("{}: error: {e}", file.display()))?;
+    let loaded = loader::load_bytes(&data, version_override)
+        .map_err(|e| format!("{}: error: {e}", file.display()))?;
     let d = decompile(&loaded.code, loaded.version)
         .map_err(|e| format!("{}: decompile error: {e}", file.display()))?;
     let text = generate(&d.body, loaded.version, d.clean);
@@ -242,30 +255,38 @@ fn main() -> ExitCode {
         Ok(c) => c,
         Err(e) => {
             eprintln!("error: {e}");
-            return ExitCode::FAILURE;
+            return ExitCode::from(2);
         }
     };
+    let usage_err = |m: String| {
+        eprintln!("error: {m}");
+        ExitCode::from(2)
+    };
     if cli.inputs.is_empty() {
-        eprintln!("error: no input files or directories (see `pycdc --help`)");
-        return ExitCode::FAILURE;
+        return usage_err("no input files or directories (see `pycdc --help`)".into());
+    }
+    if cli.inputs.iter().any(|p| p == Path::new("-")) && cli.inputs.len() > 1 {
+        return usage_err("stdin input (-) cannot be combined with other inputs".into());
     }
     for input in &cli.inputs {
-        if !input.exists() {
-            eprintln!("error: {}: no such file or directory", input.display());
-            return ExitCode::FAILURE;
+        if input != Path::new("-") && !input.exists() {
+            return usage_err(format!(
+                "{}: no such file or directory",
+                input.display()
+            ));
         }
     }
     if let Some(dir) = &cli.opcode_dir {
         if let Err(e) = pycdc::opcode::set_override_dir(dir) {
-            eprintln!("error: {e}");
-            return ExitCode::FAILURE;
+            return usage_err(e.to_string());
         }
     }
 
-    // stdout mode: exactly one input, it is a file, and no -o was given
+    // stdout mode: exactly one input, it is a file (or stdin), and no -o
+    // was given
     let stdout_mode = cli.output.is_none()
         && cli.inputs.len() == 1
-        && cli.inputs[0].is_file();
+        && (cli.inputs[0].is_file() || cli.inputs[0] == Path::new("-"));
 
     if stdout_mode {
         return run_stdout(&cli);
@@ -298,12 +319,12 @@ fn run_batch(cli: &Cli) -> ExitCode {
             };
             if root.exists() && !root.is_dir() {
                 eprintln!("error: {}: output path exists and is not a directory", root.display());
-                return ExitCode::FAILURE;
+                return ExitCode::from(2);
             }
             let mut pycs = Vec::new();
             if let Err(e) = collect_pycs(input, &mut pycs) {
                 eprintln!("error: {e}");
-                return ExitCode::FAILURE;
+                return ExitCode::from(2);
             }
             for pyc in pycs {
                 let rel = pyc.strip_prefix(input).unwrap_or(pyc.as_path());
@@ -336,6 +357,7 @@ fn run_batch(cli: &Cli) -> ExitCode {
         eprintln!("error: no .pyc/.pyo files found in the given inputs");
         return ExitCode::FAILURE;
     }
+    let quiet = cli.quiet;
 
     let n_threads = cli
         .jobs
@@ -390,7 +412,11 @@ fn run_batch(cli: &Cli) -> ExitCode {
     let mut failed = false;
     for r in results {
         match r {
-            Ok(line) => print_stdout(&format!("{line}\n")),
+            Ok(line) => {
+                if !quiet {
+                    print_stdout(&format!("{line}\n"));
+                }
+            }
             Err(e) => {
                 eprintln!("{e}");
                 failed = true;

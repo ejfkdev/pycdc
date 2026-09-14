@@ -41,15 +41,21 @@ pycdc program.pyc -o ./outdir/
 pycdc ./pyc-corpus -o ./src-out
 pycdc ./pyc-corpus               # 生成 ./pyc-corpus-decompiled/
 pycdc a.pyc b.pyc                # 在输入旁生成 a.py、b.py
+pycdc ./pyc-corpus -o ./src-out -q -j 8
+
+# 标准输入（管道场景）：- 表示从 stdin 读取 pyc
+cat program.pyc | pycdc -
 
 # 无 pyc 头的裸 marshal 数据，显式指定版本
 pycdc -v 3.8 payload.marshal
 
-# 反汇编
+# 反汇编——与 pycdc 相同的 CLI 能力（文件/目录/stdin、-o/-j/-q）
 pycdas program.pyc
+pycdas ./pyc-corpus -o ./dis-out # 镜像生成 .dis 文件
 ```
 
-全部参数（含 `-j/--jobs`、`--opcodes`）见 `pycdc --help`。
+全部参数见 `pycdc --help` / `pycdas --help`。退出码：`0` 成功，
+`1` 存在处理失败的文件，`2` 用法错误。
 
 ## 性能
 

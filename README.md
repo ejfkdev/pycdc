@@ -37,19 +37,26 @@ pycdc program.pyc > program.py
 pycdc program.pyc -o program.py
 pycdc program.pyc -o ./outdir/
 
-# batch: mirror a directory tree (parallel by default, -j N to control)
+# stdin (pipelines): - reads the pyc from stdin
+cat program.pyc | pycdc -
+
+# batch: mirror a directory tree (parallel by default, -j N to control,
+# -q suppresses the per-file src -> dst lines)
 pycdc ./pyc-corpus -o ./src-out
 pycdc ./pyc-corpus               # -> ./pyc-corpus-decompiled/
 pycdc a.pyc b.pyc                # -> a.py, b.py next to the inputs
+pycdc ./pyc-corpus -o ./src-out -q -j 8
 
 # raw marshal (no pyc header) with an explicit version
 pycdc -v 3.8 payload.marshal
 
-# disassembly
+# disassembly — same CLI surface (files, dirs, stdin, -o/-j/-q)
 pycdas program.pyc
+pycdas ./pyc-corpus -o ./dis-out # -> mirrored .dis files
 ```
 
-`pycdc --help` documents every flag, including `-j/--jobs` and `--opcodes`.
+`pycdc --help` / `pycdas --help` document every flag. Exit codes: `0`
+success, `1` a file failed to process, `2` usage error.
 
 ## Performance
 

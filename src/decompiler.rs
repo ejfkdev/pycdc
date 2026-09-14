@@ -51820,14 +51820,6 @@ fn genexpr_ternary_merge(
                         }));
                     }
                 }
-                Op::UNARY_NOT => {
-                    if let Some(v) = stack.pop() {
-                        stack.push(Rc::new(Expr::Unary {
-                            op: UnaryOp::Not,
-                            operand: v,
-                        }));
-                    }
-                }
                 Op::MAKE_FUNCTION | Op::MAKE_CLOSURE => {
                     // mini-sim: turn the code constant into a Function value
                     let mut popped = stack.pop();
