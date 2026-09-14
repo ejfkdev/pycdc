@@ -103,7 +103,10 @@ Three independent harnesses, all runnable locally (need pyenv/uv interpreters 2.
 | [`tools/run_behavior.py`](tools/run_behavior.py) | 50 behavior cases × 13 interpreters: run original vs decompiled, compare stdout + exit code | **516/516 = 100%** |
 | [`tests/roundtrip.py`](tests/roundtrip.py) | fixture matrix: compile → decompile → recompile → strict bytecode compare | 49/54 strict (exceptions fixtures differ structurally, semantically equivalent) |
 
-Per-version results live in `tests/corpus/<version>/report.json`. Beyond
+Per-version results live in `tests/corpus/<version>/report.json`.
+A cross-tool comparison (speed, memory, output quality vs
+Decompyle++, uncompyle6, decompyle3) lives in
+[benchmarks/](benchmarks/README.md). Beyond
 these harnesses, releases are gated by ad-hoc quality batteries: a 25-shape
 syntax-family fuzz matrix (×10 interpreters), a hostile-input robustness
 suite (truncated/corrupted/OOM-bomb pycs — zero crashes), and a

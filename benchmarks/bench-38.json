@@ -1,0 +1,91 @@
+{
+ "corpus": "/tmp/bench38/src",
+ "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3.8",
+ "host": "Darwin 25.6.0 arm64",
+ "generated": "2026-09-15 00:33:12",
+ "note": "serial per-file CLI invocations; semantic_exact_ast = decompiled output parses and its docstring-stripped AST equals the original source's",
+ "results": [
+  {
+   "tool": "pycdc-rs",
+   "cmd": [
+    "/Users/e/Documents/project/pycdc/target/release/pycdc"
+   ],
+   "files": 1251,
+   "success": 1229,
+   "success_rate": 0.9824,
+   "compiles": 1219,
+   "semantic_exact_ast": 494,
+   "wall_total_s": 7.56,
+   "wall_per_file_ms": 6.0,
+   "peak_rss_mb": 7.0,
+   "median_rss_mb": 2.8,
+   "first_errors": {
+    "__phello__.foo.pyc": "rc=0",
+    "concurrent___init__.pyc": "rc=0",
+    "email_mime___init__.pyc": "rc=0",
+    "pydoc_data___init__.pyc": "rc=0",
+    "site-packages_pip__internal_operations___init__.pyc": "rc=0"
+   }
+  },
+  {
+   "tool": "pycdc-cpp",
+   "cmd": [
+    "/Users/e/Documents/github/python-decompile/pycdc/build/pycdc"
+   ],
+   "files": 1251,
+   "success": 890,
+   "success_rate": 0.7114,
+   "compiles": 524,
+   "semantic_exact_ast": 98,
+   "wall_total_s": 8.09,
+   "wall_per_file_ms": 6.5,
+   "peak_rss_mb": 3.4,
+   "median_rss_mb": 1.9,
+   "first_errors": {
+    "_collections_abc.pyc": "rc=1",
+    "_markupbase.pyc": "rc=1",
+    "_osx_support.pyc": "rc=1",
+    "_pydecimal.pyc": "rc=1",
+    "_pyio.pyc": "rc=-11"
+   }
+  },
+  {
+   "tool": "uncompyle6",
+   "cmd": [
+    "/tmp/venv38/bin/uncompyle6"
+   ],
+   "files": 1251,
+   "success": 1176,
+   "success_rate": 0.94,
+   "compiles": 706,
+   "semantic_exact_ast": 134,
+   "wall_total_s": 1133.79,
+   "wall_per_file_ms": 906.3,
+   "peak_rss_mb": 186.3,
+   "median_rss_mb": 26.3,
+   "first_errors": {
+    "_collections_abc.pyc": "rc=1",
+    "_compression.pyc": "rc=1",
+    "_markupbase.pyc": "rc=1",
+    "_osx_support.pyc": "rc=1",
+    "_pydecimal.pyc": "rc=1"
+   }
+  },
+  {
+   "tool": "decompyle3",
+   "cmd": [
+    "/tmp/venv38/bin/decompyle3"
+   ],
+   "files": 1251,
+   "success": 1251,
+   "success_rate": 1.0,
+   "compiles": 22,
+   "semantic_exact_ast": 0,
+   "wall_total_s": 2279.22,
+   "wall_per_file_ms": 1821.9,
+   "peak_rss_mb": 168.4,
+   "median_rss_mb": 27.0,
+   "first_errors": {}
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+{
+ "corpus": "/tmp/bench312/src",
+ "interp": "/Users/e/.local/share/uv/python/cpython-3.12.14-macos-aarch64-none/bin/python3.12",
+ "host": "Darwin 25.6.0 arm64",
+ "generated": "2026-09-14 23:34:48",
+ "note": "serial per-file CLI invocations; semantic_exact_ast = decompiled output parses and its docstring-stripped AST equals the original source's",
+ "results": [
+  {
+   "tool": "pycdc-rs",
+   "cmd": [
+    "/Users/e/Documents/project/pycdc/target/release/pycdc"
+   ],
+   "files": 1017,
+   "success": 1003,
+   "success_rate": 0.9862,
+   "compiles": 993,
+   "semantic_exact_ast": 273,
+   "wall_total_s": 6.06,
+   "wall_per_file_ms": 6.0,
+   "peak_rss_mb": 30.0,
+   "median_rss_mb": 2.8,
+   "first_errors": {
+    "concurrent___init__.pyc": "rc=0",
+    "email_mime___init__.pyc": "rc=0",
+    "locale.pyc": "rc=-6",
+    "pydoc_data___init__.pyc": "rc=0",
+    "site-packages_pip__internal_operations___init__.pyc": "rc=0"
+   }
+  },
+  {
+   "tool": "pycdc-cpp",
+   "cmd": [
+    "/Users/e/Documents/github/python-decompile/pycdc/build/pycdc"
+   ],
+   "files": 1017,
+   "success": 989,
+   "success_rate": 0.9725,
+   "compiles": 570,
+   "semantic_exact_ast": 46,
+   "wall_total_s": 5.18,
+   "wall_per_file_ms": 5.1,
+   "peak_rss_mb": 2.8,
+   "median_rss_mb": 1.8,
+   "first_errors": {
+    "_collections_abc.pyc": "rc=1",
+    "_pydecimal.pyc": "rc=1",
+    "asyncio_windows_events.pyc": "rc=1",
+    "cgitb.pyc": "rc=1",
+    "email_utils.pyc": "rc=1"
+   }
+  }
+ ]
+}
