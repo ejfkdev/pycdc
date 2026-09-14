@@ -133,7 +133,10 @@ jobs:
         shell: bash
         run: |
           d="target/${{ matrix.target }}/release"
-          upx --best --lzma "$d/pycdc" "$d/pycdas" || upx --best "$d/pycdc" "$d/pycdas"
+          ext=""
+          [[ "${{ runner.os }}" == "Windows" ]] && ext=".exe"
+          upx --best --lzma "$d/pycdc$ext" "$d/pycdas$ext" \
+            || upx --best "$d/pycdc$ext" "$d/pycdas$ext"
 
       - name: Verify binary version matches tag
         shell: bash
