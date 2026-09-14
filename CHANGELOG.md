@@ -7,6 +7,28 @@ cargo tests, on 13 interpreters (2.6–3.14).
 ## Unreleased
 
 ### Fixed
+- chained comparisons lost their middle operand on the negated path
+  (`assert x is sx is False` -> `x is sx and ??? is False`, `f'{...}'`
+  family of asserts in sympy/pandas/matplotlib): the or-chain operand
+  scan now simulates its region from the live stack, and the acceptance
+  rule is seed-relative so *consecutive* chained statements (sympy
+  test_boolalg) keep the operand
+- lambda bodies: an if/else over two returns folds back into a ternary
+  (`lambda x: d[np.nan if ... and ... else x]`), and a tuple body gets
+  its parentheses (`lambda: (*gen, ...)` was invalid)
+- f-string interpolations: a space separates the brace when the
+  expression starts or ends with `{`/`}` (`f'{ {1: 2}[k] }'`); the guard
+  is skipped when a `!conv`/`:spec` follows so `f'{name:>{w}}'` keeps
+  its format spec intact
+- `slice(...)` calls with a starred argument are no longer rewritten into
+  a slice display (`obj[*argvals:]` was not valid source)
+
+### Real-world corpus
+- benchmark now 6407/6411 modules recompile (99.94%, was 99.7%):
+  matplotlib, sympy, yt-dlp, django and ansible are at 100%
+
+
+### Fixed
 - dict displays rendered `**` entries without parentheses
   (`{**a or b}`, `{**x if c else y}` are syntax errors) — django
   contrib/gis/measure and matplotlib figure.py

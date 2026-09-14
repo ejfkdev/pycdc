@@ -102,20 +102,20 @@ seven projects **at its latest release tag**, compiles every `.py` to
 
 | Project (tag) | modules | serial `-j 1` | parallel (default) | decompiled output recompiles |
 |---|---|---|---|---|
-| yt-dlp (2026.08.19) | 1045 | 0.47 s | 0.07 s | 1043/1045 |
-| matplotlib (v3.11.2) | 253 | 0.35 s | 0.08 s | 252/253 |
-| pandas (v3.0.5) | 1420 | 1.05 s | 0.15 s | 1417/1420 |
-| django (6.1.1) | 907 | 0.43 s | 0.10 s | **907/907** |
-| sympy (1.14.0) | 1532 | 3.12 s | 1.52 s | 1523/1532 |
-| scikit-learn (1.9.1) | 671 | 0.51 s | 0.07 s | 669/671 |
-| ansible (v2.21.4) | 583 | 0.32 s | 0.04 s | **583/583** |
-| **total** | **6411** | **6.25 s** | **2.03 s** | **6394/6411 (99.7 %)** |
+| yt-dlp (2026.08.19) | 1045 | 0.62 s | 0.08 s | **1045/1045** |
+| matplotlib (v3.11.2) | 253 | 0.37 s | 0.07 s | **253/253** |
+| pandas (v3.0.5) | 1420 | 1.12 s | 0.16 s | 1418/1420 |
+| django (6.1.1) | 907 | 0.42 s | 0.11 s | **907/907** |
+| sympy (1.14.0) | 1532 | 3.30 s | 1.59 s | **1532/1532** |
+| scikit-learn (1.9.1) | 671 | 0.59 s | 0.08 s | 669/671 |
+| ansible (v2.21.4) | 583 | 0.33 s | 0.05 s | **583/583** |
+| **total** | **6411** | **6.75 s** | **2.14 s** | **6407/6411 (99.9 %)** |
 
 One pycdc process per project: ~1.0 ms per module serial, peak RSS
-≈99 MB for the whole 6.4 k-module batch. The 17 remaining modules are
-the negated multi-link condition family (chained `is`/comparison guards
-under `not`) plus a few lambda/comprehension shapes — marked incomplete,
-never a crash. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
+≈99 MB for the whole 6.4 k-module batch. The four remaining modules are two shapes: a multi-link ternary
+condition on the value path (`lambda x: d[a if c and e else b]`) and
+a dict comprehension nested inside a generator expression's element —
+marked incomplete, never a crash. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
 harness: [`tools/bench_realworld.py`](tools/bench_realworld.py).
 
 

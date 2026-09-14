@@ -1266,8 +1266,16 @@ impl Printer {
                 }
                 self.parameters(params);
                 self.write(": ");
-                // yield bodies need parens inside a lambda
-                self.expr(body, 1);
+                // yield bodies need parens inside a lambda; so do tuples —
+                // `lambda: *a, b` / `lambda: a, b` are syntax errors or
+                // change meaning (yt-dlp options `lambda ...: (*gen, ...)`)
+                if matches!(&**body, Expr::Tuple(v) if v.len() != 1) {
+                    self.write("(");
+                    self.expr(body, 0);
+                    self.write(")");
+                } else {
+                    self.expr(body, 1);
+                }
                 self.in_lambda = old;
             }
             Expr::Function(fd) => {
@@ -1416,10 +1424,18 @@ impl Printer {
                     conversion,
                     format_spec,
                 } => {
+                    let mark = self.out.len();
                     self.write("{");
                     self.fstring_depth += 1;
                     self.expr(value, prec::YIELD + 1);
                     self.fstring_depth -= 1;
+                    // `{{`/`}}` would read as an escaped literal brace:
+                    // separate the interpolation from the expression's own
+                    // braces (a dict display, e.g. `f'{ {1: 2}[k] }'` —
+                    // sympy c_parser diagnostics)
+                    if self.out.as_bytes().get(mark + 1) == Some(&b'{') {
+                        self.out.insert(mark + 1, ' ');
+                    }
                     if let Some(c) = conversion {
                         self.write(&format!("!{c}"));
                     }
@@ -1433,10 +1449,14 @@ impl Printer {
                                     conversion: c2,
                                     format_spec: fs2,
                                 } => {
+                                    let mark = self.out.len();
                                     self.write("{");
                                     self.fstring_depth += 1;
                                     self.expr(v, 0);
                                     self.fstring_depth -= 1;
+                                    if self.out.as_bytes().get(mark + 1) == Some(&b'{') {
+                                        self.out.insert(mark + 1, ' ');
+                                    }
                                     if let Some(c) = c2 {
                                         self.write(&format!("!{c}"));
                                     }
@@ -1445,6 +1465,14 @@ impl Printer {
                                 }
                             }
                         }
+                    }
+                    // a trailing space is only needed when the closing
+                    // brace directly follows the expression's own `}` —
+                    // with a `!conv` or `:spec` in between there is no
+                    // `}}` adjacency (`f'{name:>{w}}'` must stay as-is:
+                    // a space there lands inside the format spec)
+                    if conversion.is_none() && format_spec.is_none() && self.out.ends_with('}') {
+                        self.write(" ");
                     }
                     self.write("}");
                 }

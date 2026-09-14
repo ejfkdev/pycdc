@@ -22883,8 +22883,17 @@ impl<'a> Ctx<'a> {
             // chain-head operand regions (DUP/ROT or SWAP/COPY + CMP) leave
             // the retained middle operand under the comparison — tolerate
             // that one residual, prefer the strict single-value sim
+            let seed: Vec<ExprRef> = self
+                .stack
+                .iter()
+                .filter_map(|sv| match sv {
+                    Sv::E(e) => Some(e.clone()),
+                    _ => None,
+                })
+                .collect();
             let operand = self
-                .sim_value_region(region_start, jk)
+                .sim_value_region_ex_seeded(region_start, jk, true, &seed)
+                .or_else(|| self.sim_value_region(region_start, jk))
                 .or_else(|| self.sim_value_region_ex(region_start, jk, true))?;
             let jins = &self.instrs[jk];
             let jt = jump_true(jins.op);
@@ -24359,7 +24368,24 @@ impl<'a> Ctx<'a> {
         to_idx: usize,
         allow_chain_residual: bool,
     ) -> Option<ExprRef> {
-        let mut st: Vec<ExprRef> = Vec::new();
+        self.sim_value_region_ex_seeded(from_idx, to_idx, allow_chain_residual, &[])
+    }
+
+    /// Like [`Self::sim_value_region_ex`] but starts from a caller-supplied
+    /// stack. A region that consumes a value produced *before* it (the
+    /// retained middle operand of a chained comparison: `LOAD x; LOAD sx;
+    /// SWAP 2; COPY 2; IS_OP` leaves [sx, x is sx], and the following
+    /// `LOAD False; IS_OP` region pops that sx) simulates to a `???`
+    /// placeholder on an empty stack — `assert x is sx is False` lost its
+    /// middle operand that way.
+    fn sim_value_region_ex_seeded(
+        &self,
+        from_idx: usize,
+        to_idx: usize,
+        allow_chain_residual: bool,
+        seed: &[ExprRef],
+    ) -> Option<ExprRef> {
+        let mut st: Vec<ExprRef> = seed.to_vec();
         let pop1 = |st: &mut Vec<ExprRef>| st.pop().unwrap_or_else(|| self.name_expr("???"));
         for k in from_idx..to_idx {
             let ins = &self.instrs[k];
@@ -24825,7 +24851,23 @@ impl<'a> Ctx<'a> {
                 _ => return None,
             }
         }
-        if st.len() == 1 || (allow_chain_residual && st.len() == 2) {
+        // `st` still holds whatever the caller seeded: the region's own
+        // net effect is exactly the value on top. The soft tolerance for
+        // one extra value stays for the unseeded case (chained-comparison
+        // residual); with a seed the leftovers below are the interpreter's
+        // own state (they accumulate one per preceding chained statement,
+        // so a fixed 1/2 window broke the third in a row — sympy
+        // test_boolalg asserts).
+        let base = seed.len();
+        let ok = if allow_chain_residual {
+            // the region may CONSUME seeded values (chained-comparison
+            // middle operand) or leave them below its result — the top
+            // value is the operand either way
+            !st.is_empty() && st.len() <= base + 2
+        } else {
+            st.len() == 1
+        };
+        if ok {
             st.pop()
         } else {
             None
@@ -42366,7 +42408,11 @@ fn normalize_slice_call(idx: ExprRef) -> ExprRef {
         Expr::Call { func, args, keywords, star_args: None, star_kwargs: None }
             if keywords.is_empty()
                 && matches!(&**func, Expr::Name(n) if n == "slice")
-                && (2..=3).contains(&args.len()) =>
+                && (2..=3).contains(&args.len())
+                // a starred operand (`slice(*argvals, None)`) cannot be a
+                // slice display — keep the call (yt-dlp jsinterp
+                // `obj[*argvals:]` was not valid source)
+                && args.iter().all(|a| !matches!(&**a, Expr::Starred(_))) =>
         {
             Rc::new(Expr::Slice(Box::new(SliceExpr {
                 start: none_if_const_none(args[0].clone()),
@@ -47550,6 +47596,40 @@ impl<'a> Ctx<'a> {
         let inner = decompile(code, self.version);
         match inner {
             Ok(d) => {
+                // `a if c and e else b` bodies decompile to an if/else over
+                // two returns (a *boolop* condition cannot merge into a
+                // value on the stack the way a single comparison can) —
+                // fold the pair back into a ternary instead of returning
+                // one arm and dropping the other (pandas
+                // algorithms `lambda x: d[np.nan if isinstance(x, float)
+                // and np.isnan(x) else x]`)
+                match &d.body[..] {
+                    // `a if c else b` with a boolop condition arrives as an
+                    // early-return If plus the trailing else return
+                    [Stmt::If { cond, body, orelse: if_orelse }, Stmt::Return(Some(f))]
+                        if if_orelse.is_empty() =>
+                    {
+                        if let [Stmt::Return(Some(t))] = &body[..] {
+                            return Rc::new(Expr::Ternary {
+                                cond: cond.clone(),
+                                then_expr: t.clone(),
+                                else_expr: f.clone(),
+                            });
+                        }
+                    }
+                    [Stmt::If { cond, body, orelse }] => {
+                        if let ([Stmt::Return(Some(t))], [Stmt::Return(Some(f))]) =
+                            (&body[..], &orelse[..])
+                        {
+                            return Rc::new(Expr::Ternary {
+                                cond: cond.clone(),
+                                then_expr: t.clone(),
+                                else_expr: f.clone(),
+                            });
+                        }
+                    }
+                    _ => {}
+                }
                 for stmt in &d.body {
                     if let Stmt::Return(Some(e)) = stmt {
                         return e.clone();
