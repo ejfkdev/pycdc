@@ -22,12 +22,33 @@ pycdas program.pyc         # 反汇编（异常表、行号、嵌套 code object
 - 版本差异全部数据化：每版本一张内嵌 opcode 表，`--opcodes` 可外部覆盖
 - 优雅降级：无法识别的构造输出注释占位，绝不崩溃
 
-## 构建
+## 安装
+
+**Homebrew（macOS 与 Linux）：**
+
+```sh
+brew install ejfkdev/tap/pycdc
+```
+
+**cargo，来自 [crates.io](https://crates.io/crates/pycdc)：**
+
+```sh
+cargo install pycdc
+```
+
+**预编译二进制：** [Releases](https://github.com/ejfkdev/pycdc/releases)
+页面提供裸可执行文件（无压缩包外壳）——Linux / Windows 的 x86_64 与
+arm64、macOS 的 arm64 与 x86_64；Linux 与 Windows 产物经 UPX 压缩，
+macOS 不压缩。
+
+**源码构建：**
 
 ```sh
 cargo build --release      # 产物: target/release/pycdc 与 pycdas
-cargo install --path .     # 可选：安装两个二进制
+cargo install --path .     # 或从检出目录安装两个二进制
 ```
+
+以上任一方式均同时提供 `pycdc` 与 `pycdas`。
 
 ## 使用
 

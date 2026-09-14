@@ -22,12 +22,33 @@ pycdas program.pyc         # disassemble (exception tables, line numbers, nested
 - Version differences are pure data: one embedded opcode table per release, overridable via `--opcodes`
 - Graceful degradation: unrecognized constructs become comment placeholders — never a crash
 
-## Build
+## Install
+
+**Homebrew (macOS & Linux):**
+
+```sh
+brew install ejfkdev/tap/pycdc
+```
+
+**cargo, from [crates.io](https://crates.io/crates/pycdc):**
+
+```sh
+cargo install pycdc
+```
+
+**Prebuilt binaries:** raw executables (no archive wrapper) on the
+[Releases](https://github.com/ejfkdev/pycdc/releases) page —
+Linux / Windows x86_64 + arm64, macOS arm64 + x86_64; Linux and Windows
+builds are UPX-compressed, macOS ships uncompressed.
+
+**From source:**
 
 ```sh
 cargo build --release      # -> target/release/pycdc + pycdas
-cargo install --path .     # optional: install both binaries
+cargo install --path .     # or install both binaries from a checkout
 ```
+
+Every method provides both `pycdc` and `pycdas`.
 
 ## Usage
 
