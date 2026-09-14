@@ -22,6 +22,10 @@ equivalent, or (b) a corner with no occurrence in the 520-module corpus.
   placeholder on 3.10; behavior usually still equivalent).
 - **Gap (3.9/3.10)**: an inline try inside a with body may flatten and leak
   `__exit__` protocol calls (behavior-equivalent, with placeholder).
+- **Gap (3.11 only)**: a handler whose loop-exit FOR_ITER target lands
+  directly on POP_EXCEPT (no END_FOR separator — 3.12+ has one) loses the
+  handler's post-loop tail statements (e.g. `except E: for ...: ...; return
+  'miss'` drops the final return). In-loop returns are unaffected.
 - Bare-except placement can add one semantically-equivalent `continue` at the
   tail of a handler inside a loop.
 - 2.x/3.5–3.10 中「except 分支内 continue + 同 try 带 finally + 位于循环内」
@@ -73,6 +77,19 @@ equivalent, or (b) a corner with no occurrence in the 520-module corpus.
 
 ## Fixed recently (no longer limitations) / 近期已修复
 
+- Syntax-family fuzz battery (25 shapes × 10 interpreters) driven fixes:
+  comprehension-element ternaries kept their else arm on all versions;
+  negated genexpr filters (`if not C`) survive the 3.12+ PJIF-to-emit and
+  py2.6 jump-trampoline polarity encodings; py2 nested inline
+  comprehensions keep their nesting (accumulator prologue/teardown
+  tolerance); lambda elements work in 3.12+ inline comprehensions
+  (MAKE_CELL prologue); assert messages restored on 3.11–3.14
+  (LOAD_ASSERTION_ERROR/LOAD_COMMON_CONSTANT + CALL-0 self-slot shape and
+  f-string-folded messages); try/except/finally with a body-tail return no
+  longer collapses on 3.8–3.10 (stashed-chain fold + as-cleanup-aware
+  chain-end scan); in-handler `return <expr>` inside loops no longer splits
+  into an expression statement plus a bare return (handler-return unwind
+  protocol POP_TOP phantom-consume).
 - PEP 695/696 type parameters (3.12+): full support incl. bounds,
   constraints, `*Ts`/`**P`, defaults.
 - PEP 750 t-strings (3.14+): interpolation, conversions, format specs.

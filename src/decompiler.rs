@@ -8415,6 +8415,88 @@ impl<'a> Ctx<'a> {
     /// breaks it before END_FINALLY), and mark the chain done when at
     /// least one clause was parsed — the jump past the chain end IS the
     /// chain completion for a nested try
+    /// End offset of the legacy handler chain starting at `hs`: the first
+    /// chain-level END_FINALLY/RERAISE before `limit`. A RERAISE that is
+    /// the tail of an `except E as e` cleanup (LOAD None; STORE e;
+    /// DELETE e; RERAISE) belongs to a handler's nested as-cleanup, NOT
+    /// the chain mismatch cascade — skipping it keeps multi-handler
+    /// chains whole (f15 shape: handler 2+ were being dropped).
+    fn legacy_chain_end_before(&self, hs: usize, limit: usize) -> Option<usize> {
+        let hi = self.idx_of.get(&hs).copied()?;
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let is_del = |x: &crate::bytecode::Instruction| {
+            matches!(
+                x.op,
+                Op::DELETE_FAST | Op::DELETE_NAME | Op::DELETE_DEREF | Op::DELETE_GLOBAL
+            )
+        };
+        let is_store = |x: &crate::bytecode::Instruction| {
+            matches!(
+                x.op,
+                Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF | Op::STORE_GLOBAL
+            )
+        };
+        let is_none_load = |x: &crate::bytecode::Instruction| {
+            match x.op {
+                Op::LOAD_CONST => self
+                    .code
+                    .consts
+                    .get(x.arg as usize)
+                    .map_or(false, |o| matches!(&**o, PyObject::None)),
+                Op::LOAD_COMMON_CONSTANT => x.arg == 0,
+                Op::PUSH_NULL => true,
+                _ => false,
+            }
+        };
+        let slice = &self.instrs[hi..];
+        let mut k = 0;
+        while k < slice.len() && k < 400 {
+            let x = &slice[k];
+            if x.offset >= limit {
+                break;
+            }
+            if x.op == Op::END_FINALLY || x.op == Op::RERAISE {
+                // walk back over pads: as-cleanup = LOAD None; STORE e;
+                // DELETE e; END_FINALLY/RERAISE (3.8 wraps the cleanup in
+                // its own SETUP_FINALLY ending in END_FINALLY; 3.9/3.10
+                // inline it before RERAISE) — such a terminator belongs
+                // to one handler's cleanup, not the chain cascade
+                let mut j = k;
+                let mut saw_del = false;
+                let mut saw_store = false;
+                let mut saw_none = false;
+                while j > 0 {
+                    j -= 1;
+                    let p = &slice[j];
+                    if is_pad(p) {
+                        continue;
+                    }
+                    if is_del(p) && !saw_del {
+                        saw_del = true;
+                        continue;
+                    }
+                    if is_store(p) && saw_del && !saw_store {
+                        saw_store = true;
+                        continue;
+                    }
+                    if is_none_load(p) && saw_store {
+                        saw_none = true;
+                    }
+                    break;
+                }
+                if saw_del && saw_store && saw_none {
+                    k += 1;
+                    continue;
+                }
+                return Some(x.offset);
+            }
+            k += 1;
+        }
+        None
+    }
+
     fn parse_skipped_nested_chain(&mut self, target: usize) -> bool {
         let Some(lt) = self.legacy_try.clone() else {
             return false;
@@ -14436,6 +14518,47 @@ impl<'a> Ctx<'a> {
             Op::COMPARE_OP => {
                 let idx = compare_op_index(arg, self.version);
                 let op = cmp_from_index(idx);
+                if matches!(op, CmpOp::ExceptionMatch) {
+                    // the exception operand comes from VM state; in a
+                    // handler-chain sub-walk (parse_skipped_nested_chain
+                    // et al.) the modeled stack may not carry it —
+                    // substitute the __exc__ placeholder instead of
+                    // poisoning the clean flag (same convention as the
+                    // JUMP_IF_NOT_EXC_MATCH arm; f15 3.8 triple-handler
+                    // chain rendered correctly but carried a spurious
+                    // incomplete marker)
+                    let mut popped: Vec<ExprRef> = Vec::new();
+                    for _ in 0..2 {
+                        let mut got = None;
+                        while let Some(sv) = self.stack.pop() {
+                            match sv {
+                                Sv::E(e) => {
+                                    got = Some(e);
+                                    break;
+                                }
+                                Sv::Null => continue,
+                                other => {
+                                    self.stack.push(other);
+                                    break;
+                                }
+                            }
+                        }
+                        popped.push(
+                            got.unwrap_or_else(|| {
+                                Rc::new(Expr::Name("__exc__".to_string()))
+                            }),
+                        );
+                    }
+                    // first pop = rhs (the pattern), second = lhs (the
+                    // exception slot)
+                    let rhs = popped.remove(0);
+                    let lhs = popped.remove(0);
+                    self.push(Rc::new(Expr::Compare {
+                        operands: vec![lhs, rhs],
+                        ops: vec![op],
+                    }));
+                    return true;
+                }
                 let rhs = self.pop_expr();
                 let lhs = self.pop_expr();
                 self.push(Rc::new(Expr::Compare {
@@ -14706,6 +14829,17 @@ impl<'a> Ctx<'a> {
 
             // ---------- stack manipulation ----------
             Op::POP_TOP => {
+                // 3.9+ in-handler return unwind protocol: the value run
+                // is followed by `[SWAP 2|ROT_TWO]; POP_TOP; [SWAP 2|
+                // ROT_FOUR]; POP_EXCEPT; RETURN_VALUE` — this POP_TOP
+                // discards the unmodeled exception slot. Popping the
+                // value stack instead flushed the return value as an
+                // expression statement and left a bare `return`
+                // (`return 'B%d' % i` inside a handler-nested loop split
+                // apart on 3.9-3.14). Phantom-consume it.
+                if self.handler_return_protocol_pop() {
+                    return true;
+                }
                 if self.try_fold_sunk_for_break() {
                     return true;
                 }
@@ -15766,6 +15900,14 @@ impl<'a> Ctx<'a> {
                                         | Op::STORE_GLOBAL
                                         | Op::STORE_SUBSCR
                                 )
+                                // empty `finally: pass` shape: no inline
+                                // copy exists, so the return follows the
+                                // try body's POP_BLOCK(s) directly. Only
+                                // admissible with a stashed inner except
+                                // chain — the b15 nested-try/finally
+                                // shared tail (value LOAD before the
+                                // RETURN) still stays excluded.
+                                || (p == Op::POP_BLOCK && stashed_exc.is_some())
                         })
                     // OUTERMOST chain only: an enclosing Try/Finally
                     // block still open means this return belongs to a
@@ -15807,21 +15949,7 @@ impl<'a> Ctx<'a> {
                         // handler region [hs, outer_hs) covers
                         let outer_hs = outer.handler_start;
                         let chain_end = self
-                            .idx_of
-                            .get(&hs)
-                            .and_then(|&hi| {
-                                self.instrs[hi..]
-                                    .iter()
-                                    .take(200)
-                                    .take_while(|x| x.offset < outer_hs)
-                                    .find(|x| {
-                                        matches!(
-                                            x.op,
-                                            Op::END_FINALLY | Op::RERAISE
-                                        )
-                                    })
-                                    .map(|x| x.offset)
-                            })
+                            .legacy_chain_end_before(hs, outer_hs)
                             .unwrap_or(outer_hs);
                         self.parse_skipped_nested_chain(chain_end);
                         if let Some(mut inner) = self.legacy_try.take() {
@@ -19717,6 +19845,7 @@ let reopen = self
                     };
                     let lt = self.legacy_try.take().unwrap();
                     let handlers = lt.handlers;
+                    let had_finally = lt.has_finally;
                     // the legacy try keeps its body on the LegacyTry
                     // record (pending_try_body stays empty pre-3.11)
                     let mut body = if lt.body.is_empty() {
@@ -19777,21 +19906,19 @@ let reopen = self
                             // sit the outer chain's POP_BLOCK /
                             // BEGIN_FINALLY bridge instructions
                             let chain_end = self
-                                .idx_of
-                                .get(&hs)
-                                .and_then(|&hi| {
-                                    self.instrs[hi..]
-                                        .iter()
-                                        .take(200)
-                                        .take_while(|x| x.offset < target)
-                                        .find(|x| x.op == Op::END_FINALLY)
-                                        .map(|x| x.offset)
-                                })
+                                .legacy_chain_end_before(hs, target)
                                 .unwrap_or(target);
                             self.parse_skipped_nested_chain(chain_end);
                             if let Some(mut inner) = self.legacy_try.take() {
                                 if !inner.handlers.is_empty() {
-                                    inner.body = body;
+                                    // the stashed inner chain may already
+                                    // hold body statements (the try body's
+                                    // if/raise runs flushed at its
+                                    // POP_BLOCK): the folded return EXTENDS
+                                    // them, not replaces them (m3 shape:
+                                    // `try: (if..raise) return X except..
+                                    // finally:` lost the if-arm)
+                                    inner.body.extend(body);
                                     body = vec![Stmt::Try {
                                         body: inner.body,
                                         handlers: std::mem::take(
@@ -19808,7 +19935,11 @@ let reopen = self
                             self.legacy_handler_end = None;
                         }
                     }
-                    if !handlers.is_empty() || !fin.is_empty() {
+                    if !handlers.is_empty() || !fin.is_empty() || had_finally {
+                        // had_finally with an empty region is `finally:
+                        // pass` — keep the wrapper (codegen renders the
+                        // explicit pass) so the protection structure and
+                        // the recompiled SETUP_FINALLY survive
                         self.push_stmt(Stmt::Try {
                             body,
                             handlers,
@@ -24416,6 +24547,123 @@ impl<'a> Ctx<'a> {
                 | Op::PUSH_NULL
                 | Op::PRECALL
                 | Op::RESUME => {}
+                // f-string material: 3.11+ folds `'pre %r' % (v,)` assert
+                // messages into FORMAT/BUILD_STRING runs — without these
+                // the msg region bailed and `assert c, msg` lost its
+                // message (b31 3.11-3.14)
+                Op::FORMAT_VALUE | Op::FORMAT_SIMPLE => {
+                    let conversion = match ins.arg & 0x3 {
+                        1 => Some('s'),
+                        2 => Some('r'),
+                        3 => Some('a'),
+                        _ => None,
+                    };
+                    let format_spec = if ins.op == Op::FORMAT_VALUE
+                        && ins.arg & 0x04 != 0
+                    {
+                        Some(pop1(&mut st))
+                    } else {
+                        None
+                    };
+                    let value = pop1(&mut st);
+                    // 3.13+: CONVERT_VALUE already produced a single-part
+                    // f-string; reuse it instead of nesting (mirror of the
+                    // main FORMAT_SIMPLE arm)
+                    if ins.op == Op::FORMAT_SIMPLE && format_spec.is_none() {
+                        if let Expr::FString(f) = &*value {
+                            if f.parts.len() == 1 {
+                                st.push(value);
+                                continue;
+                            }
+                        }
+                    }
+                    let part = FStringPart::Value {
+                        value,
+                        conversion,
+                        format_spec: format_spec.map(|f| Box::new(expr_to_fstring(f))),
+                    };
+                    st.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![part],
+                    }))));
+                }
+                Op::FORMAT_WITH_SPEC => {
+                    let spec = pop1(&mut st);
+                    let value = pop1(&mut st);
+                    // unwrap a CONVERT_VALUE single-part f-string, keeping
+                    // its conversion flag (mirror of the main arm)
+                    let (value, conversion) = match &*value {
+                        Expr::FString(f) if f.parts.len() == 1 => {
+                            match &f.parts[0] {
+                                FStringPart::Value {
+                                    value: v,
+                                    conversion: c,
+                                    format_spec: None,
+                                } => (v.clone(), *c),
+                                _ => (value, None),
+                            }
+                        }
+                        _ => (value, None),
+                    };
+                    let part = FStringPart::Value {
+                        value,
+                        conversion,
+                        format_spec: Some(Box::new(expr_to_fstring(spec))),
+                    };
+                    st.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![part],
+                    }))));
+                }
+                Op::CONVERT_VALUE => {
+                    let conversion = match ins.arg {
+                        1 => Some('s'),
+                        2 => Some('r'),
+                        3 => Some('a'),
+                        _ => None,
+                    };
+                    let value = pop1(&mut st);
+                    let part = FStringPart::Value {
+                        value,
+                        conversion,
+                        format_spec: None,
+                    };
+                    st.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![part],
+                    }))));
+                }
+                Op::BUILD_STRING => {
+                    let n = ins.arg as usize;
+                    let mut parts_e: Vec<ExprRef> = Vec::with_capacity(n);
+                    for _ in 0..n {
+                        parts_e.push(pop1(&mut st));
+                    }
+                    parts_e.reverse();
+                    let mut out_parts = Vec::new();
+                    for p in parts_e {
+                        match &*p {
+                            Expr::Const(o) => match &**o {
+                                PyObject::Str(s2) => {
+                                    out_parts.push(FStringPart::Literal(s2.clone()))
+                                }
+                                _ => out_parts.push(FStringPart::Value {
+                                    value: p.clone(),
+                                    conversion: None,
+                                    format_spec: None,
+                                }),
+                            },
+                            Expr::FString(fs) => {
+                                out_parts.extend(fs.parts.iter().cloned())
+                            }
+                            _ => out_parts.push(FStringPart::Value {
+                                value: p.clone(),
+                                conversion: None,
+                                format_spec: None,
+                            }),
+                        }
+                    }
+                    st.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: out_parts,
+                    }))));
+                }
                 _ => return None,
             }
         }
@@ -40782,6 +41030,45 @@ if split_cond {
     ///   POP_TOP; RETURN_VALUE
     /// - 3.11+: SWAP 2; LOAD None x3; [PRECALL]; CALL; POP_TOP;
     ///   RETURN_VALUE
+    /// True when the POP_TOP at `cur_offset` is the exception-slot
+    /// discard of the in-handler return unwind protocol (see the POP_TOP
+    /// arm): `[value run]; SWAP 2|ROT_TWO; *POP_TOP*; [SWAP 2|ROT_FOUR];
+    /// POP_EXCEPT; RETURN_VALUE`.
+    fn handler_return_protocol_pop(&self) -> bool {
+        let Some(&ki) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        if ki == 0 {
+            return false;
+        }
+        let prev = &self.instrs[ki - 1];
+        let prev_ok = matches!(prev.op, Op::ROT_TWO)
+            || (prev.op == Op::SWAP && (prev.arg == 2 || prev.arg == 3));
+        if !prev_ok {
+            return false;
+        }
+        let mut k = ki + 1;
+        if matches!(
+            self.instrs.get(k).map(|x| (x.op, x.arg)),
+            Some((Op::SWAP, 2)) | Some((Op::SWAP, 3)) | Some((Op::ROT_FOUR, _)) | Some((Op::ROT_TWO, _))
+        ) {
+            k += 1;
+        }
+        if !matches!(self.instrs.get(k).map(|x| x.op), Some(Op::POP_EXCEPT)) {
+            return false;
+        }
+        k += 1;
+        // optional CALL_FINALLY run (3.8/3.9 `return v` inside a handler
+        // of a try that also has a finally clause)
+        while matches!(self.instrs.get(k).map(|x| x.op), Some(Op::CALL_FINALLY)) {
+            k += 1;
+        }
+        matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+        )
+    }
+
     fn with_return_tail_end(&self, k0: usize) -> Option<usize> {
         let first = self.instrs.get(k0)?;
         if !(first.op == Op::ROT_TWO
@@ -46082,6 +46369,39 @@ impl<'a> Ctx<'a> {
     /// method is already `Attribute { value: receiver }`, so the marker is
     /// only validated, not consumed into the AST.
     fn call_311(&mut self, argc: usize, _is_method: bool) {
+        // 3.11+ assert-with-message: the assertion class and the message
+        // sit as [cls, msg] with NO null slot, and CALL 0 consumes msg as
+        // the self_or_null position (an implicit first argument). Without
+        // special-casing, msg pops as the callable and the assert renders
+        // `raise 'msg'()` (a runtime TypeError) — 3.11 via
+        // LOAD_ASSERTION_ERROR, 3.12/3.13 the same, 3.14 via
+        // LOAD_COMMON_CONSTANT. (3.14's generic non-NULL-marker rule
+        // would also fix it, but the CALL-0 zero-arg case is uniform.)
+        if argc == 0
+            && self.version.at_least(3, 11)
+            && self.stack.len() >= 2
+            && matches!(&self.stack[self.stack.len() - 2],
+                Sv::E(e) if matches!(&**e, Expr::Name(n) if n == "AssertionError"))
+            && self
+                .idx_of
+                .get(&self.cur_offset)
+                .map_or(false, |&ci| {
+                    self.instrs[ci + 1..].iter().next().map_or(false, |nx| {
+                        nx.op == Op::RAISE_VARARGS && nx.arg == 1
+                    })
+                })
+        {
+            let msg = self.pop_expr();
+            let func = self.pop_expr();
+            self.push(Rc::new(Expr::Call {
+                func,
+                args: vec![msg],
+                keywords: Vec::new(),
+                star_args: None,
+                star_kwargs: None,
+            }));
+            return;
+        }
         let args = self.pop_n_exprs(argc);
         // CALL slot layouts differ by callee kind:
         // * plain call:            [NULL, callable, args...]  (PUSH_NULL)
@@ -50386,6 +50706,11 @@ fn genexpr_ternary_merge(
         if x.offset >= t {
             break;
         }
+        // then arm terminating in a backward exit (loop back-edge or
+        // END_FOR run): the merge is wherever that exit lands... it
+        // does not — treat the backward jump's target run end as the
+        // merge by scanning the following forward jump instead; here we
+        // simply allow the op and keep looking for the merge jump
         if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
             && !x.is_backward
             && x.target.map_or(false, |mt| mt > t)
@@ -50394,6 +50719,13 @@ fn genexpr_ternary_merge(
             break;
         }
         if is_cj(x.op) && x.target == Some(t) && !x.is_backward {
+            continue;
+        }
+        // 3.12+: TO_BOOL sits between the value run and the cond jump
+        // (`x if x % 2 else -x` — without this the scan bailed and the
+        // element rendered as a plain `x`, silently dropping the else
+        // arm on EVERY version with the folded ternary shape)
+        if matches!(x.op, Op::TO_BOOL | Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
             continue;
         }
         if !Self::comp_arm_value_op(x.op) {
@@ -50908,7 +51240,68 @@ fn genexpr_ternary_merge(
                                     _ => false,
                                 }
                             };
-                        let mut f = if to_loop_top || bare_skip {
+                        // 3.12+ genexpr `if not C` polarity-inverted form:
+                        // the false-jump flies FORWARD over the skip
+                        // back-edge into the EMIT block (YIELD_VALUE /
+                        // LIST_APPEND / SET_ADD / MAP_ADD, possibly behind
+                        // element-building value ops), while the
+                        // fall-through skips to the next iteration. A
+                        // POSITIVE filter's PJIF instead lands on the loop
+                        // back-edge / FOR_ITER / END_FOR. (sorted(k for k
+                        // in keys if not k.startswith('_')) lost the Not
+                        // on 3.12-3.14 — a semantic filter inversion.)
+                        let pjif_to_emit = !jump_true
+                            && target > inst.offset
+                            && instrs
+                                .iter()
+                                .position(|x| x.offset == target)
+                                .map_or(false, |ti2| {
+                                    let mut emit = false;
+                                    for x in &instrs[ti2..] {
+                                        match x.op {
+                                            Op::NOP | Op::NOT_TAKEN | Op::CACHE => continue,
+                                            Op::YIELD_VALUE
+                                            | Op::LIST_APPEND
+                                            | Op::SET_ADD
+                                            | Op::MAP_ADD => {
+                                                emit = true;
+                                                break;
+                                            }
+                                            Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::FOR_ITER
+                                            | Op::END_FOR => break,
+                                            _ => {}
+                                        }
+                                        if x.is_backward {
+                                            break;
+                                        }
+                                    }
+                                    emit
+                                });
+                        // py2.6 value-preserving `if not C`: JUMP_IF_TRUE
+                        // flies FORWARD to a skip trampoline ([POP_TOP];
+                        // JUMP_ABSOLUTE back to this loop's FOR_ITER) while
+                        // the fall-through emits — the forward mirror of
+                        // the to_loop_top shape (f04 2.6 lost the Not)
+                        let to_skip_trampoline = jump_true
+                            && !to_loop_top
+                            && target > inst.offset
+                            && instrs
+                                .iter()
+                                .position(|x| x.offset == target)
+                                .map_or(false, |ti2| {
+                                    let mut k = ti2;
+                                    if matches!(instrs[k].op, Op::POP_TOP) {
+                                        k += 1;
+                                    }
+                                    matches!(
+                                        instrs.get(k).map(|x| x.op),
+                                        Some(Op::JUMP_ABSOLUTE) | Some(Op::JUMP_BACKWARD)
+                                    ) && instrs[k].is_backward
+                                });
+                        let mut f = if to_loop_top || bare_skip || pjif_to_emit || to_skip_trampoline {
                             negate_cond(c.clone())
                         } else {
                             c.clone()
@@ -50916,6 +51309,11 @@ fn genexpr_ternary_merge(
                         if jump_true
                             && !to_loop_top
                             && !bare_skip
+                            // a recognized lone-negation shape is NOT an
+                            // or-chain first operand: routing it through
+                            // pending_or_filter dropped the negation
+                            // (py2.6 JUMP_IF_TRUE-to-trampoline `if not C`)
+                            && !to_skip_trampoline
                             && target < gen_end
                         {
                             if let Some(p) = pending_or_filter.take() {
@@ -51104,6 +51502,24 @@ fn genexpr_ternary_merge(
                     stack.push(Rc::new(Expr::FString(Box::new(FString {
                         parts: out_parts,
                     }))));
+                }
+                // unary ops inside element/filter expressions (ternary
+                // else arms like `-x`, `not c` filters): the walk used to
+                // IGNORE these, so `[x if c else -x for ...]` rendered
+                // `else x` on 3.8-3.11 (silent value corruption)
+                Op::UNARY_NOT
+                | Op::UNARY_NEGATIVE
+                | Op::UNARY_POSITIVE
+                | Op::UNARY_INVERT => {
+                    if let Some(v) = stack.pop() {
+                        let uop = match inst.op {
+                            Op::UNARY_NOT => UnaryOp::Not,
+                            Op::UNARY_NEGATIVE => UnaryOp::Neg,
+                            Op::UNARY_POSITIVE => UnaryOp::Pos,
+                            _ => UnaryOp::Invert,
+                        };
+                        stack.push(Rc::new(Expr::Unary { op: uop, operand: v }));
+                    }
                 }
                 Op::BINARY_OP => {
                     let rhs = stack.pop();
@@ -51693,6 +52109,11 @@ impl<'a> Ctx<'a> {
                 | Op::BUILD_TUPLE
                 | Op::BUILD_LIST
                 | Op::DUP_TOP
+                // a lambda inside the iter expression (`[x for x in
+                // filter(lambda v: ..., seq)]`) puts MAKE_FUNCTION
+                // between the accumulator build and the FOR_ITER
+                | Op::MAKE_FUNCTION
+                | Op::MAKE_CLOSURE
                 // iter-expression value ops: `for i in range(January,
                 // January + 12)` puts BINARY_ADD between the BUILD_LIST
                 // anchor and the FOR_ITER — without these the scan
@@ -51746,6 +52167,23 @@ impl<'a> Ctx<'a> {
                 {
                     continue;
                 }
+                // py2 accumulator teardown at a nested comp's exit:
+                // `DELETE_NAME _[N]` sits between the completed inner
+                // region and the outer comp's GET_ITER (b30 2.6 `[f()
+                // for f in [(lambda: i) for i in ...]]` lost the outer
+                // comprehension)
+                Op::DELETE_NAME
+                    if self.version.major == 2
+                        && self.const_name(inst.arg as usize).starts_with("_[") =>
+                {
+                    continue;
+                }
+                Op::DELETE_FAST
+                    if self.version.major == 2
+                        && self.local_name(inst.arg as usize).starts_with("_[") =>
+                {
+                    continue;
+                }
                 Op::BUILD_SET if inst.arg == 0 => {
                     kind = Some(CompKind::Set);
                     break;
@@ -51775,7 +52213,10 @@ impl<'a> Ctx<'a> {
             let inst = &self.instrs[k];
             match inst.op {
                 Op::GET_ITER | Op::GET_AITER => return Some(kind),
-                Op::SWAP | Op::LOAD_FAST_AND_CLEAR => continue,
+                // MAKE_CELL sits between LOAD_FAST_AND_CLEAR and SWAP when
+                // the element closes over the loop variable (a lambda
+                // element: `[lambda: i for i in range(3)]`)
+                Op::SWAP | Op::LOAD_FAST_AND_CLEAR | Op::MAKE_CELL => continue,
                 _ => return None,
             }
         }
@@ -51824,6 +52265,12 @@ impl<'a> Ctx<'a> {
                     | Op::BUILD_LIST
                     | Op::BUILD_SET
                     | Op::BUILD_MAP
+                    // closure-element prologue: MAKE_CELL sits between
+                    // LOAD_FAST_AND_CLEAR and the SWAPs (`[lambda: i for
+                    // i in ...]`) — without it the scan broke early and
+                    // the cleared var's restore STORE rendered as a
+                    // phantom `i, late = i, [...]` assignment
+                    | Op::MAKE_CELL
                     | Op::COPY => continue,
                     _ => break,
                 }
@@ -51953,15 +52400,52 @@ impl<'a> Ctx<'a> {
         let Some(&ci) = self.idx_of.get(&offset) else {
             return false;
         };
-        for back in (0..ci).rev().take(6) {
+        // the iterable expression between the accumulator BUILD_x 0 and
+        // this FOR_ITER can be an arbitrary value run (a call, binary
+        // ops, a lambda MAKE_FUNCTION): `[[i*j for j in range(3)] for i
+        // in range(3)]` (py2 double-inline) was flattened into one
+        // two-generator comprehension because the scan bailed at
+        // CALL_FUNCTION and misread the inner loop as an extra `for`
+        // clause of the outer comp
+        for back in (0..ci).rev().take(12) {
             let ins = &self.instrs[back];
             match ins.op {
                 Op::SWAP | Op::LOAD_FAST_AND_CLEAR | Op::LOAD_FAST | Op::GET_ITER
                 | Op::GET_AITER | Op::NOP | Op::LOAD_NAME | Op::LOAD_DEREF
                 | Op::LOAD_CONST | Op::COPY => continue,
+                // py2 inline-comp accumulator prologue: `BUILD_LIST 0;
+                // DUP_TOP; STORE_NAME _[N]` — a NESTED py2 comprehension
+                // re-runs it between the outer accumulator and the inner
+                // FOR_ITER (b30 2.6 nested comprehension was flattened)
+                Op::DUP_TOP if self.version.major == 2 => continue,
+                Op::STORE_NAME
+                    if self.version.major == 2
+                        && self.const_name(ins.arg as usize).starts_with("_[") =>
+                {
+                    continue
+                }
+                Op::STORE_FAST
+                    if self.version.major == 2
+                        && self.local_name(ins.arg as usize).starts_with("_[") =>
+                {
+                    continue
+                }
                 Op::BUILD_LIST | Op::BUILD_SET | Op::BUILD_MAP => {
                     return ins.arg == 0;
                 }
+                o if is_pure_value_op(o)
+                    || matches!(
+                        o,
+                        Op::CALL
+                            | Op::CALL_FUNCTION
+                            | Op::CALL_METHOD
+                            | Op::CALL_FUNCTION_KW
+                            | Op::MAKE_FUNCTION
+                            | Op::MAKE_CLOSURE
+                            | Op::LOAD_GLOBAL
+                            | Op::LOAD_METHOD
+                            | Op::LOAD_ATTR
+                    ) => continue,
                 _ => return false,
             }
         }
