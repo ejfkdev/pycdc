@@ -231,6 +231,11 @@ enum Sv {
         level: u32,
         module: String,
         name: String,
+        /// `import a.b as c`: IMPORT_NAME carried the FULL dotted module
+        /// with a None fromlist, and the IMPORT_FROM name is just the
+        /// module's last component — a from-import rendering would bind
+        /// the wrong object (or ImportError at runtime)
+        dotted_as: bool,
     },
 }
 
@@ -679,6 +684,10 @@ struct Ctx<'a> {
     /// collected `from ... import` names while building one statement
     import_names: Vec<(String, Option<String>)>,
     import_module: Option<(u32, String)>,
+    /// an `import a.b as c` was just emitted: the module marker left on
+    /// the stack must NOT re-render as a phantom plain import at the
+    /// sequence's POP_TOP
+    dotted_as_just_emitted: bool,
 }
 
 /// Value-return-copy gap mirror: the span [gap_start, gap_end) is an
@@ -1204,6 +1213,7 @@ pub fn decompile_in_scope(
         pending_class_decorators: Vec::new(),
         pending_py2_class: None,
         import_names: Vec::new(),
+        dotted_as_just_emitted: false,
         import_module: None,
     };
 
@@ -14085,6 +14095,62 @@ impl<'a> Ctx<'a> {
 
             // ---------- attributes ----------
             Op::LOAD_ATTR | Op::LOAD_METHOD => {
+                // py2-3.6 `import a.b.c as z`: IMPORT_NAME a.b.c (None
+                // fromlist) followed by a LOAD_ATTR walk down the dotted
+                // path and a STORE — render the dotted Import with the
+                // alias instead of `z = None.b.c` (the module marker is
+                // not an expression value).
+                if inst.op == Op::LOAD_ATTR {
+                    if let Some(Sv::ImportModule { module, fromlist: None, .. }) =
+                        self.stack.last()
+                    {
+                        let module = module.clone();
+                        if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                            let mut k = ci;
+                            let mut attrs = 0usize;
+                            let mut alias: Option<String> = None;
+                            let mut walk_end: Option<usize> = None;
+                            while k < self.instrs.len() && attrs < 16 {
+                                let x = &self.instrs[k];
+                                if matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                                    k += 1;
+                                    continue;
+                                }
+                                if x.op == Op::LOAD_ATTR {
+                                    attrs += 1;
+                                    k += 1;
+                                    continue;
+                                }
+                                if matches!(
+                                    x.op,
+                                    Op::STORE_NAME | Op::STORE_FAST | Op::STORE_DEREF
+                                ) {
+                                    alias = Some(if x.op == Op::STORE_FAST {
+                                        self.local_name(x.arg as usize)
+                                    } else {
+                                        self.const_name(x.arg as usize)
+                                    });
+                                    walk_end = Some(x.end());
+                                }
+                                break;
+                            }
+                            // the LOAD_ATTR count must walk exactly the
+                            // module's dotted tail (a.b.c -> 2 attrs)
+                            let want = module.matches('.').count();
+                            if let (Some(a), Some(end)) = (alias, walk_end) {
+                                if attrs == want.max(1) {
+                                    self.pop(); // the module marker
+                                    self.flush_import();
+                                    self.push_stmt(Stmt::Import {
+                                        names: vec![(module, Some(a))],
+                                    });
+                                    self.skip_until = Some(end);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
                 let (idx, is_method) = match inst.op {
                     Op::LOAD_METHOD => (arg as usize, true),
                     _ if self.version.at_least(3, 12) => {
@@ -15318,14 +15384,89 @@ impl<'a> Ctx<'a> {
             }
             Op::IMPORT_FROM => {
                 let name = self.const_name(arg as usize);
+                // 3.14 multi-component `import a.b.c as z`: the compiler
+                // walks the dotted path — `IMPORT_FROM b; SWAP 2; POP_TOP;
+                // IMPORT_FROM c; STORE z; POP_TOP`. Hop the whole walk and
+                // emit the dotted Import directly (the intermediate
+                // IMPORT_FROM has no underlying-module invariant and used
+                // to poison the stack).
+                if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                    if matches!(self.stack.last(), Some(Sv::ImportModule { fromlist: None, .. })) {
+                        // strictly match the walk: [pads] SWAP 2; [pads]
+                        // POP_TOP; [pads] IMPORT_FROM _; [pads] STORE name;
+                        // [pads] POP_TOP — anything else falls through to
+                        // the generic path (an over-long skip window once
+                        // swallowed the next statement's loads)
+                        let is_pad = |x: &crate::bytecode::Instruction| {
+                            matches!(
+                                x.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
+                            )
+                        };
+                        let mut k = ci + 1;
+                        let mut step = 0usize;
+                        let mut alias: Option<String> = None;
+                        let mut walk_end: Option<usize> = None;
+                        while k < self.instrs.len() && step < 5 {
+                            let x = &self.instrs[k];
+                            if is_pad(x) {
+                                k += 1;
+                                continue;
+                            }
+                            let ok = match step {
+                                // 3.9/3.10 use ROT_TWO for the walk swap
+                                0 => (x.op == Op::SWAP && x.arg == 2) || x.op == Op::ROT_TWO,
+                                1 => x.op == Op::POP_TOP,
+                                2 => x.op == Op::IMPORT_FROM,
+                                3 => matches!(
+                                    x.op,
+                                    Op::STORE_NAME | Op::STORE_FAST | Op::STORE_DEREF
+                                ),
+                                _ => x.op == Op::POP_TOP,
+                            };
+                            if !ok {
+                                break;
+                            }
+                            if step == 3 {
+                                alias = Some(if x.op == Op::STORE_FAST {
+                                    self.local_name(x.arg as usize)
+                                } else {
+                                    self.const_name(x.arg as usize)
+                                });
+                            }
+                            if step == 4 {
+                                walk_end = Some(x.end());
+                            }
+                            step += 1;
+                            k += 1;
+                        }
+                        if step == 5 {
+                            if let Some(Sv::ImportModule { module, .. }) = self.pop() {
+                                self.flush_import();
+                                self.push_stmt(Stmt::Import {
+                                    names: vec![(module.clone(), alias)],
+                                });
+                                self.dotted_as_just_emitted = true;
+                                if let Some(we) = walk_end {
+                                    self.skip_until = Some(we);
+                                }
+                                return true;
+                            }
+                        }
+                    }
+                }
                 // 3.12+: IMPORT_FROM may copy from TOS (the module); the
                 // module marker stays below.
-                if let Some(Sv::ImportModule { level, module, .. }) = self.stack.last() {
+                if let Some(Sv::ImportModule { level, module, fromlist }) = self.stack.last() {
                     let (level, module) = (*level, module.clone());
+                    // fromlist None + dotted module = `import a.b as c`
+                    let dotted_as =
+                        fromlist.is_none() && module.contains('.') && level == 0;
                     self.stack.push(Sv::ImportFrom {
                         level,
                         module,
                         name: name.clone(),
+                        dotted_as,
                     });
                 } else {
                     self.mark_unclean();
@@ -42496,9 +42637,15 @@ impl<'a> Ctx<'a> {
                     self.import_module = None;
                     self.push_stmt(Stmt::ImportFrom { module, level, names });
                 } else if fromlist.is_none() {
-                    self.push_stmt(Stmt::Import {
-                        names: vec![(module, None)],
-                    });
+                    if self.dotted_as_just_emitted {
+                        // leftover marker of an `import a.b as c` just
+                        // rendered — NOT a second plain import
+                        self.dotted_as_just_emitted = false;
+                    } else {
+                        self.push_stmt(Stmt::Import {
+                            names: vec![(module, None)],
+                        });
+                    }
                 } else {
                     let _ = fromlist;
                 }
@@ -42603,11 +42750,23 @@ impl<'a> Ctx<'a> {
         }
         match sv {
             Sv::E(val) => self.emit_store(target, val),
-            Sv::ImportFrom { level, module, name } => {
+            Sv::ImportFrom { level, module, name, dotted_as } => {
                 let asname = match &*target {
                     Expr::Name(t) if *t != name => Some(t.clone()),
                     _ => None,
                 };
+                if dotted_as {
+                    // `import a.b as c` — flush any accumulated from-names
+                    // first to keep statement order, then emit the plain
+                    // dotted Import with its alias
+                    self.flush_import();
+                    self.push_stmt(Stmt::Import {
+                        names: vec![(module, asname.or(Some(name)))],
+                    });
+                    self.dotted_as_just_emitted = true;
+                    return;
+                }
+                self.dotted_as_just_emitted = false;
                 self.import_names.push((name, asname));
                 match &self.import_module {
                     Some((l, m)) if *l == level && *m == module => {}
@@ -43062,28 +43221,30 @@ impl<'a> Ctx<'a> {
         // decorated class (3.11+): the stored value is deco(build_class(...))
         let mut class_decorators: Vec<ExprRef> = Vec::new();
         let mut val = val;
-        loop {
-            let peeled = match &*val {
-                Expr::Call { func, args, keywords, star_args: None, star_kwargs: None }
-                    if args.len() == 1 && keywords.is_empty() =>
-                {
-                    match &*args[0] {
-                        Expr::Call { func: f2, .. }
-                            if matches!(&**f2, Expr::Name(n) if n == "__build_class__") =>
-                        {
-                            Some((func.clone(), args[0].clone()))
-                        }
-                        _ => None,
+        // stacked decorators (`@a` over `@b(...)`): peel the single-arg
+        // call chain only when it bottoms out at __build_class__ (any
+        // other chain is a real assignment expression and must stay
+        // intact)
+        if expr_wraps_build_class(&val) {
+            loop {
+                let is_bc = match &*val {
+                    Expr::Call { func, .. } => {
+                        matches!(&**func, Expr::Name(n) if n == "__build_class__")
                     }
+                    _ => false,
+                };
+                if is_bc {
+                    break;
                 }
-                _ => None,
-            };
-            match peeled {
-                Some((deco, inner)) => {
-                    class_decorators.push(deco);
-                    val = inner;
+                match &*val {
+                    Expr::Call { func, args, keywords, star_args: None, star_kwargs: None }
+                        if args.len() == 1 && keywords.is_empty() =>
+                    {
+                        class_decorators.push(func.clone());
+                        val = args[0].clone();
+                    }
+                    _ => break,
                 }
-                None => break,
             }
         }
         // class definition (py3): __build_class__ call result stored
@@ -46529,6 +46690,26 @@ impl<'a> Ctx<'a> {
                     }
                 }
             }
+            // 3.12/3.13 stacked decorators (`@total_ordering` over
+            // `@attrs(...)`): the marker holds the decorator APPLICATION
+            // call and the callable the just-built class — rebuild
+            // marker(class) so each stage nests and the store-time peel
+            // collects them all (attr _version_info 3.12 rendered an
+            // assign with a function-literal placeholder — a syntax
+            // error). 3.14 keeps its own marker-as-first-arg rule below;
+            // wrapping there broke ordinary decorator calls (f05/f25).
+            if !self.version.at_least(3, 14) {
+            if let (Expr::Call { .. }, Some(Sv::E(m))) = (&*func, &marker) {
+                self.push(Rc::new(Expr::Call {
+                    func: m.clone(),
+                    args: vec![func],
+                    keywords: Vec::new(),
+                    star_args: None,
+                    star_kwargs: None,
+                }));
+                return;
+            }
+            }
         }
         // comprehension instantiation takes precedence over decorator shapes
         let comp_callable = is_comp_callable(&func);
@@ -48062,6 +48243,32 @@ fn bytecode_tail_return_pair(
 /// while the inlined success-path copy becomes a sibling `return X`
 /// right after the try. Recognize the signature and refold it into a
 /// proper `finally: return X`, dropping the duplicate.
+/// True when `e` is a chain of single-positional-arg calls that bottoms
+/// out at a `__build_class__` call (a decorated class value).
+fn expr_wraps_build_class(e: &ExprRef) -> bool {
+    let mut cur = e;
+    loop {
+        match &**cur {
+            Expr::Call { func, args, keywords, star_args, star_kwargs } => {
+                // the build_class call itself carries (fn, name, *bases)
+                if matches!(&**func, Expr::Name(n) if n == "__build_class__") {
+                    return true;
+                }
+                if args.len() == 1
+                    && keywords.is_empty()
+                    && star_args.is_none()
+                    && star_kwargs.is_none()
+                {
+                    cur = &args[0];
+                    continue;
+                }
+                return false;
+            }
+            _ => return false,
+        }
+    }
+}
+
 fn refold_mangled_finally_return(stmts: &mut Vec<Stmt>) {
     let mut i = 0;
     while i + 1 < stmts.len() {

@@ -75,6 +75,36 @@ equivalent, or (b) a corner with no occurrence in the 520-module corpus.
   元素三元表达式在部分旧版本可能错位；py2 深嵌套「if 内嵌 if + 同级 elif +
   尾部悬挂 return」可能丢后续分支；Python 1.x 可加载 marshal 但无 opcode 表。
 
+## Third-party package long tail (3.12 venv smoke: six/packaging/click/attrs/pluggy)
+
+67 modules: 0 syntax errors, 0 decompile errors, 34 normalized-AST passes
+after this round's fixes (dotted-as imports, stacked class decorators,
+PEP 563 string annotations). The remaining ~30 AST-diffs form the backlog
+queue (each reproducible by decompile -> recompile -> ast_compare against
+the installed source):
+
+- bool-chain polarity renders Or where source had And (De Morgan placement
+  not normalized): click/_textwrap, click/shell_completion, packaging/tags,
+  packaging/requirements, packaging/version, pluggy/_manager
+- `assert not c` rendered as `if c: raise AssertionError` (equivalent under
+  normal runs; differs under -O): click/decorators, pluggy/_hooks
+- statement displacement around `while True` loops: click/_compat,
+  click/termui
+- extra no-op Try nesting around with-in-try (3.12 exception-table
+  artifact): click/core
+- nested constant tuple flattened one level: packaging/_ranges
+- multi-name `from m import a, b` split into single-name statements
+  (comparator merge misses non-adjacent order): click/__init__
+- genexpr element corruption: attr/validators; nonlocal list drift:
+  attr/_next_gen; Assign demoted to Expr: click/_termui_impl
+- deeper bracket-depth structural drifts: attr/_cmp, attr/_funcs,
+  click/exceptions, click/parser, click/testing, click/utils, six,
+  packaging/markers, packaging/dependency_groups, packaging/specifiers,
+  packaging/metadata, packaging/ranges, pluggy/_callers, pluggy/_warnings
+- incomplete-warning shapes: attr/_make (2100-line metaclass machinery),
+  packaging/pylock (CALL-chain underflow in `select`: three stacked CALLs
+  after an arg-position ternary)
+
 ## Fixed recently (no longer limitations) / 近期已修复
 
 - Syntax-family fuzz battery (25 shapes × 10 interpreters) driven fixes:

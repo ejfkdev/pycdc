@@ -3449,6 +3449,90 @@ class _ArtifactFolder(ast.NodeTransformer):
             return None
         return ast.Assign(targets=[node.target], value=node.value)
 
+    def visit_Expr(self, node):
+        self.generic_visit(node)
+        # a body of `...` equals a body of `pass` (both are no-op
+        # statements; the decompiler may render either for an empty
+        # protocol body -- click globals/termui `...` stubs)
+        v = node.value
+        _c = getattr(ast, 'Constant', None)
+        is_ell = (_c is not None and isinstance(v, _c)
+                  and getattr(v, 'value', None) is Ellipsis)
+        if not is_ell and hasattr(ast, 'Ellipsis'):
+            is_ell = isinstance(v, ast.Ellipsis)
+        if is_ell:
+            return ast.Pass()
+        return node
+
+    @staticmethod
+    def _fold_const_list_iter(it):
+        # iterating a constant list vs the same constant tuple is the
+        # same loop (click _compat `for c in ['w', ...]` rendered from
+        # folded tuple material)
+        _l = getattr(ast, 'List', None)
+        _t = getattr(ast, 'Tuple', None)
+        if _l is not None and _t is not None and isinstance(it, _l):
+            def _is_const(e):
+                _c = getattr(ast, 'Constant', None)
+                if _c is not None and isinstance(e, _c):
+                    return True
+                for nm in ('Str', 'Num', 'Bytes', 'NameConstant', 'Ellipsis'):
+                    t = getattr(ast, nm, None)
+                    if t is not None and isinstance(e, t):
+                        return True
+                return False
+            if it.elts and all(_is_const(e) for e in it.elts):
+                return _t(elts=list(it.elts), ctx=ast.Load())
+        return it
+
+    def visit_For(self, node):
+        self.generic_visit(node)
+        node.iter = self._fold_const_list_iter(node.iter)
+        return node
+
+    def _visit_comp(self, node):
+        self.generic_visit(node)
+        for g in node.generators:
+            g.iter = self._fold_const_list_iter(g.iter)
+        return node
+
+    def visit_ListComp(self, node):
+        return self._visit_comp(node)
+
+    def visit_SetComp(self, node):
+        return self._visit_comp(node)
+
+    def visit_GeneratorExp(self, node):
+        return self._visit_comp(node)
+
+    def visit_DictComp(self, node):
+        return self._visit_comp(node)
+
+    def _is_noop_try(self, node):
+        # `try: B finally: pass` (no handlers, no else) is a semantic
+        # no-op wrapper - the decompiler renders it for empty-finally
+        # chains; unwrap so it compares equal to the bare body
+        try_types = [ast.Try]
+        for nm in ('TryStar',):
+            t = getattr(ast, nm, None)
+            if t is not None:
+                try_types.append(t)
+        if not isinstance(node, tuple(try_types)):
+            return None
+        if node.handlers or getattr(node, 'orelse', None):
+            return None
+        fb = node.finalbody
+        if len(fb) == 1 and isinstance(fb[0], ast.Pass):
+            return node.body
+        return None
+
+    def visit_Try(self, node):
+        self.generic_visit(node)
+        body = self._is_noop_try(node)
+        if body is not None:
+            return body
+        return node
+
     def visit_If(self, node):
         self.generic_visit(node)
         t = node.test
@@ -3468,9 +3552,69 @@ class _ArtifactFolder(ast.NodeTransformer):
         return node
 
 
+class _Pep563Annotations(ast.NodeTransformer):
+    """A string-literal annotation equals its parsed expression form.
+
+    Under `from __future__ import annotations` (PEP 563) annotations are
+    stored as source text; a faithful decompile reproduces that text and
+    renders it quoted (`def f(x: 'Command')`), while the original source
+    carries live expression nodes. Parse every string annotation back to
+    its expression so both sides compare equal (click/packaging are
+    future-annotated throughout)."""
+
+    def _fix(self, ann):
+        if ann is None:
+            return None
+        s = None
+        _c = getattr(ast, 'Constant', None)
+        if _c is not None and isinstance(ann, _c) and isinstance(getattr(ann, 'value', None), str):
+            s = ann.value
+        elif hasattr(ast, 'Str') and isinstance(ann, ast.Str):
+            s = ann.s
+        if s is None:
+            return ann
+        try:
+            return ast.parse(s, mode='eval').body
+        except SyntaxError:
+            return ann
+
+    def _fix_args(self, a):
+        groups = [getattr(a, 'posonlyargs', None) or [], a.args,
+                  getattr(a, 'kwonlyargs', None) or []]
+        for group in groups:
+            for arg in group:
+                if getattr(arg, 'annotation', None) is not None:
+                    arg.annotation = self._fix(arg.annotation)
+        for opt in ('vararg', 'kwarg'):
+            o = getattr(a, opt, None)
+            if o is not None and getattr(o, 'annotation', None) is not None:
+                o.annotation = self._fix(o.annotation)
+
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        self._fix_args(node.args)
+        if getattr(node, 'returns', None) is not None:
+            node.returns = self._fix(node.returns)
+        return node
+
+    def visit_AsyncFunctionDef(self, node):
+        return self.visit_FunctionDef(node)
+
+    def visit_Lambda(self, node):
+        self.generic_visit(node)
+        self._fix_args(node.args)
+        return node
+
+    def visit_AnnAssign(self, node):
+        self.generic_visit(node)
+        node.annotation = self._fix(node.annotation)
+        return node
+
+
 def dump(src):
     tree = ast.parse(src)
     tree = _ArtifactFolder().visit(tree)
+    tree = _Pep563Annotations().visit(tree)
     tree = Normalizer().visit(tree)
     tree = BoolCanonicalizer().visit(tree)
     # re-run body normalization so merged/canonical forms settle
