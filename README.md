@@ -5,7 +5,7 @@ English | [简体中文](README.zh-CN.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-2.0--3.15-yellow.svg)](#)
 [![Corpus](https://img.shields.io/badge/corpus-520%2F520%20semantic-brightgreen.svg)](#verification)
-[![Behavior](https://img.shields.io/badge/behavior-490%2F490-brightgreen.svg)](#verification)
+[![Behavior](https://img.shields.io/badge/behavior-516%2F516-brightgreen.svg)](#verification)
 
 Decompile and disassemble Python bytecode (`.pyc`) from **Python 2.0 through 3.15 (dev)** back into readable source — written in Rust, three dependencies, no Python required at runtime.
 
@@ -17,7 +17,7 @@ pycdas program.pyc         # disassemble (exception tables, line numbers, nested
 ## Highlights
 
 - **100% semantic equivalence** on a 520-module real-stdlib corpus across 13 interpreters (2.6–3.14); 76.5% are byte-exact at the bytecode-signature level
-- **Behavior matrix 490/490**: decompiled code runs identically to the original under the same interpreter
+- **Behavior matrix 516/516**: decompiled code runs identically to the original under the same interpreter
 - Modern syntax: PEP 695/696 type parameters, PEP 750 t-strings, PEP 649 deferred annotations, match/case, walrus, async, f-strings
 - Version differences are pure data: one embedded opcode table per release, overridable via `--opcodes`
 - Graceful degradation: unrecognized constructs become comment placeholders — never a crash
@@ -69,10 +69,16 @@ Three independent harnesses, all runnable locally (need pyenv/uv interpreters 2.
 | Harness | What it proves | Current |
 |---|---|---|
 | [`tools/verify_corpus.py`](tools/verify_corpus.py) | 520 stdlib modules: decompile → recompile with the *same* interpreter → compare bytecode signatures, fall back to normalized-AST diff | **520/520 semantic** (398 signature-exact, 0 syntax errors, 0 placeholders) |
-| [`tools/run_behavior.py`](tools/run_behavior.py) | 48 behavior cases × 13 interpreters: run original vs decompiled, compare stdout + exit code | **490/490 = 100%** |
+| [`tools/run_behavior.py`](tools/run_behavior.py) | 50 behavior cases × 13 interpreters: run original vs decompiled, compare stdout + exit code | **516/516 = 100%** |
 | [`tests/roundtrip.py`](tests/roundtrip.py) | fixture matrix: compile → decompile → recompile → strict bytecode compare | 49/54 strict (exceptions fixtures differ structurally, semantically equivalent) |
 
-Per-version results live in `tests/corpus/<version>/report.json`. See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the detailed known-gap list.
+Per-version results live in `tests/corpus/<version>/report.json`. Beyond
+these harnesses, releases are gated by ad-hoc quality batteries: a 25-shape
+syntax-family fuzz matrix (×10 interpreters), a hostile-input robustness
+suite (truncated/corrupted/OOM-bomb pycs — zero crashes), and a
+third-party venv smoke (six/packaging/click/attrs/pluggy). See
+[docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the detailed known-gap list
+and the third-party backlog.
 
 ## Project layout
 

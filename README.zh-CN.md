@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-2.0--3.15-yellow.svg)](#)
 [![Corpus](https://img.shields.io/badge/corpus-520%2F520%20semantic-brightgreen.svg)](#验证)
-[![Behavior](https://img.shields.io/badge/behavior-490%2F490-brightgreen.svg)](#验证)
+[![Behavior](https://img.shields.io/badge/behavior-516%2F516-brightgreen.svg)](#验证)
 
 用 Rust 编写的 Python 字节码反编译器与反汇编器：把 **Python 2.0 – 3.15（dev）** 的 `.pyc` 还原为可读源码。仅三个依赖，运行不需要 Python。
 
@@ -17,7 +17,7 @@ pycdas program.pyc         # 反汇编（异常表、行号、嵌套 code object
 ## 亮点
 
 - 13 个解释器（2.6–3.14）、520 个真实标准库模块语料上**语义等价 100%**，其中 76.5% 达到字节码签名级完全一致
-- **行为矩阵 490/490**：反编译产物与原码在同一解释器下运行结果一致
+- **行为矩阵 516/516**：反编译产物与原码在同一解释器下运行结果一致
 - 现代语法：PEP 695/696 类型参数、PEP 750 t-string、PEP 649 延迟注解、match/case、海象运算符、async、f-string
 - 版本差异全部数据化：每版本一张内嵌 opcode 表，`--opcodes` 可外部覆盖
 - 优雅降级：无法识别的构造输出注释占位，绝不崩溃
@@ -69,10 +69,13 @@ Apple Silicon 实测，526 个真实 `.pyc`（约 9.5MB，2.6–3.14 标准库�
 | 设施 | 验证内容 | 当前结果 |
 |---|---|---|
 | [`tools/verify_corpus.py`](tools/verify_corpus.py) | 520 个标准库模块：反编译 → **同版本解释器**重编译 → 结构化字节码签名对比，不一致再做归一化 AST 语义对比 | **520/520 语义等价**（398 签名级一致，零语法错误、零占位符） |
-| [`tools/run_behavior.py`](tools/run_behavior.py) | 48 用例 × 13 解释器：原始与反编译代码同解释器运行，对比 stdout+返回码 | **490/490 = 100%** |
+| [`tools/run_behavior.py`](tools/run_behavior.py) | 50 用例 × 13 解释器：原始与反编译代码同解释器运行，对比 stdout+返回码 | **516/516 = 100%** |
 | [`tests/roundtrip.py`](tests/roundtrip.py) | fixture 矩阵：编译 → 反编译 → 重编译 → 严格字节码对比 | 49/54 严格一致（exceptions fixture 仅结构差，语义等价） |
 
-分版本结果见 `tests/corpus/<version>/report.json`；详细已知缺口清单见
+分版本结果见 `tests/corpus/<version>/report.json`。除上述设施外，发布前还经
+三类专项质量电池把关：25 语法族模糊矩阵（×10 解释器）、恶意输入鲁棒性套件
+（截断/损坏/OOM 炸弹 pyc——零崩溃）、第三方包 venv 实战冒烟（six/packaging/
+click/attrs/pluggy）。详细已知缺口与第三方长尾队列见
 [docs/LIMITATIONS.md](docs/LIMITATIONS.md)。
 
 ## 项目结构
