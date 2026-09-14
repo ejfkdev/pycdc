@@ -10,8 +10,15 @@ use pycdc::codegen::generate;
 use pycdc::decompiler::decompile;
 use pycdc::loader;
 
-const HELP: &str = "\
-pycdc — multi-version Python bytecode decompiler
+fn help_text() -> String {
+    format!(
+        "\
+pycdc {version} — multi-version Python bytecode decompiler
+
+Decompiles Python .pyc/.pyo bytecode back to readable source.
+Supports Python 2.0 - 3.15 (CPython, PyPy and other implementations).
+
+Repository: https://github.com/ejfkdev/pycdc
 
 Usage:
   pycdc [OPTIONS] <INPUT>...     decompile .pyc/.pyo files or directories
@@ -19,8 +26,8 @@ Usage:
   pycdc help                     print this help
 
 Arguments:
-  <INPUT>...                     one or more .pyc/.pyo files, or directories
-                                 (scanned recursively for .pyc/.pyo files)
+  <INPUT>...                     one or more .pyc/.pyo files, directories
+                                 (scanned recursively), or - for stdin
 
 Options:
   -o, --output <PATH>    output file or directory (see OUTPUT below)
@@ -35,6 +42,15 @@ Options:
                          X.Y (e.g. 3.8) instead of a headered pyc
   -h, --help             print this help
   -V, --version          print version information
+
+Examples:
+  pycdc program.pyc                  decompile a file to stdout
+  pycdc program.pyc -o program.py    decompile into a specific .py file
+  pycdc app/ -o out/                 decompile a directory tree, mirroring
+                                     its layout (.pyc -> .py)
+  pycdc -q app/ -j 8 -o out/         quiet batch, 8 parallel workers
+  cat program.pyc | pycdc -          decompile from stdin
+  pycdc -v 3.8 data.marshal          decompile raw marshal data as 3.8
 
 Input:
   * a dash (-) reads the pyc (or, with -v, raw marshal) from stdin
@@ -54,7 +70,10 @@ Output:
     directory input gets a default sibling directory named
     \"<input-name>-decompiled\" at the same level, and multiple file
     inputs write <stem>.py next to each input.
-";
+",
+        version = env!("CARGO_PKG_VERSION")
+    )
+}
 
 /// Write to stdout, exiting quietly when the reader closed the pipe
 /// (`pycdc foo.pyc | head` must not panic-print a BrokenPipe message).
@@ -72,8 +91,7 @@ fn print_stdout(text: &str) {
 }
 
 fn print_help() {
-    print_stdout(HELP);
-    print_stdout("\n");
+    print_stdout(&help_text());
 }
 
 fn print_version() {
@@ -263,7 +281,9 @@ fn main() -> ExitCode {
         ExitCode::from(2)
     };
     if cli.inputs.is_empty() {
-        return usage_err("no input files or directories (see `pycdc --help`)".into());
+        // missing required input: default to the help screen (exit 2)
+        print_help();
+        return ExitCode::from(2);
     }
     if cli.inputs.iter().any(|p| p == Path::new("-")) && cli.inputs.len() > 1 {
         return usage_err("stdin input (-) cannot be combined with other inputs".into());

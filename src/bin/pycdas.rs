@@ -9,11 +9,20 @@ use pycdc::disasm::{disassemble, DisasmOptions};
 use pycdc::loader;
 use pycdc::version::FLAG_HASH_BASED;
 
-const HELP: &str = "\
-pycdas — multi-version Python bytecode disassembler
+fn help_text() -> String {
+    format!(
+        "\
+pycdas {version} — multi-version Python bytecode disassembler
+
+Disassembles Python .pyc/.pyo bytecode with full per-version opcode
+resolution. Supports Python 2.0 - 3.15 (CPython, PyPy and others).
+
+Repository: https://github.com/ejfkdev/pycdc
 
 Usage:
   pycdas [OPTIONS] <INPUT>...    disassemble .pyc/.pyo files or directories
+  pycdas version                 print version information
+  pycdas help                    print this help
 
 Arguments:
   <INPUT>...                     one or more .pyc/.pyo files, directories
@@ -33,6 +42,15 @@ Options:
   -h, --help             print this help
   -V, --version          print version information
 
+Examples:
+  pycdas program.pyc                 disassemble a file to stdout
+  pycdas program.pyc -o program.dis  disassemble into a specific file
+  pycdas app/ -o out/                disassemble a directory tree,
+                                     mirroring its layout (.pyc -> .dis)
+  pycdas -q app/ -j 8 -o out/        quiet batch, 8 parallel workers
+  cat program.pyc | pycdas -         disassemble from stdin
+  pycdas -v 3.8 data.marshal         disassemble raw marshal data as 3.8
+
 Output:
   * one input file (or -) without -o:  printed to stdout
   * -o PATH with one input:  PATH is the output file — unless PATH is an
@@ -44,7 +62,10 @@ Output:
 
 Exit codes: 0 success, 1 a file failed to load/disassemble/write,
 2 usage error.
-";
+",
+        version = env!("CARGO_PKG_VERSION")
+    )
+}
 
 /// Write to stdout, exiting quietly when the reader closed the pipe.
 fn print_stdout(text: &str) {
@@ -119,7 +140,7 @@ fn parse_args(args: &[String]) -> Result<Cli, String> {
                 }
             }
             "-h" | "--help" => {
-                print_stdout(HELP);
+                print_stdout(&help_text());
                 std::process::exit(0);
             }
             "-V" | "--version" => {
@@ -229,7 +250,7 @@ struct Job {
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() {
-        print_stdout(HELP);
+        print_stdout(&help_text());
         return ExitCode::SUCCESS;
     }
     if args[0] == "version" {
@@ -237,7 +258,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     if args[0] == "help" {
-        print_stdout(HELP);
+        print_stdout(&help_text());
         return ExitCode::SUCCESS;
     }
 
@@ -250,7 +271,9 @@ fn main() -> ExitCode {
         Err(e) => return usage_err(e),
     };
     if cli.inputs.is_empty() {
-        return usage_err("no input files or directories (see `pycdas --help`)".into());
+        // missing required input: default to the help screen (exit 2)
+        print_stdout(&help_text());
+        return ExitCode::from(2);
     }
     if cli.inputs.iter().any(|p| p == Path::new("-")) && cli.inputs.len() > 1 {
         return usage_err("stdin input (-) cannot be combined with other inputs".into());

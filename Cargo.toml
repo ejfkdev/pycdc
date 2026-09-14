@@ -4,9 +4,11 @@ version = "0.4.1"
 edition = "2021"
 rust-version = "1.70"
 authors = ["ejfkdev <152914458+ejfkdev@users.noreply.github.com>"]
-description = "Python bytecode (pyc) disassembler and decompiler for Python 1.x - 3.x, written in Rust"
+description = "Python bytecode (pyc) disassembler and decompiler for Python 2.0 - 3.15, written in Rust"
 readme = "README.md"
 license = "MIT"
+repository = "https://github.com/ejfkdev/pycdc"
+homepage = "https://github.com/ejfkdev/pycdc"
 keywords = ["python", "bytecode", "decompiler", "disassembler", "pyc"]
 categories = ["command-line-utilities", "development-tools::debugging"]
 

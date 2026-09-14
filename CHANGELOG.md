@@ -14,10 +14,22 @@ cargo tests, on 13 interpreters (2.6–3.14).
   `-V/--version`, BrokenPipe-safe stdout
 - exit-code convention: `0` success, `1` file processing failure,
   `2` usage error
+- help screen redesign (both binaries): header now carries the program
+  name + version, a description, the repository URL
+  (https://github.com/ejfkdev/pycdc) and an `Examples` section; running
+  with no arguments prints help (exit 0), and missing the required input
+  argument defaults to the help screen (exit 2)
 
 ### Packaging / repo
 - GitHub Actions CI (build + test + smoke on Linux/macOS/Windows,
   informational clippy)
+- tag-triggered release job: pushes of `v*` tags build `pycdc`/`pycdas`
+  for x86_64/aarch64 Linux, x86_64 Windows and x86_64/arm64 macOS;
+  Linux/Windows binaries are UPX-compressed (macOS is not UPX-supported
+  and ships uncompressed); the crate version is rewritten from the tag
+  before building and the binaries' printed version is asserted to equal
+  the tag, then artifacts are uploaded to the GitHub Release
+- `repository`/`homepage` metadata point at the GitHub project
 - `rust-version = "1.70"` (MSRV), CHANGELOG, sanitized `report.json`
   (no local home paths)
 

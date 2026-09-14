@@ -50,3 +50,117 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --release -- -D clippy::correctness
+
+  # Tag-triggered release build: compile the CLI binaries for each platform,
+  # UPX-compress them where UPX is supported (Linux + Windows; macOS is left
+  # uncompressed), and publish a GitHub Release. The binary version string is
+  # forced to match the pushed tag (vX.Y.Z -> X.Y.Z) so `pycdc version`
+  # always reports the release tag.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            label: x86_64-linux
+            upx: true
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: aarch64-linux
+            upx: true
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: x86_64-windows
+            upx: true
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            label: aarch64-macos
+            upx: false
+          - os: macos-13
+            target: x86_64-apple-darwin
+            label: x86_64-macos
+            upx: false
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Force the crate version to equal the tag so the compiled binaries
+      # print the release version (env!("CARGO_PKG_VERSION")).
+      - name: Set crate version from tag
+        shell: bash
+        run: |
+          ver="${GITHUB_REF#refs/tags/v}"
+          echo "Building version: $ver"
+          if [[ "$ver" == "$GITHUB_REF" || -z "$ver" ]]; then
+            echo "could not derive version from $GITHUB_REF" >&2
+            exit 1
+          fi
+          # rewrite the [package] version line (first occurrence)
+          awk -v v="$ver" '
+            !done && /^version[ \t]*=/ { print "version = \"" v "\""; done=1; next }
+            { print }
+          ' Cargo.toml > Cargo.toml.new && mv Cargo.toml.new Cargo.toml
+          grep -n '^version' Cargo.toml
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.label }}
+
+      - name: Build release binaries
+        shell: bash
+        run: cargo build --release --target "${{ matrix.target }}"
+
+      - name: Install UPX
+        if: matrix.upx
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)
+              sudo apt-get update -y && sudo apt-get install -y upx-ucl ;;
+            Windows)
+              choco install upx -y ;;
+          esac
+          upx --version | head -1
+
+      - name: UPX-compress binaries
+        if: matrix.upx
+        shell: bash
+        run: |
+          d="target/${{ matrix.target }}/release"
+          upx --best --lzma "$d/pycdc" "$d/pycdas" || upx --best "$d/pycdc" "$d/pycdas"
+
+      - name: Verify binary version matches tag
+        shell: bash
+        run: |
+          d="target/${{ matrix.target }}/release"
+          ext=""
+          [[ "${{ runner.os }}" == "Windows" ]] && ext=".exe"
+          ver="${GITHUB_REF#refs/tags/v}"
+          got_pycdc="$("$d/pycdc$ext" version | head -1 | awk '{print $2}')"
+          got_pycdas="$("$d/pycdas$ext" -V | head -1 | awk '{print $2}')"
+          echo "tag=$ver pycdc=$got_pycdc pycdas=$got_pycdas"
+          test "$got_pycdc" = "$ver" || { echo "pycdc version mismatch" >&2; exit 1; }
+          test "$got_pycdas" = "$ver" || { echo "pycdas version mismatch" >&2; exit 1; }
+
+      - name: Stage artifacts
+        shell: bash
+        run: |
+          d="target/${{ matrix.target }}/release"
+          ext=""
+          [[ "${{ runner.os }}" == "Windows" ]] && ext=".exe"
+          mkdir -p dist
+          cp "$d/pycdc$ext" "dist/pycdc-${{ matrix.label }}$ext"
+          cp "$d/pycdas$ext" "dist/pycdas-${{ matrix.label }}$ext"
+          ls -la dist
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
