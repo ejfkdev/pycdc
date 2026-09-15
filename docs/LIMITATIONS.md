@@ -195,7 +195,14 @@ the enclosing expression to the main engine's `exec`), and only then
 re-adding the nesting. Emitting a visible syntax error stays preferable
 to silently wrong code, so the modules remain in the failing set.
 
-### Multi-link ternary on the value path (1 module, ambiguous to repair)
+### ~~Multi-link ternary on the value path~~ (fixed 2026-09-15)
+
+Fixed: `try_dup_tail_ternary` now absorbs leading same-target cond jumps
+into the condition and starts the arm scan after them, so the shared
+lookup still hoists through the single-slot merge. The note below is kept
+for the reasoning that made a *local* repair look unsound.
+
+#### Original analysis
 
 `pandas/core/algorithms.py` — `lambda x: d[np.nan if isinstance(x, float)
 and np.isnan(x) else x]`. The value path does not merge the two

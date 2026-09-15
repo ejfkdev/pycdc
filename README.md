@@ -109,7 +109,7 @@ seven projects **at its latest release tag**, compiles every `.py` to
 | sympy (1.14.0) | 1532 | 3.68 s | 1.85 s | **1532/1532** | 479/1532 |
 | scikit-learn (1.9.1) | 671 | 0.71 s | 0.10 s | 669/671 | 216/671 |
 | ansible (v2.21.4) | 583 | 0.35 s | 0.06 s | **583/583** | 185/583 |
-| **total** | **6411** | **8.16 s** | **2.59 s** | **6408/6411 (100.0 %)** | 2488/6411 |
+| **total** | **6411** | **8.16 s** | **2.59 s** | **6408/6411 (99.95 %)** | 2488/6411 |
 
 ¹ strict: docstring-stripped AST equal to the original source —
 equivalent normalizations (an if/else instead of a ternary, a redundant
@@ -118,10 +118,9 @@ differences, so treat it as a shape-fidelity floor rather than an error
 rate. The parse/recompile column is the acceptance bar.
 
 One pycdc process per project: ~1.0 ms per module serial, peak RSS
-≈99 MB for the whole 6.4 k-module batch. The three remaining modules are two shapes: a multi-link ternary
-condition on the value path (`lambda x: d[a if c and e else b]`) and
-a dict comprehension nested inside a generator expression's element —
-marked incomplete, never a crash. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
+≈99 MB for the whole 6.4 k-module batch. The three remaining modules are one shape: a dict comprehension
+nested inside a generator expression's element (call arguments
+included) — marked incomplete, never a crash. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
 harness: [`tools/bench_realworld.py`](tools/bench_realworld.py).
 
 
