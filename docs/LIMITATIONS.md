@@ -153,16 +153,47 @@ inner `BUILD_MAP 0` accumulator lands on the walker's stack, `SWAP` is
 not modeled, and the following `FOR_ITER` treats it as a second `for`
 clause (`... for c, v in {}`), so the output does not parse.
 
-A prototype frame-stack implementation was tried and **reverted**: it
-fixed the whole-element shape (verified on a minimal repro) but produced
-*plausible yet semantically wrong* output for the two real shapes
-(a dict comp in a call's `**kwargs`, and one inside a call argument —
-pandas `core/methods/to_dict.py`, sklearn `linear_model/_logistic.py`,
-`metrics/pairwise.py`). Those need the walker's CALL / DICT_MERGE
-handling integrated with the nested level, otherwise the pieces are
-re-associated across the call boundary. Emitting a visible syntax error
-is preferable to silently wrong code, so the modules stay in the failing
-set until that integration is done.
+A frame-stack prototype (one frame per comprehension level, `SWAP`
+modeled, the accumulator placeholder replaced by Rc identity when a level
+ends, `pending_or_filter` flushed per level) was implemented **twice** and
+reverted both times. What it achieved, verified by runtime-equivalence
+checks against the original sources: the whole-element shape and the
+call-argument shapes *as minimal repros* became semantically correct
+(`({c: v for c, v in zip(cols, t) if c} for t in rows)`,
+`(f(**d) for x in xs)`, `(f(x, y=1) for x in xs)`; the last two were
+fixed for real and are committed).
+
+It still produced *plausible but semantically wrong* output for the three
+real modules (`pandas/core/methods/to_dict.py`,
+`sklearn/linear_model/_logistic.py`, `metrics/pairwise.py`), e.g.
+
+    fd(func, ret, s, X, Y[s, ...], **{k: (v[s] if k == "Y" else v) for k, v in kwds.items()})
+    ->  (fd if k == 'Y' else (func, ret, s, X, Y[s, ...])(*{}, **{**k}) for s in ...)
+
+The blocker is not the nesting itself: the walker's stack model for
+3.11+ calls (`PUSH_NULL`, the args/kwargs slots, `KW_NAMES`) is a
+heuristic that happens to agree with the VM on the shapes the corpus
+exercises, and a nested level exposes the disagreement. A correct fix
+therefore starts with making that call model faithful (or by delegating
+the enclosing expression to the main engine's `exec`), and only then
+re-adding the nesting. Emitting a visible syntax error stays preferable
+to silently wrong code, so the modules remain in the failing set.
+
+### Multi-link ternary on the value path (1 module, ambiguous to repair)
+
+`pandas/core/algorithms.py` — `lambda x: d[np.nan if isinstance(x, float)
+and np.isnan(x) else x]`. The value path does not merge the two
+same-target `POP_JUMP_IF_FALSE` links into one `And`, so the walker keeps
+the first link as an `If` and folds the rest into a ternary:
+`[If { cond: c, body: [Return(d[Ternary { cond: e, ... }])] }]`.
+
+A local repair (fold the `If`'s condition into the inner ternary) is NOT
+sound: after `postprocess_body` strips a trailing `return None`, the
+*same* shape is produced by the legitimate source
+`lambda: d[a if e else b] if c else None`, which must stay as it is. The
+sound fix is upstream — merge same-target cond jumps in the value path
+the way the statement path already does — which belongs to the
+`handle_cond_jump` link-merge machinery.
 
 ## Fixed recently (no longer limitations) / 近期已修复
 
