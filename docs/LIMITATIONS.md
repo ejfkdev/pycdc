@@ -170,10 +170,26 @@ real modules (`pandas/core/methods/to_dict.py`,
     fd(func, ret, s, X, Y[s, ...], **{k: (v[s] if k == "Y" else v) for k, v in kwds.items()})
     ->  (fd if k == 'Y' else (func, ret, s, X, Y[s, ...])(*{}, **{**k}) for s in ...)
 
-The blocker is not the nesting itself: the walker's stack model for
-3.11+ calls (`PUSH_NULL`, the args/kwargs slots, `KW_NAMES`) is a
+The blocker is not the nesting itself: the walker's stack model is a
 heuristic that happens to agree with the VM on the shapes the corpus
-exercises, and a nested level exposes the disagreement. A correct fix
+exercises, and a nested level exposes several concrete divergences at
+once (all observed with probes during the third attempt, 2026-09-15):
+
+  * `GET_ITER` is a no-op, so the 3.12 prologue's `SWAP`s reorder the
+    wrong slots (the VM's is `[saved…, iter]` -> `BUILD_* 0` -> `SWAP 2`;
+    the walker has no `iter` on the stack there);
+  * the `LOAD_FAST_AND_CLEAR` save slots are pushed but never popped —
+    the epilogue's `STORE_FAST`s restore them in the VM, while the walker
+    treats stores as target assignments, so they linger on the stack;
+  * `PUSH_NULL` markers then sit between the level's value and the call
+    slot, and the `CALL_FUNCTION_EX` pops pick up the wrong values
+    (`fd(...)` came out as `fd if k == 'Y' else (func, ret, X, Y)(*{}, **{**k})`).
+
+Fixing one of these shifts the divergence to the next (truncating the
+level's stack to its base fixed the kwargs slot but stripped the outer
+operands, and excluding the save slots then leaked the `PUSH_NULL`
+marker into the output), which is exactly why this needs the call model
+reworked rather than another local patch. A correct fix
 therefore starts with making that call model faithful (or by delegating
 the enclosing expression to the main engine's `exec`), and only then
 re-adding the nesting. Emitting a visible syntax error stays preferable
