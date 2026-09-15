@@ -7,6 +7,21 @@ cargo tests, on 13 interpreters (2.6–3.14).
 ## Unreleased
 
 ### Fixed
+- genexp element calls lost their callable when the call carried `**`, and
+  dropped keyword names for `KW_NAMES`-annotated calls: the comprehension
+  walker now merges `DICT_MERGE`/`DICT_UPDATE` operands and records
+  `KW_NAMES`, so `(f(**d) for x in xs)` renders `f(..., **{**d})` instead
+  of `{}(*{}, **d)` and `(f(x, y=1) for x in xs)` keeps `y=1` (both were
+  *silently wrong* before — they parsed fine)
+
+### Benchmarks
+- the real-world harness also reports strict AST equality against the
+  original sources (2488/6411 — a shape-fidelity floor: equivalent
+  normalizations count as differences), so silently-wrong output cannot
+  hide behind a green parse count
+
+
+### Fixed
 - chained comparisons lost their middle operand on the negated path
   (`assert x is sx is False` -> `x is sx and ??? is False`, `f'{...}'`
   family of asserts in sympy/pandas/matplotlib): the or-chain operand

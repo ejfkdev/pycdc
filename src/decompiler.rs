@@ -51167,6 +51167,9 @@ fn genexpr_ternary_merge(
         let mut unpack_names: Vec<ExprRef> = Vec::new();
 
         let mut stack: Vec<ExprRef> = Vec::new();
+        // 3.11-3.12 `KW_NAMES` names for the next CALL (the tuple lives in
+        // co_consts and is NOT pushed on the value stack)
+        let mut pending_kw_names: Vec<String> = Vec::new();
         let iter0 = outer_iter;
         let mut pending_async = false;
 
@@ -51293,6 +51296,39 @@ fn genexpr_ternary_merge(
                 }
                 Op::POP_TOP => {}
                 Op::GET_ITER => {}
+                Op::KW_NAMES => {
+                    pending_kw_names.clear();
+                    if let Some(o) = code.consts.get(inst.arg as usize) {
+                        if let PyObject::Tuple(items) = &**o {
+                            for it in items {
+                                if let PyObject::Str(sname) = &**it {
+                                    pending_kw_names.push(sname.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                Op::DICT_MERGE | Op::DICT_UPDATE => {
+                    // `f(**d)` / `f(**{...})`: merge the TOS dict into the
+                    // dict below it. Without this arm the walker's stack
+                    // kept both values, so the callable slot below them was
+                    // popped as the kwargs and the call rendered
+                    // `{}(*{}, **d)` — callable lost, silently wrong.
+                    let other = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    let dict = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    let mut entries = match &*dict {
+                        Expr::Dict(d) => d.clone(),
+                        _ => Vec::new(),
+                    };
+                    match &*other {
+                        Expr::Dict(d) => entries.extend(d.iter().cloned()),
+                        o => entries.push((
+                            Rc::new(Expr::Starred(Rc::new(o.clone()))),
+                            Rc::new(Expr::Name(String::new())),
+                        )),
+                    }
+                    stack.push(Rc::new(Expr::Dict(entries)));
+                }
                 Op::GET_AITER => {
                     pending_async = true;
                 }
@@ -52175,6 +52211,19 @@ fn genexpr_ternary_merge(
                         }
                     }
                     args.reverse();
+                    // KW_NAMES-annotated call: the last k values are the
+                    // keyword values, in source order (`f(x, y=1)` was
+                    // rendered `f(x, 1)` before this)
+                    let mut kws: Vec<(Option<String>, ExprRef)> = Vec::new();
+                    let k = pending_kw_names.len();
+                    if k > 0 && args.len() >= k {
+                        let vals = args.split_off(args.len() - k);
+                        for (name, v) in
+                            std::mem::take(&mut pending_kw_names).into_iter().zip(vals)
+                        {
+                            kws.push((Some(name), v));
+                        }
+                    }
                     // comprehension instantiation: [genfunc, iterable]
                     let sn = stack.len();
                     if sn >= 2 && n == 0 {
@@ -52290,7 +52339,7 @@ fn genexpr_ternary_merge(
                     stack.push(Rc::new(Expr::Call {
                         func,
                         args,
-                        keywords: Vec::new(),
+                        keywords: kws,
                         star_args: None,
                         star_kwargs: None,
                     }));

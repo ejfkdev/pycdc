@@ -100,16 +100,22 @@ seven projects **at its latest release tag**, compiles every `.py` to
 `.pyc` (`compileall -b`), and lands the tree in `tests/realworld/`
 (git-ignored — the script is the way to recreate it):
 
-| Project (tag) | modules | serial `-j 1` | parallel (default) | decompiled output recompiles |
-|---|---|---|---|---|
-| yt-dlp (2026.08.19) | 1045 | 0.62 s | 0.08 s | **1045/1045** |
-| matplotlib (v3.11.2) | 253 | 0.37 s | 0.07 s | **253/253** |
-| pandas (v3.0.5) | 1420 | 1.12 s | 0.16 s | 1418/1420 |
-| django (6.1.1) | 907 | 0.42 s | 0.11 s | **907/907** |
-| sympy (1.14.0) | 1532 | 3.30 s | 1.59 s | **1532/1532** |
-| scikit-learn (1.9.1) | 671 | 0.59 s | 0.08 s | 669/671 |
-| ansible (v2.21.4) | 583 | 0.33 s | 0.05 s | **583/583** |
-| **total** | **6411** | **6.75 s** | **2.14 s** | **6407/6411 (99.9 %)** |
+| Project (tag) | modules | serial `-j 1` | parallel (default) | recompiles | AST-identical¹ |
+|---|---|---|---|---|---|
+| yt-dlp (2026.08.19) | 1045 | 0.98 s | 0.12 s | **1045/1045** | 500/1045 |
+| matplotlib (v3.11.2) | 253 | 0.53 s | 0.08 s | **253/253** | 59/253 |
+| pandas (v3.0.5) | 1420 | 1.65 s | 0.18 s | 1418/1420 | 582/1420 |
+| django (6.1.1) | 907 | 0.47 s | 0.12 s | **907/907** | 467/907 |
+| sympy (1.14.0) | 1532 | 3.63 s | 1.80 s | **1532/1532** | 479/1532 |
+| scikit-learn (1.9.1) | 671 | 0.76 s | 0.09 s | 669/671 | 216/671 |
+| ansible (v2.21.4) | 583 | 0.34 s | 0.06 s | **583/583** | 185/583 |
+| **total** | **6411** | **8.36 s** | **2.45 s** | **6407/6411 (99.9 %)** | 2488/6411 |
+
+¹ strict: docstring-stripped AST equal to the original source —
+equivalent normalizations (an if/else instead of a ternary, a redundant
+`*()`/`**{}` around an unpack, reordered keyword arguments) count as
+differences, so treat it as a shape-fidelity floor rather than an error
+rate. The parse/recompile column is the acceptance bar.
 
 One pycdc process per project: ~1.0 ms per module serial, peak RSS
 ≈99 MB for the whole 6.4 k-module batch. The four remaining modules are two shapes: a multi-link ternary

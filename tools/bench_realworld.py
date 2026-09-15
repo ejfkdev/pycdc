@@ -73,6 +73,58 @@ def parses(path):
         return False
 
 
+CHECK = r"""
+import ast, sys
+class Strip(ast.NodeTransformer):
+    def _s(self, n):
+        b = getattr(n, "body", None)
+        if (isinstance(b, list) and b and isinstance(b[0], ast.Expr)
+                and isinstance(b[0].value, ast.Constant)
+                and isinstance(b[0].value.value, str)):
+            n.body = b[1:] or [ast.Pass()]
+        return n
+    def visit_Module(self, n):
+        self.generic_visit(n); return self._s(n)
+    def visit_FunctionDef(self, n):
+        self.generic_visit(n); return self._s(n)
+    visit_AsyncFunctionDef = visit_FunctionDef
+    def visit_ClassDef(self, n):
+        self.generic_visit(n); return self._s(n)
+def norm(src):
+    t = Strip().visit(ast.parse(src))
+    ast.fix_missing_locations(t)
+    return ast.dump(t, annotate_fields=False)
+out = open(sys.argv[1], "rb").read()
+orig = open(sys.argv[2], "rb").read()
+try:
+    eq = norm(out) == norm(orig)
+except SyntaxError:
+    eq = False
+print("EQUAL" if eq else "DIFF")
+"""
+
+
+def ast_equal(out_path, src_path):
+    """parses + docstring-stripped AST equals the original source.
+
+    A file that parses but differs is not necessarily wrong (normalizations
+    like `f(*(), **{**D})` for `f(**D)` are equivalent), but a big diff
+    count is the honest signal for silently-wrong output."""
+    if not os.path.exists(src_path):
+        return None
+    try:
+        r = subprocess.run(
+            [INTERP, "-c", CHECK, out_path, src_path], capture_output=True
+        )
+        return r.stdout.decode().strip() == "EQUAL"
+    except Exception:
+        return None
+
+
+def _ast_pair(a):
+    return ast_equal(a[0], a[1])
+
+
 def project_stats(corpus, name, out_root):
     src_dir = os.path.join(corpus, name)
     pycs = [
@@ -112,6 +164,15 @@ def project_stats(corpus, name, out_root):
                 ok = sum(ex.map(parses, outs, chunksize=16))
             row["decompiled"] = len(outs)
             row["recompiles"] = ok
+            # semantic check against the original sources
+            pairs = []
+            for p in outs:
+                rel = os.path.relpath(p, out)
+                pairs.append((p, os.path.join(src_dir, rel)))
+            with ProcessPoolExecutor(max_workers=os.cpu_count()) as ex:
+                eq = list(ex.map(_ast_pair, pairs, chunksize=16))
+            row["ast_equal"] = sum(1 for v in eq if v is True)
+            row["ast_checked"] = sum(1 for v in eq if v is not None)
     return row
 
 
@@ -139,7 +200,8 @@ def main():
                 f"{name:12s} files={r['files']:5d}  serial={r['serial_wall_s']:6.2f}s"
                 f" (rss {r['serial_rss_mb']:5.1f}MB)  parallel={r['parallel_wall_s']:6.2f}s"
                 f" (rss {r['parallel_rss_mb']:5.1f}MB)  recompiles="
-                f"{r.get('recompiles', 0)}/{r.get('decompiled', 0)}",
+                f"{r.get('recompiles', 0)}/{r.get('decompiled', 0)}"
+                f"  ast-equal={r.get('ast_equal', 0)}/{r.get('ast_checked', 0)}",
                 flush=True,
             )
 
@@ -153,6 +215,8 @@ def main():
         "parallel_rss_mb": max(r["parallel_rss_mb"] for r in rows),
         "decompiled": sum(r.get("decompiled", 0) for r in rows),
         "recompiles": sum(r.get("recompiles", 0) for r in rows),
+        "ast_equal": sum(r.get("ast_equal", 0) for r in rows),
+        "ast_checked": sum(r.get("ast_checked", 0) for r in rows),
     }
     print(
         f"TOTAL        files={total['files']:5d}  serial={total['serial_wall_s']:.2f}s"
