@@ -7,6 +7,21 @@ cargo tests, on 13 interpreters (2.6–3.14).
 ## Unreleased
 
 ### Fixed
+- value-position and-chains in a ternary: `try_dup_tail_ternary` now
+  absorbs leading same-target cond jumps into the condition, so
+  `lambda x: d[np.nan if isinstance(x, float) and np.isnan(x) else x]`
+  (pandas core/algorithms) renders verbatim instead of leaving the first
+  link as an `if` (which produced a marked-incomplete lambda). The
+  duplicated arm tails still hoist through the existing single-slot
+  merge, so `d[a if c and e else b]` keeps the shared lookup.
+
+### Benchmarks
+- real-world corpus: 6408/6411 modules recompile (99.95%); pandas is at
+  1419/1420 with only the nested-comprehension family left (sklearn ×2,
+  pandas to_dict)
+
+
+### Fixed
 - genexp element calls lost their callable when the call carried `**`, and
   dropped keyword names for `KW_NAMES`-annotated calls: the comprehension
   walker now merges `DICT_MERGE`/`DICT_UPDATE` operands and records

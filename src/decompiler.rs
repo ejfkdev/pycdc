@@ -28612,9 +28612,50 @@ return None;
                 Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
             )
         };
-        // then arm: [ci+1, ti) ending in its own RETURN, no inner jumps
+        // The then region may BEGIN with same-polarity cond jumps that
+        // share this jump's target: the compiled form of an and-chain in a
+        // value position (`d[np.nan if isinstance(x, float) and
+        // np.isnan(x) else x]` — pandas core/algorithms). Absorb them into
+        // the condition instead of bailing below, and start the arm at the
+        // first non-link instruction.
+        let mut cond = cond;
+        let mut tstart = ci + 1;
+        loop {
+            let mut j = tstart;
+            while j < ti {
+                let x = &self.instrs[j];
+                if x.target.is_some() || matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                    break;
+                }
+                if !is_pad(x) && !is_pure_value_op(x.op) {
+                    break;
+                }
+                j += 1;
+            }
+            if j >= ti {
+                break;
+            }
+            let x = &self.instrs[j];
+            let same_pol = match x.op {
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => !jump_if_true,
+                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE => jump_if_true,
+                _ => false,
+            };
+            if !same_pol || x.target != Some(target) {
+                break;
+            }
+            let Some(e) = self.sim_value_region(tstart, j) else {
+                break;
+            };
+            cond = Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: vec![cond, e],
+            });
+            tstart = j + 1;
+        }
+        // then arm: [tstart, ti) ending in its own RETURN, no inner jumps
         let mut ret_t = None;
-        for k in ci + 1..ti {
+        for k in tstart..ti {
             let x = &self.instrs[k];
             if x.target.is_some() {
                 return None;
@@ -28671,7 +28712,7 @@ return None;
                 .map(|x| (x.op as u8, x.arg))
                 .collect()
         };
-        let tt = trace(ci + 1, rt);
+        let tt = trace(tstart, rt);
         let et = trace(ti, re);
         if tt.is_empty() || et.is_empty() {
             return None;
@@ -28707,14 +28748,14 @@ return None;
             }
             None
         };
-        let mt = phys_past(ci + 1, rt, t_mid_end - 1)?;
+        let mt = phys_past(tstart, rt, t_mid_end - 1)?;
         let me = phys_past(ti, re, e_mid_end - 1)?;
         // the middles must leave the same net stack depth
         let depth = |a: usize, b: usize| -> Option<i32> {
             let acc = self.sim_stack_region(a, b, Vec::new())?;
             Some(acc.len() as i32)
         };
-        let dt_d = depth(ci + 1, mt)?;
+        let dt_d = depth(tstart, mt)?;
         let de_d = depth(ti, me)?;
         if dt_d != de_d || dt_d < 1 {
             return None;
@@ -28745,7 +28786,7 @@ return None;
         if base.is_empty() {
             return None;
         }
-        let st_t = self.sim_stack_region(ci + 1, mt, base.clone())?;
+        let st_t = self.sim_stack_region(tstart, mt, base.clone())?;
         let st_e = self.sim_stack_region(ti, me, base.clone())?;
         if st_t.len() != st_e.len() || st_t.is_empty() {
             return None;
