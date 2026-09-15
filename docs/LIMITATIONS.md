@@ -143,6 +143,27 @@ rendering bugs:
   (300+ regression-driven special cases), so it is left documented
   rather than patched blind.
 
+### Nested comprehension inside a genexp (3 modules, deliberately not patched)
+
+`({c: v for c, v in zip(cols, row) if c} for row in rows)` — a genexp whose
+*element* (or a call argument inside it) is an inlined (PEP 709) dict
+comprehension. The genexp keeps its own code object and is decompiled by
+the comprehension walker, which has no notion of a nested level: the
+inner `BUILD_MAP 0` accumulator lands on the walker's stack, `SWAP` is
+not modeled, and the following `FOR_ITER` treats it as a second `for`
+clause (`... for c, v in {}`), so the output does not parse.
+
+A prototype frame-stack implementation was tried and **reverted**: it
+fixed the whole-element shape (verified on a minimal repro) but produced
+*plausible yet semantically wrong* output for the two real shapes
+(a dict comp in a call's `**kwargs`, and one inside a call argument —
+pandas `core/methods/to_dict.py`, sklearn `linear_model/_logistic.py`,
+`metrics/pairwise.py`). Those need the walker's CALL / DICT_MERGE
+handling integrated with the nested level, otherwise the pieces are
+re-associated across the call boundary. Emitting a visible syntax error
+is preferable to silently wrong code, so the modules stay in the failing
+set until that integration is done.
+
 ## Fixed recently (no longer limitations) / 近期已修复
 
 - Syntax-family fuzz battery (25 shapes × 10 interpreters) driven fixes:
