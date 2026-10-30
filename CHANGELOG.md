@@ -1,8 +1,37 @@
 # Changelog
 
 All notable changes to pycdc-rs. The full verification baseline for every
-release: 528-module stdlib corpus (semantic 528/528) + behavior matrix +
-cargo tests, on 14 interpreters (2.6–3.15).
+release: stdlib corpus (semantic 622/622) + behavior matrix + cargo tests,
+on 14 interpreters (2.6–3.15).
+
+## Unreleased
+
+### Reconstruction fixes (PR #29, EiNSTeiN-)
+- Merged 22 focused commits that recover constructs which previously
+  produced incomplete or wrong output: disjunctive guards inside `for`
+  loops, padded bare/calculated returns around protected regions,
+  chained-comparison ternaries inside inline comprehensions, generator
+  expressions with repeated unpacking targets, boolean values behind
+  `continue`-shaped filters, captured generators and generator walrus
+  cells in bounded expression simulation, `async with` exception regions
+  across suspension cleanup, context exits across early returns and
+  `finally`, computed returns through nested context and loop handlers,
+  private handler clauses after nested `try`, handler `break` after
+  iterator disposal, and None-led rejection guards / shared validation
+  raises with formatted messages and causes.
+- `src/decompiler.rs` +933 lines, plus a new `src/decompiler_stack_tests.rs`
+  unit-test module; no dependency, build or CI changes.
+- Verification (merged tree): cargo tests 45 + 9 + 62 all pass; stdlib
+  corpus **622/622 semantic** (499 signature-exact) after the new
+  fixtures; behavior matrix **754/754 = 100%** (2.6–3.15, with and
+  without `--cure`); real-world corpus **6411/6411 recompile** and
+  **2502 AST-identical** (was 2493); roundtrip 198/234 on the enlarged
+  fixture set (was 189/234 with the same fixtures).
+- No regressions: on the original 528 corpus modules the verdicts are
+  527 identical + 1 improved and 0 worse; across the 349 real-world
+  modules whose output changed, bytecode-signature comparison shows 0
+  regressions and 50 files moving to signature-identical; 1564 mutated
+  or truncated pycs produce no panics.
 
 ## v0.8.0 — 2026-10-26
 

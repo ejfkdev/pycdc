@@ -4,8 +4,8 @@ English | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-2.0--3.15-yellow.svg)](#)
-[![Corpus](https://img.shields.io/badge/corpus-528%2F528%20semantic-brightgreen.svg)](#verification)
-[![Behavior](https://img.shields.io/badge/behavior-663%2F663-brightgreen.svg)](#verification)
+[![Corpus](https://img.shields.io/badge/corpus-622%2F622%20semantic-brightgreen.svg)](#verification)
+[![Behavior](https://img.shields.io/badge/behavior-754%2F754-brightgreen.svg)](#verification)
 [![Built with ZCode](https://img.shields.io/badge/Built%20with%20ZCode-000000.svg?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTgiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjU2IDIxOCI+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTEzNC40IDAuMTMwMTUyTDExNi40OCAyNS42MDIyQzExMy42NjUgMjkuNTY5OSAxMDkuMDU0IDMyLjAwMTkgMTA0LjA2NCAzMi4wMDE5SDYuMzk5OVYwQzYuMzk5OSAwLjEzMDE0OSAxMzQuNCAwLjEzMDE1MiAxMzQuNCAwLjEzMDE1MloiLz48cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNMjU2IDAuMTMwMTI3TDEwMi40MDEgMjE3LjczMkgwTDE1My41OTkgMC4xMzAxMjdIMjU2WiIvPjxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0xMjEuNjAxIDIxNy43MzJMMTM5LjY1IDE5Mi4xMzRDMTQyLjQ2NSAxODguMTY2IDE0Ny4wNzYgMTg1LjczNCAxNTIuMDY3IDE4NS43MzRIMjQ5LjYwNFYyMTcuNzM2SDEyMS42MDFWMjE3LjczMloiLz48L3N2Zz4=)](https://zcode.z.ai/)
 
 Decompile and disassemble Python bytecode (`.pyc`) from **Python 2.0 through 3.15** back into readable source — written in Rust, no Python required at runtime, with an optional in-process pass through the [`cure`](https://github.com/ejfkdev/cure) simplifier.
@@ -17,8 +17,8 @@ pycdc dis program.pyc      # disassemble (exception tables, line numbers, nested
 
 ## Highlights
 
-- **100% semantic equivalence** on a 528-module real-stdlib corpus across 14 interpreters (2.6–3.15); 76.9% are signature-exact
-- **Behavior matrix 663/663 = 100%**: every case passes on 2.6–3.15, including the new 3.15 bytecode encodings
+- **100% semantic equivalence** on a 622-module real-stdlib corpus across 14 interpreters (2.6–3.15); 80.2% are signature-exact
+- **Behavior matrix 754/754 = 100%**: every case passes on 2.6–3.15, including the new 3.15 bytecode encodings
 - Modern syntax: PEP 695/696 type parameters, PEP 750 t-strings, PEP 649 deferred annotations, match/case, walrus, async, f-strings
 - Optional `--cure`: folds the output through the `cure` simplifier/formatter in-process — no external binary, no Python — turning `if cond: return a` / `return b` into `return a if cond else b` and trimming ~10% of the lines
 - Version differences are pure data: one embedded opcode table per release, overridable via `--opcodes`
@@ -115,7 +115,7 @@ If the input cannot be parsed by `cure`, or if it contains
 compiler-introspection metadata (`__annotate__`, `co_freevars`,
 `__conditional_annotations__`, `__classdict__`) where simplifying could
 change runtime behaviour, the file is emitted unchanged and a note goes
-to stderr. The behavior matrix passes 663/663 both with and without
+to stderr. The behavior matrix passes 754/754 both with and without
 `--cure`, and all 528 corpus modules still compile under their own
 interpreter with it. Because the pass deliberately rewrites statement
 shapes (if/else → ternary), the corpus's bytecode-signature metric is
@@ -145,14 +145,14 @@ seven projects **at its latest release tag**, compiles every `.py` to
 
 | Project (tag) | modules | serial `-j 1` | parallel (default) | recompiles | AST-identical¹ |
 |---|---|---|---|---|---|
-| yt-dlp (2026.08.19) | 1045 | 0.46 s | 0.08 s | **1045/1045** | 501/1045 |
-| matplotlib (v3.11.2) | 253 | 0.33 s | 0.06 s | **253/253** | 60/253 |
-| pandas (v3.0.5) | 1420 | 0.90 s | 0.14 s | **1420/1420** | 584/1420 |
-| django (6.1.1) | 907 | 0.38 s | 0.10 s | **907/907** | 468/907 |
-| sympy (1.14.0) | 1532 | 3.03 s | 1.63 s | **1532/1532** | 479/1532 |
-| scikit-learn (1.9.1) | 671 | 0.48 s | 0.07 s | **671/671** | 216/671 |
-| ansible (v2.21.4) | 583 | 0.27 s | 0.05 s | **583/583** | 185/583 |
-| **total** | **6411** | **5.85 s** | **2.13 s** | **6411/6411 (100 %)** | 2493/6411 |
+| yt-dlp (2026.08.19) | 1045 | 0.38 s | 0.08 s | **1045/1045** | 502/1045 |
+| matplotlib (v3.11.2) | 253 | 0.28 s | 0.07 s | **253/253** | 60/253 |
+| pandas (v3.0.5) | 1420 | 0.87 s | 0.16 s | **1420/1420** | 586/1420 |
+| django (6.1.1) | 907 | 0.33 s | 0.12 s | **907/907** | 470/907 |
+| sympy (1.14.0) | 1532 | 3.08 s | 1.62 s | **1532/1532** | 482/1532 |
+| scikit-learn (1.9.1) | 671 | 0.42 s | 0.07 s | **671/671** | 216/671 |
+| ansible (v2.21.4) | 583 | 0.24 s | 0.05 s | **583/583** | 186/583 |
+| **total** | **6411** | **5.60 s** | **2.17 s** | **6411/6411 (100 %)** | 2502/6411 |
 
 ¹ strict: docstring-stripped AST equal to the original source —
 equivalent normalizations (an if/else instead of a ternary, a redundant
@@ -160,8 +160,8 @@ equivalent normalizations (an if/else instead of a ternary, a redundant
 differences, so treat it as a shape-fidelity floor rather than an error
 rate. The parse/recompile column is the acceptance bar.
 
-One pycdc process per project: ~0.9 ms per module serial, peak RSS
-≈81 MB for the whole 6.4 k-module batch. **All 6411 modules recompile**;
+One pycdc process per project: ~0.87 ms per module serial, peak RSS
+≈78 MB for the whole 6.4 k-module batch. **All 6411 modules recompile**;
 the last family (a dict comprehension nested inside a generator
 expression's element, call arguments included) was closed by the
 community PR batch. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
@@ -174,8 +174,8 @@ Three independent harnesses, all runnable locally (need pyenv/uv interpreters 2.
 
 | Harness | What it proves | Current |
 |---|---|---|
-| [`tools/verify_corpus.py`](tools/verify_corpus.py) | 528 stdlib modules: decompile → recompile with the *same* interpreter → compare bytecode signatures, fall back to normalized-AST diff | **528/528 semantic** (406 signature-exact, 0 syntax errors, 0 placeholders) |
-| [`tools/run_behavior.py`](tools/run_behavior.py) | 72 behavior cases × 14 interpreters: run original vs decompiled, compare stdout + exit code | **663/663 = 100%** (2.6–3.15) |
+| [`tools/verify_corpus.py`](tools/verify_corpus.py) | 622 stdlib modules: decompile → recompile with the *same* interpreter → compare bytecode signatures, fall back to normalized-AST diff | **622/622 semantic** (499 signature-exact, 0 syntax errors, 0 placeholders) |
+| [`tools/run_behavior.py`](tools/run_behavior.py) | 96 behavior cases × 14 interpreters: run original vs decompiled, compare stdout + exit code | **754/754 = 100%** (2.6–3.15) |
 | [`tests/roundtrip.py`](tests/roundtrip.py) | fixture matrix: compile → decompile → recompile → strict bytecode compare | 49/54 strict (exceptions fixtures differ structurally, semantically equivalent) |
 
 The 3.15 result reflects CPython 3.15.0/3.15.1, whose inline-comprehension,
@@ -201,7 +201,7 @@ and the third-party backlog.
 src/    loader → marshal → bytecode → decompiler → codegen  (version.rs/opcode.rs hold the per-version data; simplify.rs wraps cure)
 configs/ embedded opcode + magic tables (regenerate: tools/gen_configs.py)
 tools/   config generation, corpus building, verification harnesses
-tests/   Rust tests, fixtures, 520-module corpus, 48 behavior cases
+tests/   Rust tests, fixtures, 622-module corpus, 96 behavior cases
 ```
 
 ## Acknowledgements
