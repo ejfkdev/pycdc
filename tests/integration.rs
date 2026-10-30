@@ -26,6 +26,364 @@ fn assert_contains(haystack: &str, needles: &[&str], ctx: &str) {
 }
 
 #[test]
+fn disjunction_inside_for_preserves_each_operand_and_else() {
+    for version in ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("for_loop_disjunctions.{version}.pyc"));
+        assert!(clean, "Python {version}: output marked incomplete:\n{src}");
+        assert_contains(
+            &src,
+            &[
+                "for value in values:\n        if not test(value) or value < 0.2:",
+                "for value in values:\n        if not value or value < 0.2:",
+                "for value in values:\n        if value is None or value < 0.2:",
+                "for value in values:\n        if test(value) or value < 0.2:",
+                "else:\n            result.append('wet')",
+                "while value < 2 or value == 3:",
+                "result.append('complete')",
+                "result.append('tail')",
+            ],
+            version,
+        );
+    }
+}
+
+#[test]
+fn padded_none_return_does_not_absorb_a_following_branch() {
+    for version in ["3.11", "3.12", "3.13", "3.14", "3.15"] {
+        for padding in [0, 1, 3] {
+            let (src, clean) = decompile_fixture(
+                &format!("padded_none_returns_{padding}.{version}.pyc"));
+            assert!(clean, "Python {version}, padding {padding}: incomplete:\n{src}");
+            assert_contains(
+                &src,
+                &[
+                    "try:\n            stamp = datetime.fromtimestamp(value, timezone.utc)",
+                    "return stamp\n    if isinstance(value, str):",
+                    "try:\n            parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))",
+                    "parsed.astimezone(timezone.utc)",
+                    "def unprotected_return(read):",
+                    "def else_return(read):",
+                    "read('inside')",
+                    "return read('outside')",
+                ],
+                version,
+            );
+        }
+    }
+}
+
+#[test]
+fn padded_return_consumes_the_existing_calculated_value_once() {
+    for version in ["3.11", "3.12", "3.13", "3.14", "3.15"] {
+        for padding in [1, 3, 9] {
+            let (src, clean) = decompile_fixture(
+                &format!("carried_value_returns_{padding}.{version}.pyc"));
+            assert!(clean, "Python {version}, padding {padding}: incomplete:\n{src}");
+            for value in ["make(value)", "make(value).result", "make(value), 7",
+                          "{'value': make(value)}"] {
+                assert!(src.contains(&format!("try:\n            return {value}\n")),
+                        "Python {version}, padding {padding}: lost protected value {value}:\n{src}");
+            }
+            assert_eq!(src.matches("make(value)").count(), 5, "{version}: {src}");
+            assert_eq!(src.matches("return fallback.read().result or default.result").count(), 5,
+                       "{version}: {src}");
+            assert_contains(&src, &["try:\n            make(value)\n", "return 'handled'"], version);
+        }
+    }
+}
+
+#[test]
+fn bounded_try_return_keeps_its_handler_and_following_sibling() {
+    for version in ["3.11", "3.12", "3.13", "3.14", "3.15"] {
+        for padding in [0, 1, 3] {
+            let (src, clean) = decompile_fixture(
+                &format!("bounded_try_returns_{padding}.{version}.pyc"));
+            assert!(clean, "Python {version}, padding {padding}: incomplete:\n{src}");
+            assert_contains(&src, &[
+                "try:\n            return datetime.fromtimestamp(value, timezone.utc)",
+                "except (OverflowError, OSError, ValueError):\n            return\n    if isinstance(value, str):",
+                "try:\n            parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))",
+                "parsed.astimezone(timezone.utc)",
+                "def unprotected_return(read):", "def else_return(read):",
+                "read('inside')", "return read('outside')",
+            ], version);
+            assert_eq!(src.matches("datetime.fromtimestamp(value, timezone.utc)").count(), 1,
+                       "{version}: {src}");
+        }
+    }
+}
+
+#[test]
+fn chained_comparison_ternaries_keep_collection_values_and_filters_distinct() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(
+            &format!("comprehension_chained_ternaries.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "return {value: 1 if 6 <= value <= 8 else 0 for value in values}",
+            "return {value if 6 <= value <= 8 else -value: value for value in values}",
+            "return [0.6 + 0.4 * (1.0 if 4 <= value <= 8 < 10 else 0.3) for value in values]",
+            "return [1 if value >= 6 else 0 for value in values if value <= 8]",
+            "base(value) + coefficient(value) * (1.0 if lower() <= probe(value) <= upper() else 0.3)",
+        ], version);
+    }
+}
+
+#[test]
+fn generator_statement_route_preserves_repeated_targets_and_closure_calls() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(
+            &format!("generator_statement_reconstruction.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "value is not None for value, discarded, discarded, discarded in values",
+            "(value, discarded, _) for value, _, discarded, discarded in values",
+            "sum((value for value in row)) / len(row) for row in rows",
+            "sum((factory(deltas) for _ in deltas)) / len(deltas) for _ in range(3)",
+        ], version);
+    }
+}
+
+#[test]
+fn generator_statement_route_keeps_python312_multiline_filter_layout() {
+    let (src, clean) = decompile_fixture("generator_multiline_filter_312.3.12.pyc");
+    assert!(clean, "{src}");
+    assert_contains(&src, &["value for value in values\n         if value not in excluded"],
+                    "3.12 multiline filter");
+}
+
+#[test]
+fn filtered_generators_keep_boolean_values_separate_from_rejection_guards() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(
+            &format!("filtered_generator_boolean_values.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "row[1] or 0 for row in rows if row[0]",
+            "row[1] and row[2] for row in rows if row[0]",
+            "row[1] or row[2] or 0 for row in rows if row[0]",
+            "row[1] and row[2] or 0 for row in rows if row[0]",
+            "row.get('amount') or 0.0 for row in rows if row.get('amount') is not None",
+        ], version);
+    }
+}
+
+#[test]
+fn generator_walrus_keeps_its_parent_cell_and_short_circuit_value() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("generator_walrus_cells.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "isinstance(row, dict) and (change := row.get('change')) is not None and change >= 0",
+            "change = 'initial'", "return results, change",
+        ], version);
+        assert_eq!(src.matches("change :=").count(), 2, "{version}: {src}");
+        assert!(!src.contains("nonlocal "), "{version}: declaration escaped its generator:\n{src}");
+    }
+}
+
+#[test]
+fn suspension_cleanup_does_not_split_async_with_exception_suites() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("await_exception_regions.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "async with manager:\n        try:\n            await work('a')\n        finally:\n            record('cleanup')\n        await work('b')\n        return 'tail'",
+            "async with manager:\n        try:\n            a = await work('a')\n        except ValueError:\n            record('handled')\n        else:\n            await work('b')\n        return 'tail'",
+        ], version);
+    }
+}
+
+#[test]
+fn await_region_reconstruction_preserves_adjacent_contexts_and_outer_handlers() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("await_context_controls.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "async with manager:\n        a = await work('a')\n    async with manager:\n        b = await work('b')\n    return a, b",
+            "try:\n        a = await work('a')\n        async with manager:",
+            "try:\n        async with manager:\n            a = await work('a')\n            b = await work('b')",
+            "except ValueError:\n        return 'handled'\n    return a, b",
+        ], version);
+    }
+}
+
+#[test]
+fn early_context_returns_preserve_finally_and_remaining_exit_bookkeeping() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("context_exit_accounting.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "async with manager:\n        if flag:\n            return 'early'\n        try:\n            return await work('a')\n        finally:\n            record('cleanup')",
+            "async with manager:\n        try:\n            return await work('a')\n        finally:\n            record('cleanup')",
+            "async with manager:\n        if flag is None:\n            return 3\n        try:\n            return await work('a')\n        finally:\n            record('cleanup')",
+        ], version);
+    }
+}
+
+#[test]
+fn context_managers_keep_return_values_inside_the_body() {
+    for version in ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("context_manager_returns.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "def synchronous(manager):\n    with manager as value:\n        return value",
+            "def synchronous_attribute(manager):\n    with manager as value:\n        return value.result",
+            "async def asynchronous(manager):\n    async with manager as value:\n        return value",
+            "async def asynchronous_attribute(manager):\n    async with manager as value:\n        return value.result",
+        ], version);
+    }
+}
+
+#[test]
+fn handler_loops_keep_computed_returns_inside_their_context() {
+    for version in ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("loop_context_returns.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        for prefix in ["", "async "] {
+            for (suffix, value) in [("value", "result"), ("length", "len(result)"),
+                                    ("mapping", "{'rows': result}")] {
+                let name = if prefix.is_empty() { "sync" } else { "async" };
+                // 3.10 optimizes this final continue into the loop's fallthrough.
+                let handler = if version == "3.10" && suffix == "value" { "pass" } else { "continue" };
+                let expected = format!("{prefix}def {name}_{suffix}(lock, rows, parse):\n    {prefix}with lock:\n        result = []\n        for row in rows:\n            try:\n                result.append(parse(row))\n            except ValueError:\n                {handler}\n        return {value}");
+                assert!(src.contains(&expected), "Python {version}: {expected} missing:\n{src}");
+            }
+        }
+    }
+}
+
+#[test]
+fn sunk_early_context_exits_leave_the_normal_exit_available() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("sunk_context_exits.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "if pending:\n            return False\n    record('outside')",
+            "if pending:\n            return\n    record('outside')",
+            "if pending:\n            return False\n        if release:\n            return False\n    record('outside')",
+            "if pending:\n            return release\n    record('outside')",
+            "await user_call(None, None, None)\n    record('outside')",
+            "record('ready')\n    record('outside')",
+        ], version);
+        assert!(!src.contains("await None("), "Python {version}: leaked exit call:\n{src}");
+    }
+}
+
+#[test]
+fn nested_contexts_carry_one_return_through_every_exit() {
+    for version in ["3.11", "3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("nested_context_returns.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "with contexts[0]:\n        with contexts[1]:\n            return value()",
+            "with contexts[0]:\n        with contexts[1]:\n            with contexts[2]:\n                return {'rows': value()}",
+            "async with contexts[0]:\n        async with contexts[1]:\n            return value()",
+            "async with contexts[0]:\n        async with contexts[1]:\n            async with contexts[2]:\n                return await value()",
+            "async with contexts[0]:\n        async with contexts[1]:\n            return (value(),)",
+            "async with contexts[0]:\n        return await value()",
+            "result = value()\n        return result",
+            "result = await value()\n        return result",
+        ], version);
+    }
+}
+
+#[test]
+fn per_row_handlers_remain_owned_by_their_loop_and_outer_try() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("loop_handler_ownership.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "try:\n        for row in owner.rows:\n            try:\n                owner.record(row)\n            except ValueError as error:",
+            "            except KeyError as error:\n                owner.other(row, str(error))",
+            "            try:\n                owner.second(row)\n            except KeyError:",
+            "            except Exception:\n                owner.failed(row)",
+            "        owner.finish()\n    except RuntimeError as error:",
+            "        owner.finish()\n    except Exception as error:",
+            "                await owner.arecord(row)\n                await owner.asecond(row)\n            except ValueError:",
+            "    finally:\n        owner.finish()",
+            "def nonloop(owner):\n    try:\n        try:\n            owner.record(owner.row)",
+            "        except ValueError:\n            owner.failed(owner.row)",
+        ], version);
+        // The compiler may sink implicit None returns into either arm.
+        let nonloop = src.split("def nonloop(owner):").nth(1).unwrap();
+        assert!(nonloop.contains("    except RuntimeError:\n        owner.fallback()"), "{src}");
+    }
+}
+
+#[test]
+fn normal_async_exits_close_only_their_own_context() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("normal_async_exits.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "row0 = await query.read()\n    value = owner.build(row0, row0)",
+            "row3 = await query.read()\n    value = owner.build(row0, row3)",
+            "row0 = await query.read()\n        async with owner.query('row1') as query:",
+            "row0 = await query.read()\n        return 4",
+            "row0 = await query.read()\n        return row0",
+            "row1 = await query.read()\n        return owner.build(row0, row0)",
+            "row1 = await query.read()\n        return {'value': row0}",
+            "await owner.user(None, None, None)\n        return owner.build(1, 2)",
+            "if owner.ready:\n            return 4\n        await owner.write(1, 2)\n    return 2",
+        ], version);
+    }
+}
+
+#[test]
+fn async_return_padding_never_turns_a_carried_exit_into_a_normal_exit() {
+    for version in ["3.14", "3.15"] {
+        for padding in [1, 3, 9] {
+            let (src, clean) = decompile_fixture(&format!("async_context_return_padding_{padding}.{version}.pyc"));
+            assert!(clean, "Python {version}, padding {padding}: incomplete:\n{src}");
+            assert_contains(&src, &[
+                "row0 = await query.read()\n        return 4",
+                "row0 = await query.read()\n        return {'value': row0}",
+            ], version);
+        }
+    }
+}
+
+#[test]
+fn private_handler_bodies_do_not_hide_later_typed_clauses() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("private_handler_clauses.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "except RuntimeError as inner:\n                    await owner.log('close-failed', str(inner))",
+            "        except ValueError as error:\n            await owner.log('invalid', str(error))",
+            "        except (OSError, asyncio.TimeoutError) as error:\n            await owner.log('transient', str(error))",
+            "        except Exception as error:\n            await owner.log('unavailable', str(error))",
+            "        except ValueError as error:\n            owner.log('invalid', str(error))",
+            "        except faults.invalid as error:",
+            "        except (faults.operating, faults.timeout) as error:",
+            "        except faults.ordinary as error:",
+            "    await owner.log('finished', accepted)\n    return accepted",
+            "async def single_clause(owner):", "async def no_private_try(owner):",
+        ], version);
+        assert_eq!(src.matches("except (faults.operating, faults.timeout)").count(), 2);
+    }
+}
+
+#[test]
+fn handler_iterator_disposal_preserves_break_and_post_loop_work() {
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("handler_iterator_breaks.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "except (OSError, asyncio.TimeoutError) as error:\n            await owner.log('transient', str(error))\n            break",
+            "except Exception as error:\n            await owner.log('unavailable', str(error))\n            break",
+            "except (OSError, asyncio.TimeoutError) as error:\n            owner.log('transient', str(error))\n            break",
+            "except (OSError, asyncio.TimeoutError):\n            await owner.log('transient', 'owned fault')\n            break",
+            "except Exception:\n            await owner.log('unavailable', 'owned fault')\n            break",
+            "    await owner.log('finished', accepted)\n    return accepted",
+            "    owner.log('finished', accepted)\n    return accepted",
+        ], version);
+        assert_eq!(src.matches("\n            break").count(), 10, "Python {version}: {src}");
+    }
+}
+
+#[test]
 fn py27_if_elif_else() {
     let (src, clean) = decompile_fixture("if_elif_else.2.7.pyc");
     assert!(clean, "output marked incomplete:\n{src}");
@@ -217,8 +575,16 @@ fn generator_expanded_calls() {
             &src,
             &[
                 "def positional(rows, factory):\n    return tuple((factory(*row) for row in rows))",
-                "def keywords(rows, factory):\n    return tuple((factory(*(), **{**dict(row)}) for row in rows))",
-                "def both(rows, factory):\n    return tuple((factory(*row[0], **{**row[1]}) for row in rows))",
+                if version == "3.11" {
+                    "def keywords(rows, factory):\n    return tuple((factory(*(), **{**dict(row)}) for row in rows))"
+                } else {
+                    "def keywords(rows, factory):\n    return tuple((factory(**dict(row)) for row in rows))"
+                },
+                if version == "3.11" {
+                    "def both(rows, factory):\n    return tuple((factory(*row[0], **{**row[1]}) for row in rows))"
+                } else {
+                    "def both(rows, factory):\n    return tuple((factory(*row[0], **row[1]) for row in rows))"
+                },
             ],
             &fixture,
         );
@@ -858,4 +1224,59 @@ fn python315_shapes_recover_changed_encodings() {
     );
     assert!(!src.contains("/*with-result*/"), "unresolved with target:\n{src}");
     assert!(!src.contains('\0'), "PUSH_NULL marker leaked:\n{src}");
+}
+
+#[test]
+fn none_rejection_guards_preserve_chains_calls_and_success_returns() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("none_rejection_guards.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "if value is None or not 0.0 <= value <= 15.0:",
+            "if read is None or not 0.0 <= read() <= 15.0:",
+            "if first is None or not 0.0 <= first() <= second() <= 15.0:",
+            "if read is None or not 0.0 <= read() or not read() <= 15.0:",
+            "def same_tail(value):\n    if value is None or not 0.0 <= value <= 15.0:\n        return False\n    return False",
+            "return 3\n    return 5",
+            "return 'reject'\n    return 'accept'",
+            "if a is None or b is None or c is None or d is None or d < 0.01:\n            continue",
+        ], version);
+        assert_eq!(src.matches("            continue").count(), 2, "{version}: {src}");
+    }
+}
+
+#[test]
+fn constructed_rejections_keep_selected_values_and_statement_boundaries() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("constructed_rejection_guards.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "if value is None or not 0.0 <= value <= 20.0:\n        return build('reject', amount=0)",
+            "if not value or len(value) < 2:\n        return build('reject', amount=0)",
+            "if invalid(value) or value < 2:",
+            "if not value or len(value) < 2:\n        return False\n    return True",
+            "if value is None or not 0.0 <= value <= 20.0:\n        return ['reject', value]",
+            "if value is None or not 0.0 <= value <= 20.0:\n        return {'kind': 'reject', 'value': value}",
+            "return collect((scale * item for item in rows))",
+            "result = build('reject', amount=0)\n        return result",
+            "log('rejected')\n        return build('reject', amount=0)",
+        ], version);
+    }
+}
+
+#[test]
+fn shared_validation_raises_keep_causes_and_formatted_error_paths() {
+    for version in ["3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("shared_validation_raises.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "if value is None or bad(value) or not ready(value):",
+            "if value is None or not 0 <= read(value) <= 10 or invalid(value):",
+            "raise make_error('invalid', value=value) from make_cause(value)",
+            "raise make_error('invalid', value=value) from None",
+            "raise make_error(f'{label!r}: {value!s:>{width}}') from make_cause()",
+            "raise make_error(f'{label!a}: {value:{width}}') from make_cause()",
+            "if value is None or reject(value):\n        raise ValueError",
+        ], version);
+    }
 }

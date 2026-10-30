@@ -572,6 +572,9 @@ struct Ctx<'a> {
     /// chains, rendering `if AttributeError:` garbage and skipping the
     /// outer body end so the outer tail never fired)
     nested_tail_defer: bool,
+    /// An intervening live For owns this nested try. Its out-of-line
+    /// handler must not adopt the outer dispatch or enter a flat rebuild.
+    lexical_loop_handlers: FastMap<usize, usize>,
     pending_try_handlers: Vec<Vec<ExceptHandler>>,
     pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
     pending_with: Vec<Vec<WithItem>>,
@@ -872,6 +875,13 @@ pub fn decompile_in_scope(
             let Some(&hi) = idx_of.get(&e.target) else {
                 return true;
             };
+            if version.at_least(3, 14)
+                && instrs.get(hi).map(|instruction| instruction.op) == Some(Op::CLEANUP_THROW)
+            {
+                // Await/yield suspension cleanup is interpreter protocol,
+                // even when followed by a backward jump and user handlers.
+                return false;
+            }
             let mut saw_reraise = false;
             for ins in instrs.iter().skip(hi).take(14) {
                 if matches!(ins.op, Op::RERAISE) {
@@ -886,6 +896,44 @@ pub fn decompile_in_scope(
             }
             !saw_reraise
         });
+    }
+
+    if version.at_least(3, 14) {
+        // Await suspension splits one source try into fragments, and its
+        // out-of-line CLEANUP_THROW trampoline can itself be protected by
+        // the same source handler. Rebuild the lexical await region before
+        // deriving try contexts; keep the original table for VM glue.
+        exc_entries.retain(|entry| {
+            idx_of.get(&entry.start).and_then(|index| instrs.get(*index))
+                .map_or(true, |instruction| instruction.op != Op::CLEANUP_THROW)
+        });
+        let mut grouped: std::collections::BTreeMap<(usize, u32, bool), Vec<crate::code::ExceptionEntry>> =
+            std::collections::BTreeMap::new();
+        for entry in exc_entries.drain(..) {
+            grouped.entry((entry.target, entry.depth, entry.lasti)).or_default().push(entry);
+        }
+        for (_, mut entries) in grouped {
+            entries.sort_by_key(|entry| entry.start);
+            let mut merged: Vec<crate::code::ExceptionEntry> = Vec::new();
+            for entry in entries {
+                let join = merged.last().map_or(false, |previous| {
+                    entry.start >= previous.end
+                        && instrs.iter().filter(|instruction| {
+                            instruction.offset >= previous.end && instruction.offset < entry.start
+                        }).all(|instruction| matches!(instruction.op,
+                            Op::SEND | Op::YIELD_VALUE | Op::RESUME | Op::RESUME_CHECK
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT | Op::END_SEND
+                            | Op::NOP | Op::NOT_TAKEN | Op::CACHE))
+                });
+                if join {
+                    merged.last_mut().unwrap().end = entry.end;
+                } else {
+                    merged.push(entry);
+                }
+            }
+            exc_entries.extend(merged);
+        }
+        exc_entries.sort_by_key(|entry| entry.start);
     }
 
     // classify exception-table targets: handlers starting with PUSH_EXC_INFO
@@ -1049,11 +1097,22 @@ pub fn decompile_in_scope(
                                 | Op::CALL_FUNCTION
                                 | Op::RETURN_VALUE
                                 | Op::RETURN_CONST
+                                | Op::LOAD_SMALL_INT
+                                | Op::GET_AWAITABLE
+                                | Op::SEND
+                                | Op::END_SEND
+                                | Op::YIELD_VALUE
+                                | Op::YIELD_FROM
+                                | Op::RESUME
+                                | Op::RESUME_CHECK
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
                         ) || (x.op == Op::LOAD_CONST
                             && matches!(
                                 code.consts.get(x.arg as usize).map(|o| &**o),
                                 Some(PyObject::None)
-                            ))
+                            )) || (version.at_least(3, 14) && exc_entries.iter().any(|entry| {
+                                entry.start <= x.offset && x.offset < entry.end && entry.target != t
+                            }))
                     }) && gap.iter().any(|x| {
                         matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
                     });
@@ -1169,6 +1228,7 @@ pub fn decompile_in_scope(
         sunk_pair_drop: None,
         sunk_while_lift: None,
         nested_tail_defer: false,
+        lexical_loop_handlers: FastMap::default(),
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
         pending_with: Vec::new(),
@@ -3462,7 +3522,7 @@ impl<'a> Ctx<'a> {
                 // interact) and its skip_until strands the enclosing
                 // region's tail
                 if let Some(h) = tc.except_handler {
-                    if self.try_ctxs.values().any(|r| {
+                    if let Some(enclosing) = self.try_ctxs.values().filter(|r| {
                         r.start < tc.start
                             && r.region_end > tc.region_end
                             && r.finally_handler.is_none()
@@ -3470,8 +3530,20 @@ impl<'a> Ctx<'a> {
                             && r.except_handler.map_or(false, |ho| {
                                 h >= r.body_end && h < ho
                             })
-                    }) {
-                        self.nested_tail_defer = true;
+                    }).max_by_key(|r| r.start) {
+                        let intervening_for = self.blocks.iter().any(|b| {
+                            b.kind == BlockType::For
+                                && b.start > enclosing.start
+                                && b.start <= tc.start
+                                && b.end >= tc.region_end
+                        });
+                        if intervening_for {
+                            self.lexical_loop_handlers.insert(
+                                h, enclosing.except_handler.unwrap(),
+                            );
+                        } else {
+                            self.nested_tail_defer = true;
+                        }
                     }
                 }
                 let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
@@ -4150,6 +4222,9 @@ impl<'a> Ctx<'a> {
                             && r.finally_handler.is_none()
                             && r.except_handler
                                 .map_or(false, |h| h >= tc.body_end && h < h_outer)
+                            && !r.except_handler.map_or(false, |h| {
+                                self.lexical_loop_handlers.contains_key(&h)
+                            })
                     })
                     .cloned();
                 if let Some(inner) = nested {
@@ -4748,6 +4823,18 @@ impl<'a> Ctx<'a> {
         // handler chain — statements AFTER the copy (post-try code inside
         // a loop iteration) belong to the main walk, not the finally
         let mut fin_span_stop = stop;
+        if self.version.at_least(3, 14)
+            && self.blocks.iter().any(|block| block.kind == BlockType::With)
+        {
+            if let Some(tail) = self.instrs.iter().enumerate().find_map(|(index, instruction)| {
+                if instruction.offset >= pos && instruction.offset < fin_span_stop
+                    && instruction.op == Op::SWAP && self.with_return_tail_end(index).is_some()
+                { Some(instruction.offset) } else { None }
+            }) {
+                stop = tail;
+                fin_span_stop = tail;
+            }
+        }
         // the inline-copy mirror verdict: false means the span at `pos`
         // does NOT opcode-mirror the finally chain's copy — there is no
         // inline copy here (an always-raising try body has no normal
@@ -5071,6 +5158,8 @@ impl<'a> Ctx<'a> {
                 let r = &self.instrs[ri];
                 if r.op == Op::RETURN_VALUE {
                     Some(r.end())
+                } else if self.version.at_least(3, 14) && r.op == Op::SWAP {
+                    self.with_return_tail_end(ri)
                 } else {
                     None
                 }
@@ -5095,6 +5184,50 @@ impl<'a> Ctx<'a> {
             }
         }
         let mut body = self.pending_try_body.pop().unwrap_or_default();
+        // A narrowed except-only range can end on padding immediately before
+        // RETURN_VALUE, while its calculated value is still live. Preserve
+        // that exact carried return inside the try without scanning onward
+        // into a following sibling branch or an out-of-line handler.
+        if self.version.at_least(3, 11)
+            && self.code.name != "<module>"
+            && tc.except_handler.is_some()
+            && tc.finally_handler.is_none()
+            && tc.region_end == tc.body_end
+            && body.is_empty()
+            && orelse.is_empty()
+            && self.stack.len() == 1
+            && matches!(self.stack.last(), Some(Sv::E(_)))
+        {
+            let tail = self.instrs.iter()
+                .skip_while(|instruction| instruction.offset < tc.body_end)
+                .find(|instruction| !matches!(instruction.op,
+                    Op::NOP | Op::NOT_TAKEN | Op::CACHE))
+                .copied();
+            if let Some(ret) = tail {
+                let before_handler = tc.except_handler.map_or(false, |handler| ret.offset < handler);
+                let entered_from_outside = self.instrs.iter().any(|instruction| {
+                    (instruction.offset < tc.start || instruction.offset > ret.offset)
+                        && instruction.target.map_or(false, |target| {
+                            target >= tc.body_end && target <= ret.offset
+                        })
+                });
+                let has_context_protocol = self.instrs.iter().any(|instruction| {
+                    instruction.offset >= tc.start && instruction.offset <= tc.body_end
+                        && matches!(instruction.op, Op::BEFORE_WITH | Op::BEFORE_ASYNC_WITH
+                            | Op::WITH_EXCEPT_START | Op::LOAD_SPECIAL)
+                });
+                if ret.op == Op::RETURN_VALUE && before_handler
+                    && !entered_from_outside && !has_context_protocol
+                    && !self.return_offsets.contains(&ret.offset)
+                {
+                    body.push(Stmt::Return(Some(self.pop_expr())));
+                    self.return_offsets.insert(ret.offset);
+                    if self.skip_until.map_or(true, |skip| skip < ret.end()) {
+                        self.skip_until = Some(ret.end());
+                    }
+                }
+            }
+        }
         // 3.12+ with-wrapped try: the body's tail `return None` sits in
         // the gap between body_end and the chain head, AFTER the inline
         // with success-exit sequence (POP_EXCEPT; LOAD None ×3; CALL;
@@ -6061,7 +6194,27 @@ impl<'a> Ctx<'a> {
                             });
                             if !has_with {
                                 if bare_tail_span {
-                                    body.push(Stmt::Return(None));
+                                    // A padded RETURN_VALUE can consume the
+                                    // value that the protected body already
+                                    // calculated. The handler parser preserves
+                                    // that live stack; a fresh region walk has
+                                    // no value and used to fabricate a bare
+                                    // return instead. Keep only this exact
+                                    // single-expression stack and return tail.
+                                    let carried_return = self.version.at_least(3, 11)
+                                        && self.stack.len() == 1
+                                        && matches!(self.stack.last(), Some(Sv::E(_)))
+                                        && self.instrs.iter().any(|x| {
+                                            x.offset >= span_start
+                                                && x.offset < else_end
+                                                && x.op == Op::RETURN_VALUE
+                                        });
+                                    let value = if carried_return {
+                                        Some(self.pop_expr())
+                                    } else {
+                                        None
+                                    };
+                                    body.push(Stmt::Return(value));
                                 } else {
                                     // 3.14 narrows protected ranges at
                                     // value-construction boundaries: the
@@ -6478,6 +6631,32 @@ impl<'a> Ctx<'a> {
         stmts
     }
 
+    /// Bound a typed clause reached by the preceding match's false edge.
+    /// Only ordinary pattern loads followed by CHECK_EXC_MATCH and its
+    /// forward mismatch jump qualify; never cross a new handler or cleanup.
+    fn following_except_clause_end(&self, from: usize) -> Option<usize> {
+        let start = *self.idx_of.get(&from)?;
+        for (index, inst) in self.instrs.iter().enumerate().skip(start).take(32) {
+            if inst.op == Op::CHECK_EXC_MATCH {
+                let jump = self.instrs.get(index + 1)?;
+                if matches!(jump.op, Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE)
+                    && jump.target.map_or(false, |target| target > jump.offset)
+                {
+                    return Some(jump.end());
+                }
+                return None;
+            }
+            if !matches!(inst.op,
+                Op::LOAD_GLOBAL | Op::LOAD_NAME | Op::LOAD_FAST | Op::LOAD_DEREF
+                | Op::LOAD_ATTR | Op::LOAD_METHOD | Op::BUILD_TUPLE
+                | Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+            {
+                return None;
+            }
+        }
+        None
+    }
+
     /// Parse an out-of-line except-dispatch handler region (3.11+):
     /// PUSH_EXC_INFO followed by `[pattern; CHECK_EXC_MATCH; PJIF next]*`
     /// clause bodies, ending in RERAISE.
@@ -6486,6 +6665,11 @@ impl<'a> Ctx<'a> {
         let mut clause_offsets: Vec<usize> = Vec::new();
         let end = self.dispatch_region_end(from);
         let region_end = self.handler_region_end(from);
+        let private_body_cutoff = end < region_end
+            && self.exc_entries.iter().any(|entry| {
+                entry.start == end && entry.target == region_end
+            });
+        let mut dispatch_limit = end;
         // nesting: this chain's own cleanup region ends exactly where the
         // next chain begins — that chain handles re-raises FROM this one,
         // i.e. it is the ENCLOSING try's dispatch. Adjacency must be exact
@@ -6557,6 +6741,7 @@ impl<'a> Ctx<'a> {
             None => false,
         };
         let nested = region_end > from && adj_reraise && (extent == region_end || tramp_gap)
+            && !self.lexical_loop_handlers.contains_key(&from)
             // the exception table must confirm the enclosure: a chain
             // genuinely nested inside the adjacent one has (part of) its
             // own region protected by an entry targeting the adjacent
@@ -6627,7 +6812,7 @@ impl<'a> Ctx<'a> {
         let mut eg_chain = false;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
-            if inst.offset >= end
+            if inst.offset >= dispatch_limit
                 && !handlers.is_empty()
                 && !(nested && inst.offset < self.chain_extent(from))
             {
@@ -6678,6 +6863,15 @@ impl<'a> Ctx<'a> {
                 | Op::POP_JUMP_FORWARD_IF_NONE => {
                     at_clause_head = false;
                     let next = inst.target.unwrap_or(end);
+                    if private_body_cutoff && pattern.is_some() && next > dispatch_limit {
+                        // A private try bounds this clause's body subwalk,
+                        // not the parent match's next typed clause. Retain
+                        // that body bound while following only the explicit
+                        // mismatch edge and its verified pattern protocol.
+                        if let Some(limit) = self.following_except_clause_end(next) {
+                            dispatch_limit = limit;
+                        }
+                    }
                     clause_offsets.push(inst.offset);
                     pc += 1;
                     // 3.14 pads the clause head with NOT_TAKEN
@@ -7553,6 +7747,31 @@ impl<'a> Ctx<'a> {
                 | Op::DELETE_DEREF => {
                     k2 += 1;
                 }
+                Op::LOAD_COMMON_CONSTANT if self.loads_none(c.op, c.arg) => {
+                    k2 += 1;
+                }
+                Op::POP_TOP => {
+                    // A For-handler break drops the live iterator after
+                    // POP_EXCEPT and any named cleanup, immediately before
+                    // its jump to the registered loop exit. The iterator
+                    // discard is machinery, but that jump still represents
+                    // a source Break. Do not skip arbitrary body POP_TOPs.
+                    // 3.15 keeps a second iterator slot on this path.
+                    let pop_count = if self.version.at_least(3, 15)
+                        && self.instrs.get(k2 + 1).map(|x| x.op) == Some(Op::POP_TOP)
+                    { 2 } else { 1 };
+                    let next = self.instrs.get(k2 + pop_count);
+                    let iterator_exit = next.map_or(false, |jump| {
+                        matches!(jump.op, Op::JUMP_FORWARD | Op::JUMP_BACKWARD
+                            | Op::JUMP_ABSOLUTE | Op::JUMP)
+                            && jump.target.and_then(|target| self.find_loop_exit(target))
+                                .map_or(false, |index| self.blocks[index].kind == BlockType::For)
+                    });
+                    if !iterator_exit {
+                        break;
+                    }
+                    k2 += pop_count;
+                }
                 Op::RETURN_VALUE | Op::RETURN_CONST => {
                     // a sunk implicit tail `return None` (3.12+
                     // function-tail try: POP_EXCEPT; RETURN_CONST None —
@@ -8380,6 +8599,12 @@ impl<'a> Ctx<'a> {
     fn dispatch_region_end(&self, from: usize) -> usize {
         let mut end = self.handler_region_end(from);
         for e in &self.exc_entries {
+            // A per-row clause's POP_EXCEPT can be protected by the
+            // enclosing dispatch. It does not introduce a nested clause
+            // body. All other genuine nested-chain bounds remain active.
+            if self.lexical_loop_handlers.get(&from) == Some(&e.target) {
+                continue;
+            }
             if e.start > from && e.start < end && e.target > from {
                 // only a NESTED chain head bounds the region — an
                 // except* clause body's lasti redirect targets in-chain
@@ -11152,7 +11377,7 @@ impl<'a> Ctx<'a> {
     }
 
     /// 3.12+ inline with success-exit span: `LOAD None; LOAD None;
-    /// LOAD None; CALL; POP_TOP` starting at `off` — returns the offset
+    /// LOAD None; CALL; [async exit await;] POP_TOP` starting at `off` — returns the offset
     /// just past the POP_TOP. The callable is the VM-managed bound
     /// __exit__ (never modeled); the sequence is pure machinery.
     fn inline_with_exit_span(&self, off: usize) -> Option<usize> {
@@ -11206,7 +11431,72 @@ impl<'a> Ctx<'a> {
         while matches!(self.instrs.get(k).map(|x| x.op), Some(op) if matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)) {
             k += 1;
         }
+        let mut async_exit = false;
+        if self.version.at_least(3, 14)
+            && self.instrs.get(k).map(|x| (x.op, x.arg)) == Some((Op::GET_AWAITABLE, 2))
+        {
+            // The compiler marks an __aexit__ await with operand 2. A
+            // user-authored await uses operand 0 and must remain visible.
+            // Consume only a complete SEND loop ending in END_SEND.
+            k += 1;
+            if self.version.at_least(3, 15)
+                && self.instrs.get(k).map(|x| x.op) == Some(Op::PUSH_NULL)
+            {
+                k += 1;
+            }
+            let none = self.instrs.get(k)?;
+            if !self.loads_none(none.op, none.arg) {
+                return None;
+            }
+            k += 1;
+            let send = self.instrs.get(k)?;
+            if send.op != Op::SEND {
+                return None;
+            }
+            let end = *self.idx_of.get(&send.target?)?;
+            if end <= k || end - k > 12 || self.instrs[end].op != Op::END_SEND {
+                return None;
+            }
+            let loop_body = &self.instrs[k + 1..end];
+            if !loop_body.iter().any(|x| x.op == Op::YIELD_VALUE)
+                || !loop_body.iter().any(|x| {
+                    x.op == Op::JUMP_BACKWARD_NO_INTERRUPT && x.target == Some(send.offset)
+                })
+                || loop_body.iter().any(|x| {
+                    !matches!(x.op, Op::YIELD_VALUE | Op::RESUME | Op::CLEANUP_THROW
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT | Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                        || (x.op == Op::JUMP_BACKWARD_NO_INTERRUPT && x.target != Some(send.offset))
+                })
+            {
+                return None;
+            }
+            k = end + 1;
+            async_exit = true;
+            while matches!(self.instrs.get(k).map(|x| x.op), Some(op) if matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)) {
+                k += 1;
+            }
+        }
         if self.instrs.get(k).map(|x| x.op) != Some(Op::POP_TOP) {
+            return None;
+        }
+        let mut tail = k + 1;
+        while self.instrs.get(tail).map_or(false, |x| is_pad(x)) {
+            tail += 1;
+        }
+        let mut return_at = tail + 1;
+        while self.instrs.get(return_at).map_or(false, |x| is_pad(x)) {
+            return_at += 1;
+        }
+        if async_exit && self.instrs.get(tail).map_or(false, |x| {
+            matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                || (matches!(x.op, Op::LOAD_CONST | Op::LOAD_SMALL_INT | Op::LOAD_COMMON_CONSTANT)
+                    && self.instrs.get(return_at).map_or(false, |next| {
+                    matches!(next.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                }))
+        }) {
+            // A calculated return can carry its value through this same
+            // exit await. Keep the historical return protocol; closing the
+            // With here can discard that value or eject its source Return.
             return None;
         }
         Some(self.instrs[k].end())
@@ -13683,6 +13973,54 @@ fn short(sv: &Sv) -> String {
 use crate::opcode::Op;
 
 impl<'a> Ctx<'a> {
+    /// Recognize only an exit owned by the current lexical walk. Both
+    /// constant encodings must preserve nested and displaced return slots.
+    fn owned_inline_with_exit_span(&self) -> Option<usize> {
+        self.inline_with_exit_span(self.cur_offset).filter(|after| {
+            let is_async_exit = self.instrs.iter().any(|instruction| {
+                instruction.offset >= self.cur_offset
+                    && instruction.offset < *after
+                    && instruction.op == Op::GET_AWAITABLE
+                    && instruction.arg == 2
+            });
+            let split_protected_walk = self.blocks.iter().any(|block| block.kind == BlockType::Try);
+            if !is_async_exit {
+                return true;
+            }
+            if !split_protected_walk {
+                // A split handler walk can lose both its Try and
+                // lexical With blocks while the original exception
+                // table still protects a nested exit. Preserve the
+                // existing protocol in that displaced fragment;
+                // ordinary open-With walks keep their established
+                // success-exit handling.
+                let has_open_with = self.blocks.iter().any(|block| block.kind == BlockType::With);
+                let protected_by_with = self.exc_entries.iter().any(|entry| {
+                    entry.start <= self.cur_offset
+                        && self.cur_offset < entry.end
+                        && self.with_region_handlers.values().any(|handler| *handler == entry.target)
+                });
+                return has_open_with || !protected_by_with;
+            }
+            let Some(owner) = self.blocks.iter().rfind(|block| block.kind == BlockType::With) else {
+                // A displaced return must retain its protocol
+                // value for the source fidelity reconstruction.
+                return false;
+            };
+            // An exit protected by the open With belongs to a
+            // nested context. Keep its existing CALL/accounting
+            // path; consuming it here also consumes the outer
+            // return's exit slot in a split protected walk.
+            !owner.with_handler.map_or(false, |handler| {
+                self.exc_entries.iter().any(|entry| {
+                    entry.start <= self.cur_offset
+                        && self.cur_offset < entry.end
+                        && entry.target == handler
+                })
+            })
+        })
+    }
+
     /// Execute one instruction. Returns false when the instruction stream
     /// should stop being processed (unconditional exit).
     /// 3.15 spells the inline with's three None exit arguments as
@@ -13692,7 +14030,7 @@ impl<'a> Ctx<'a> {
         if !self.version.at_least(3, 15) || self.with_exits == 0 {
             return false;
         }
-        let Some(after) = self.inline_with_exit_span(self.cur_offset) else {
+        let Some(after) = self.owned_inline_with_exit_span() else {
             return false;
         };
         let nested_end_here = self.with_regions.iter().any(|(k, v)| {
@@ -13758,7 +14096,7 @@ impl<'a> Ctx<'a> {
                 // _maybe_compile: the leak rendered `None(None, None)`
                 // and trapped the post-with tail return inside the with)
                 if self.version.at_least(3, 11) && self.with_exits > 0 {
-                    if let Some(after) = self.inline_with_exit_span(self.cur_offset) {
+                    if let Some(after) = self.owned_inline_with_exit_span() {
                         // close the With ONLY when it is topmost: a sunk
                         // exit inside an open branch arm (`if quitting:
                         // return` — bdb 3.12 trace_dispatch) must keep
@@ -14398,6 +14736,10 @@ impl<'a> Ctx<'a> {
                                             | Op::END_SEND
                                             | Op::CLEANUP_THROW
                                             | Op::LOAD_CONST
+                                            // 3.15's await setup has a null SEND
+                                            // slot and a shared None constant.
+                                            | Op::PUSH_NULL
+                                            | Op::LOAD_COMMON_CONSTANT
                                             | Op::NOP
                                             | Op::NOT_TAKEN
                                             | Op::END_ASYNC_FOR
@@ -23216,9 +23558,17 @@ impl<'a> Ctx<'a> {
         // rotated `while a or b:` — the body region loops back to this
         // condition; leave it to the while machinery
         if let (Some(&bi), Some(&ei)) = (self.idx_of.get(&target), self.idx_of.get(&exit)) {
+            let outer_for_top = self.blocks.iter().rev()
+                .find(|block| matches!(block.kind, BlockType::For | BlockType::While))
+                .filter(|block| block.kind == BlockType::For && block.start < self.cur_offset)
+                .map(|block| block.start);
             if self.instrs[bi..ei]
                 .iter()
-                .any(|x| x.is_backward && x.target.map_or(false, |t| t <= self.cur_offset))
+                .any(|x| x.is_backward && x.target.map_or(false, |t| {
+                    t <= self.cur_offset && !outer_for_top.map_or(false, |top| {
+                        t == top || self.is_loop_top_prefix(t, top)
+                    })
+                }))
             {
                 return None;
             }
@@ -29212,6 +29562,27 @@ return None;
                 Op::PUSH_NULL => {
                     st.push(self.name_expr("\u{0}null"));
                 }
+                Op::MAKE_FUNCTION if self.version.at_least(3, 13) => {
+                    let value = st.pop()?;
+                    let Expr::Const(value) = &*value else { return None; };
+                    let PyObject::Code(code) = &**value else { return None; };
+                    if code.name != "<genexpr>" { return None; }
+                    st.push(Rc::new(Expr::Function(Rc::new(FunctionDef {
+                        name: code.name.clone(), code: code.clone(), params: Parameters::empty(),
+                        decorators: Vec::new(), returns: None, is_async: false, type_params: Vec::new(),
+                    }))));
+                }
+                Op::SET_FUNCTION_ATTRIBUTE if ins.arg == 8 => {
+                    let function = st.pop()?;
+                    let closure = st.pop()?;
+                    let Expr::Function(definition) = &*function else { return None; };
+                    let Expr::Tuple(cells) = &*closure else { return None; };
+                    if cells.len() != definition.code.freevars.len() { return None; }
+                    // Generator captures refer to the enclosing lexical
+                    // cells; retain the function after checking their count.
+                    st.push(function);
+                }
+                Op::GET_ITER => { st.last()?; }
                 Op::COPY => {
                     if arg == 0 || arg > st.len() {
                         return None;
@@ -29268,6 +29639,23 @@ return None;
                     } else {
                         arg
                     };
+                    if self.version.at_least(3, 13) && ins.op == Op::CALL && n == 0 && st.len() >= 2 {
+                        if let Expr::Function(definition) = &*st[st.len() - 2] {
+                            if definition.code.name == "<genexpr>" {
+                                let code = definition.code.clone();
+                                let outer = st.pop()?;
+                                st.pop();
+                                let decoded = decompile(&code, self.version).ok().filter(|result| result.clean)?;
+                                let mut generators = Vec::new();
+                                let element = generator_parts_from_body(&decoded.body, &mut generators, &code.freevars)?;
+                                generators.first_mut()?.iter = outer;
+                                st.push(Rc::new(Expr::Comprehension {
+                                    kind: CompKind::Generator, elt: element, key: None, generators,
+                                }));
+                                continue;
+                            }
+                        }
+                    }
                     let mut args = Vec::new();
                     for _ in 0..n {
                         args.push(pop1(&mut st));
@@ -29406,6 +29794,58 @@ return None;
                         _ => Expr::Set(items),
                     };
                     st.push(Rc::new(e));
+                }
+                Op::BUILD_MAP => {
+                    let count = arg.checked_mul(2)?;
+                    if st.len() < count { return None; }
+                    let values = st.split_off(st.len() - count);
+                    st.push(Rc::new(Expr::Dict(values.chunks_exact(2)
+                        .map(|pair| (pair[0].clone(), pair[1].clone())).collect())));
+                }
+                // Shared validation raises often construct an f-string
+                // message. Use the main parser's conversion/spec model,
+                // with exact stack consumption and no invented value ops.
+                Op::CONVERT_VALUE if self.version.at_least(3, 13) => {
+                    let conversion = match ins.arg {
+                        1 => 's', 2 => 'r', 3 => 'a', _ => return None,
+                    };
+                    let value = st.pop()?;
+                    st.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![FStringPart::Value { value, conversion: Some(conversion), format_spec: None }],
+                    }))));
+                }
+                Op::FORMAT_SIMPLE | Op::FORMAT_WITH_SPEC if self.version.at_least(3, 13) => {
+                    let spec = if ins.op == Op::FORMAT_WITH_SPEC { Some(st.pop()?) } else { None };
+                    let value = st.pop()?;
+                    let (value, conversion) = match &*value {
+                        Expr::FString(text) if text.parts.len() == 1 => match &text.parts[0] {
+                            FStringPart::Value { value: inner, conversion, format_spec: None } =>
+                                (inner.clone(), *conversion),
+                            _ => (value, None),
+                        },
+                        _ => (value, None),
+                    };
+                    st.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![FStringPart::Value {
+                            value, conversion, format_spec: spec.map(|value| Box::new(expr_to_fstring(value))),
+                        }],
+                    }))));
+                }
+                Op::BUILD_STRING if self.version.at_least(3, 13) => {
+                    if st.len() < arg { return None; }
+                    let values = st.split_off(st.len() - arg);
+                    let mut parts = Vec::new();
+                    for value in values {
+                        match &*value {
+                            Expr::Const(value) => match &**value {
+                                PyObject::Str(text) => parts.push(FStringPart::Literal(text.clone())),
+                                _ => return None,
+                            },
+                            Expr::FString(text) => parts.extend(text.parts.iter().cloned()),
+                            _ => return None,
+                        }
+                    }
+                    st.push(Rc::new(Expr::FString(Box::new(FString { parts }))));
                 }
                 Op::RETURN_CONST => {
                     st.push(Rc::new(Expr::Const(
@@ -30089,9 +30529,213 @@ return None;
         Some(body_start)
     }
 
+    /// Recover a shared rejection block reached by short-circuit tests.
+    /// CPython 3.14 puts the last test's success jump over the reject block.
+    /// Treating earlier None jumps as nested positive ifs loses rejection for
+    /// missing values. A negated comparison chain also has a POP_TOP cleanup
+    /// edge; retain its copied middle value to avoid evaluating it twice.
+    fn try_shared_rejection_guard(
+        &self, first: &ExprRef, first_jump_true: bool, target: usize,
+    ) -> Option<(ExprRef, Vec<Stmt>, usize)> {
+        if !self.version.at_least(3, 14) || !self.stack.is_empty() || target <= self.cur_offset {
+            return None;
+        }
+        let padding = |op| matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG);
+        let skip_padding = |mut index: usize| {
+            while self.instrs.get(index).map_or(false, |item| padding(item.op)) { index += 1; }
+            index
+        };
+        let constant_at = |index: usize| -> Option<ObjectRef> {
+            let item = self.instrs.get(index)?;
+            match item.op {
+                Op::LOAD_CONST => self.code.consts.get(item.arg as usize).cloned(),
+                Op::LOAD_SMALL_INT => Some(Rc::new(PyObject::Int(item.arg as i32))),
+                Op::LOAD_COMMON_CONSTANT => match &*common_constant_expr(item.arg, self.version)? {
+                    Expr::Const(value) => Some(value.clone()),
+                    _ => None,
+                },
+                _ => None,
+            }
+        };
+        let reject_index = skip_padding(*self.idx_of.get(&target)?);
+        let reject = self.instrs.get(reject_index)?;
+        let (body, end_index) = if reject.is_backward && matches!(reject.op, Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT) {
+            let top = reject.target?;
+            if !self.blocks.iter().any(|block| matches!(block.kind, BlockType::For | BlockType::While)
+                && (block.start == top || block.cond_end == top)) { return None; }
+            (vec![Stmt::Continue], reject_index + 1)
+        } else {
+            // A rejection can return a value or raise an exception with an
+            // optional explicit cause. Require exactly the terminator's
+            // operands, without branches, stores or exception cleanup.
+            let mut ret = reject_index;
+            while let Some(item) = self.instrs.get(ret) {
+                if item.op == Op::RETURN_VALUE
+                    || (item.op == Op::RAISE_VARARGS && matches!(item.arg, 1 | 2)) { break; }
+                if item.is_jump() || matches!(item.op, Op::STORE_FAST | Op::STORE_NAME
+                    | Op::STORE_DEREF | Op::STORE_ATTR | Op::STORE_SUBSCR | Op::POP_EXCEPT
+                    | Op::PUSH_EXC_INFO | Op::RERAISE | Op::RAISE_VARARGS) { return None; }
+                ret += 1;
+            }
+            let terminal = self.instrs.get(ret)?;
+            let mut result = self.sim_stack_region(reject_index, ret, Vec::new())?;
+            let statement = match terminal.op {
+                Op::RETURN_VALUE if result.len() == 1 => Stmt::Return(Some(result.pop()?)),
+                Op::RAISE_VARARGS if matches!(terminal.arg, 1 | 2)
+                    && result.len() == terminal.arg as usize => {
+                    let cause = if terminal.arg == 2 { Some(result.pop()?) } else { None };
+                    Stmt::Raise { exc: Some(result.pop()?), cause, py2_inst: None, py2_tb: None }
+                }
+                _ => return None,
+            };
+            (vec![statement], ret + 1)
+        };
+        let equivalent_return = |index: usize| -> Option<usize> {
+            let Some(Stmt::Return(Some(expected))) = body.first() else { return None; };
+            let Expr::Const(expected) = &**expected else {
+                // Short constructed returns can be duplicated too. Compare
+                // the complete branch-free instruction run, not just its
+                // first constant or the resulting expression's spelling.
+                let mut actual = skip_padding(index);
+                for expected in &self.instrs[reject_index..end_index] {
+                    if padding(expected.op) { continue; }
+                    let item = self.instrs.get(actual)?;
+                    if item.op != expected.op || item.arg != expected.arg { return None; }
+                    actual = skip_padding(actual + 1);
+                }
+                return Some(actual);
+            };
+            let actual = constant_at(index)?;
+            if !Rc::ptr_eq(expected, &actual) && !const_value_eq(expected, &actual) { return None; }
+            let ret = skip_padding(index + 1);
+            if self.instrs.get(ret)?.op != Op::RETURN_VALUE { return None; }
+            Some(ret + 1)
+        };
+        let mut body_index = skip_padding(end_index);
+        // A failed chained link may pop its retained middle value before a
+        // compiler-generated duplicate return. The successful jump skips
+        // both return copies, not merely the first one.
+        if matches!(body.first(), Some(Stmt::Return(_))) {
+            loop {
+                let mut copy = body_index;
+                if !self.instrs.get(copy).map_or(false, |item| item.op == Op::POP_TOP) {
+                    break;
+                }
+                copy = skip_padding(copy + 1);
+                let Some(after_copy) = equivalent_return(copy) else { break; };
+                body_index = skip_padding(after_copy);
+            }
+        }
+        let body_start = self.instrs.get(body_index)?.offset;
+        let reaches_reject = |offset: usize| -> bool {
+            let Some(&start) = self.idx_of.get(&offset) else { return false; };
+            let mut index = skip_padding(start);
+            // A real success continuation may return the same constant.
+            // Equality alone does not make that statement a rejection copy.
+            if index >= body_index { return false; }
+            if self.instrs.get(index).map_or(false, |item| item.op == Op::POP_TOP) {
+                index = skip_padding(index + 1);
+            }
+            if index == reject_index { return true; }
+            if equivalent_return(index).is_some() { return true; }
+            if self.instrs.get(index).map_or(false, |item|
+                self.dup_copy_redirect.get(&item.offset).copied() == Some(reject.offset)) { return true; }
+            self.instrs.get(index).map_or(false, |item| item.op == Op::JUMP_FORWARD
+                && item.target.map_or(false, |dest| skip_padding(*self.idx_of.get(&dest).unwrap_or(&usize::MAX)) == reject_index))
+        };
+        let failure = |condition: ExprRef, truth: bool| -> ExprRef {
+            if truth { return condition; }
+            if let Expr::Compare { operands, ops } = &*condition {
+                if ops.len() == 1 && matches!(ops[0], CmpOp::Is | CmpOp::IsNot) {
+                    return Rc::new(Expr::Compare {
+                        operands: operands.clone(), ops: vec![if ops[0] == CmpOp::Is { CmpOp::IsNot } else { CmpOp::Is }],
+                    });
+                }
+            }
+            // Do not flip inequalities: NaN and custom rich comparisons
+            // make `not (a <= b)` different from `a > b`.
+            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: condition })
+        };
+        let mut values = vec![failure(first.clone(), first_jump_true)];
+        let mut start = *self.idx_of.get(&self.cur_offset)? + 1;
+        let mut carried = Vec::new();
+        let mut complete = false;
+        while start < reject_index {
+            let mut end = start;
+            while end < reject_index && !matches!(self.instrs[end].op,
+                Op::POP_JUMP_IF_NONE | Op::POP_JUMP_IF_NOT_NONE | Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_IF_FALSE) {
+                end += 1;
+            }
+            if end == reject_index { return None; }
+            let was_chain = !carried.is_empty();
+            carried = self.sim_stack_region(start, end, carried)?;
+            let value = carried.pop()?;
+            let jump = self.instrs[end];
+            let (condition, jump_true) = match jump.op {
+                Op::POP_JUMP_IF_NONE | Op::POP_JUMP_IF_NOT_NONE => (Rc::new(Expr::Compare {
+                    operands: vec![value, Rc::new(Expr::Const(Rc::new(PyObject::None)))],
+                    ops: vec![if jump.op == Op::POP_JUMP_IF_NONE { CmpOp::Is } else { CmpOp::IsNot }],
+                }), true),
+                Op::POP_JUMP_IF_TRUE => (value, true),
+                _ => (value, false),
+            };
+            let destination = jump.target?;
+            let member = if reaches_reject(destination) {
+                failure(condition, jump_true)
+            } else if destination == body_start && reaches_reject(self.instrs.get(end + 1)?.offset) {
+                complete = true;
+                failure(condition, !jump_true)
+            } else { return None; };
+            let merged = if was_chain {
+                match (values.last().map(|value| &**value), &*member) {
+                    (Some(Expr::Unary { op: UnaryOp::Not, operand: left }),
+                     Expr::Unary { op: UnaryOp::Not, operand: right }) => {
+                        merge_chain_compare(left, right).map(|operand| Rc::new(Expr::Unary { op: UnaryOp::Not, operand }))
+                    }
+                    _ => None,
+                }
+            } else { None };
+            let chain_merged = merged.is_some();
+            if let Some(merged) = merged { values.pop(); values.push(merged); }
+            else { values.push(member); }
+            if complete { break; }
+            start = end + 1;
+            // A successful chained comparison can jump over its failed
+            // link's POP_TOP/JUMP_FORWARD cleanup into another predicate.
+            // Skip only that complete trampoline back to this rejection;
+            // simulating it on the success path consumes the middle value
+            // again or makes the remaining predicate region unparseable.
+            if chain_merged && carried.is_empty() {
+                let success = skip_padding(start);
+                if let Some(skip) = self.instrs.get(success) {
+                    if skip.op == Op::JUMP_FORWARD {
+                        if let Some(&destination) = skip.target.and_then(|offset| self.idx_of.get(&offset)) {
+                            let cleanup = skip_padding(success + 1);
+                            let jump = skip_padding(cleanup + 1);
+                            if destination < reject_index
+                                && self.instrs.get(cleanup).map_or(false, |item| item.op == Op::POP_TOP)
+                                && self.instrs.get(jump).map_or(false, |item| item.op == Op::JUMP_FORWARD
+                                    && item.target.map_or(false, reaches_reject))
+                                && skip_padding(jump + 1) == destination {
+                                start = destination;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if !complete || !carried.is_empty() || values.len() < 2 { return None; }
+        Some((Rc::new(Expr::BoolOp { op: BoolOpKind::Or, values }), body, body_start))
+    }
+
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
         // tail-duplicated body copy: aim the jump at the original body
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
+        if let Some((guard, body, resume)) = self.try_shared_rejection_guard(&cond, jump_if_true, target) {
+            self.push_stmt(Stmt::If { cond: guard, body, orelse: Vec::new() });
+            self.skip_until = Some(resume);
+            return;
+        }
         let raw_target = target;
         // 3.8+ `continue` threading: the jump may land ON the loop's back
         // edge instruction instead of the loop top (3.10 `if a or b:
@@ -31523,6 +32167,51 @@ return None;
             if let Some((merged, body_start, body_end)) =
                 self.try_stmt_chain_compare(&cond, target)
             {
+                // A chain can guard a comprehension element's ternary.
+                // Its success/else arms build values; opening a statement
+                // If here drops those values and the collection itself.
+                let ternary_merge = (|| {
+                    let comp = self.inline_comp.as_ref()?;
+                    let start = *self.idx_of.get(&body_start)?;
+                    let end = *self.idx_of.get(&body_end)?;
+                    let then = self.instrs[start..end].iter()
+                        .filter(|item| !matches!(item.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE))
+                        .collect::<Vec<_>>();
+                    let hop = then.last()?;
+                    let merge = hop.target?;
+                    if hop.op != Op::JUMP_FORWARD || hop.is_backward
+                        || merge <= body_end || merge >= comp.end
+                        || !then[..then.len() - 1].iter().all(|item| is_pure_value_op(item.op))
+                    { return None; }
+                    let merge_index = *self.idx_of.get(&merge)?;
+                    if !self.instrs[end..merge_index].iter().all(|item| {
+                        is_pure_value_op(item.op) || matches!(item.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                    }) { return None; }
+                    let cleanup = *self.idx_of.get(&target)?;
+                    let mut failed = self.instrs[cleanup..start].iter()
+                        .filter(|item| !matches!(item.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE));
+                    if failed.next()?.op != Op::POP_TOP { return None; }
+                    let failed_hop = failed.next()?;
+                    if failed_hop.op != Op::JUMP_FORWARD || failed_hop.target != Some(body_end)
+                        || failed.next().is_some()
+                    { return None; }
+                    let Expr::Compare { operands, .. } = &*cond else { return None; };
+                    if !matches!(self.stack.last(), Some(Sv::E(value))
+                        if Rc::ptr_eq(value, &operands[1]))
+                    { return None; }
+                    Some(merge)
+                })();
+                if let Some(merge) = ternary_merge {
+                    // COPY retained this one middle operand for later links.
+                    // The chain scan consumed those links without executing
+                    // their stack operations; remove only that same value.
+                    self.stack.pop();
+                    let comp = self.inline_comp.as_mut().unwrap();
+                    comp.pending_merges.push((merge, merged, None));
+                    comp.tern_chain_t = None;
+                    self.skip_until = Some(body_start);
+                    return;
+                }
                 let mut blk = Block::new(BlockType::If, body_start, body_end);
                 blk.cond = Some(merged);
                 blk.cond_set = true;
@@ -41695,6 +42384,10 @@ if split_cond {
     }
 
     fn with_return_tail_end(&self, k0: usize) -> Option<usize> {
+        self.with_return_tail_info(k0).map(|(after, _)| after)
+    }
+
+    fn with_return_tail_info(&self, k0: usize) -> Option<(usize, usize)> {
         let first = self.instrs.get(k0)?;
         if !(first.op == Op::ROT_TWO
             || (first.op == Op::SWAP && (first.arg == 2 || first.arg == 3)))
@@ -41721,6 +42414,8 @@ if split_cond {
         let mut call = false;
         let mut pop_after_call = false;
         let mut cleanup = false;
+        let mut remaining_exits = self.with_exits.saturating_sub(1);
+        let mut exit_groups = 1;
         while k < self.instrs.len() {
             let x = &self.instrs[k];
             match x.op {
@@ -41730,11 +42425,8 @@ if split_cond {
                     k += 1;
                 }
                 Op::POP_FINALLY => k += 1,
-                Op::LOAD_CONST
-                    if matches!(
-                        self.code.consts.get(x.arg as usize).map(|o| &**o),
-                        Some(PyObject::None)
-                    ) =>
+                Op::LOAD_CONST | Op::LOAD_COMMON_CONSTANT
+                    if self.loads_none(x.op, x.arg) =>
                 {
                     nones += 1;
                     k += 1;
@@ -41776,9 +42468,27 @@ if split_cond {
                     pop_after_call = true;
                     k += 1;
                 }
+                // Nested modern contexts carry the same computed value
+                // across another complete exit group before one shared
+                // return. Only consume the exact SWAP pair after a finished
+                // exit, and never exceed the known context-exit slots.
+                Op::SWAP if (x.arg == 2 || x.arg == 3) && call && pop_after_call
+                    && self.version.at_least(3, 11)
+                    && remaining_exits > 0
+                    && (x.arg == 2 || matches!(self.instrs.get(k + 1).map(|next| (next.op, next.arg)),
+                        Some((Op::SWAP, 2)))) =>
+                {
+                    remaining_exits -= 1;
+                    exit_groups += 1;
+                    nones = 0;
+                    call = false;
+                    pop_after_call = false;
+                    cleanup = false;
+                    k += if x.arg == 3 { 2 } else { 1 };
+                }
                 Op::RETURN_VALUE | Op::RETURN_CONST => {
                     if cleanup || (call && pop_after_call) {
-                        return Some(x.end());
+                        return Some((x.end(), exit_groups));
                     }
                     return None;
                 }
@@ -41878,7 +42588,7 @@ if split_cond {
         let Some(&ki) = self.idx_of.get(&inst.offset) else {
             return false;
         };
-        let Some(after) = self.with_return_tail_end(ki) else {
+        let Some((after, exit_groups)) = self.with_return_tail_info(ki) else {
             return false;
         };
         // 3.14 guard-arm sunk exits: the With is still OPEN (its merged
@@ -41918,6 +42628,43 @@ if split_cond {
             if self.skip_until.map_or(true, |s| s < skip_end) {
                 self.skip_until = Some(skip_end);
             }
+            return true;
+        }
+        // The innermost context may have closed at the first exit group,
+        // leaving its With statement last in a still-open outer context.
+        // A proved multi-exit return belongs in that closed inner body.
+        // Contiguous outer contexts prove its nesting. Keep them open:
+        // their exit slots are still needed on the suppression path.
+        if exit_groups > 1
+            && self.blocks.iter().rev().take(exit_groups - 1)
+                .all(|block| block.kind == BlockType::With)
+            && self.blocks.len() >= exit_groups
+            && matches!(self.blocks.last().and_then(|block| block.stmts.last()), Some(Stmt::With { .. }))
+        {
+            let value = self.pop_expr();
+            let ret = match &*value {
+                Expr::Const(object) if matches!(&**object, PyObject::None) => Stmt::Return(None),
+                _ => Stmt::Return(Some(value)),
+            };
+            if let Some(Stmt::With { body, .. }) = self.blocks.last_mut().and_then(|block| block.stmts.last_mut()) {
+                body.push(ret);
+            }
+            self.with_exits = self.with_exits.saturating_sub(1);
+            let skip_end = self.with_handler_skip_end(after);
+            if self.skip_until.map_or(true, |current| current < skip_end) {
+                self.skip_until = Some(skip_end);
+            }
+            return true;
+        }
+        // A loop's out-of-line except fragments can extend the With's
+        // region beyond its normal computed-return tail. The With is then
+        // still open here although its loop has closed. This pure exit
+        // protocol carries the body's existing result, not a user call.
+        // Close that With at the tail before simulating its cleanup slots.
+        if self.blocks.last().map_or(false, |block| {
+            block.kind == BlockType::With && block.end > inst.offset
+        }) {
+            self.fold_with_return(inst.offset, after);
             return true;
         }
         // probe the target shape BEFORE popping so a failed fold leaves
@@ -43055,7 +43802,12 @@ impl<'a> Ctx<'a> {
                 && self
                     .idx_of
                     .get(&self.cur_offset)
-                    .and_then(|&pi| (pi > 0).then(|| &self.instrs[pi - 1]))
+                    // 3.14 inserts NOT_TAKEN after the conditional jump.
+                    // It does not consume the retained operand: the first
+                    // meaningful instruction in the arm is still its pop.
+                    .and_then(|&pi| self.instrs[..pi].iter().rev().find(|p| {
+                        !matches!(p.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                    }))
                     .map_or(false, |p| {
                         matches!(p.op, Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_IF_TRUE)
                             && !p.is_backward
@@ -44384,6 +45136,19 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    fn loads_none(&self, op: Op, arg: u32) -> bool {
+        match op {
+            Op::LOAD_CONST => matches!(
+                self.code.consts.get(arg as usize).map(|o| &**o),
+                Some(PyObject::None)
+            ),
+            Op::LOAD_COMMON_CONSTANT => common_constant_expr(arg, self.version)
+                .map_or(false, |value| matches!(&*value,
+                    Expr::Const(object) if matches!(&**object, PyObject::None))),
+            _ => false,
+        }
+    }
+
     /// 3.11+ function-tail try/except[/else] whose implicit `return None`
     /// the compiler SANK into both exits: the success path ends with a
     /// RETURN None right before the out-of-line chain, and the chain's
@@ -44483,15 +45248,15 @@ impl<'a> Ctx<'a> {
         // the mainline and claimed the else arm's own return as the
         // mirror, losing it. A bare `LOAD None; RETURN` tail is
         // try_tail_sunk_pair's stricter domain - skip it here.
-        if tail.len() < 2 {
+        let meaningful_tail: Vec<_> = tail.iter().filter(|(op, _)| {
+            !matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+        }).collect();
+        if meaningful_tail.len() < 2 {
             return None;
         }
-        if tail.len() == 2
-            && tail[0].0 == Op::LOAD_CONST
-            && matches!(
-                self.code.consts.get(tail[0].1 as usize).map(|o| &**o),
-                Some(PyObject::None)
-            )
+        if meaningful_tail.len() == 2
+            && meaningful_tail[1].0 == Op::RETURN_VALUE
+            && self.loads_none(meaningful_tail[0].0, meaningful_tail[0].1)
         {
             return None;
         }
@@ -44608,11 +45373,7 @@ impl<'a> Ctx<'a> {
             ),
             Op::RETURN_VALUE => ri > 0 && {
                 let p = &self.instrs[ri - 1];
-                p.op == Op::LOAD_CONST
-                    && matches!(
-                        self.code.consts.get(p.arg as usize).map(|o| &**o),
-                        Some(PyObject::None)
-                    )
+                self.loads_none(p.op, p.arg)
             },
             _ => false,
         };
@@ -44634,13 +45395,7 @@ impl<'a> Ctx<'a> {
                     self.idx_of
                         .get(&x.offset)
                         .and_then(|&xi| xi.checked_sub(1).map(|p| &self.instrs[p]))
-                        .map(|p| {
-                            p.op == Op::LOAD_CONST
-                                && matches!(
-                                    self.code.consts.get(p.arg as usize).map(|o| &**o),
-                                    Some(PyObject::None)
-                                )
-                        })
+                        .map(|p| self.loads_none(p.op, p.arg))
                         .unwrap_or(false)
                 },
                 _ => false,
@@ -47073,7 +47828,16 @@ impl<'a> Ctx<'a> {
             && star_args_none(&args)
             && args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
         {
-            self.with_exits -= 1;
+            // A constant early return has no SWAP-based return tail. Its
+            // copied __aexit__ call must not consume the enclosing with's
+            // bookkeeping needed by later branches and the final exit.
+            let early_exit = self.blocks.iter().any(|block| {
+                block.kind == BlockType::With && block.end > self.cur_offset
+            }) && matches!(self.blocks.last().map(|block| block.kind),
+                          Some(BlockType::If) | Some(BlockType::Else));
+            if !early_exit {
+                self.with_exits -= 1;
+            }
             let next_awaitable = self
                 .idx_of
                 .get(&self.cur_offset)
@@ -47257,6 +48021,7 @@ impl<'a> Ctx<'a> {
     /// method is already `Attribute { value: receiver }`, so the marker is
     /// only validated, not consumed into the AST.
     fn call_311(&mut self, argc: usize, _is_method: bool) {
+        let clean_before_call = self.clean;
         // 3.11+ assert-with-message: the assertion class and the message
         // sit as [cls, msg] with NO null slot, and CALL 0 consumes msg as
         // the self_or_null position (an implicit first argument). Without
@@ -47298,6 +48063,7 @@ impl<'a> Ctx<'a> {
         //   the iterable sits ABOVE the function and becomes the marker
         // Peek before popping to choose the right order.
         let n = self.stack.len();
+        let missing_callable_slot = n == 0;
         let genexpr_case = n >= 2
             && matches!(&self.stack[n - 1], Sv::E(_))
             && matches!(&self.stack[n - 2], Sv::E(f) if is_comp_callable(f));
@@ -47498,7 +48264,37 @@ impl<'a> Ctx<'a> {
             && none_args
             && (func_is_none || func_is_underflow)
         {
-            self.with_exits -= 1;
+            let protected_early_exit = self.blocks.iter().any(|block| {
+                block.kind == BlockType::With && block.end > self.cur_offset
+            }) && matches!(self.blocks.last().map(|block| block.kind),
+                          Some(BlockType::If) | Some(BlockType::Else));
+            // CPython 3.14+ can sink a constant-return protocol call
+            // immediately past the With's final protected fragment. The
+            // arm still owns it, and a later normal exit needs this slot.
+            let sunk_return_exit = self.version.at_least(3, 14)
+                && pos_args.len() == 3
+                && self.blocks.iter().any(|block| block.kind == BlockType::With)
+                && self.blocks.last().filter(|block| {
+                    matches!(block.kind, BlockType::If | BlockType::Else)
+                        && block.end > self.cur_offset
+                }).zip(self.idx_of.get(&self.cur_offset)).map_or(false, |(arm, &index)| {
+                    for item in self.instrs[index + 1..].iter().take_while(|item| item.offset < arm.end) {
+                        if item.op == Op::RETURN_VALUE { return true; }
+                        // 3.15 adds a null SEND slot after GET_AWAITABLE.
+                        if item.op == Op::PUSH_NULL && self.version.at_least(3, 15) { continue; }
+                        if !matches!(item.op,
+                            Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::GET_AWAITABLE
+                            | Op::LOAD_CONST | Op::LOAD_SMALL_INT | Op::LOAD_COMMON_CONSTANT
+                            | Op::SEND | Op::YIELD_VALUE
+                            | Op::RESUME | Op::JUMP_BACKWARD_NO_INTERRUPT | Op::END_SEND | Op::POP_TOP)
+                        { return false; }
+                    }
+                    false
+                });
+            let early_exit = protected_early_exit || sunk_return_exit;
+            if !early_exit {
+                self.with_exits -= 1;
+            }
             // async with (3.11+): the __aexit__ result is awaited right
             // after the swallowed call — the protocol has no awaitable on
             // our modeled stack, so drop it cleanly (no underflow)
@@ -47513,6 +48309,14 @@ impl<'a> Ctx<'a> {
                 });
             if next_awaitable {
                 self.with_exit_await_drop = true;
+                // The exit callable is deliberately absent from this
+                // modeled stack. Its exact three-None async protocol
+                // has been consumed, so that one expected underflow
+                // does not indicate missing user code. Preserve every
+                // incomplete diagnostic that preceded this call.
+                if missing_callable_slot && argc == 3 {
+                    self.clean = clean_before_call;
+                }
             }
             return;
         }
@@ -51591,11 +52395,12 @@ impl<'a> Ctx<'a> {
 
 // =====================  comprehensions  =====================
 
-// The main statement parser already understands PEP 709's nested inline
-// comprehensions. Reuse it for generator elements instead of flattening an
-// inner dict/list/set comprehension into the generator's own clauses.
+// The main statement parser understands nested inline comprehensions,
+// optimized unpack targets, and nested closure calls. Reuse its For/If/Yield
+// tree for eligible 3.12+ generators, retaining the legacy simulator as a
+// fallback when the statement result is incomplete or not a generator tree.
 fn generator_parts_from_body(
-    body: &[Stmt], generators: &mut Vec<Comprehension>,
+    body: &[Stmt], generators: &mut Vec<Comprehension>, freevars: &[String],
 ) -> Option<ExprRef> {
     let mut result = None;
     for statement in body {
@@ -51606,13 +52411,21 @@ fn generator_parts_from_body(
                     target: target.clone(), iter: iter.clone(), ifs: Vec::new(),
                     is_async: *is_async, if_line_break: false,
                 });
-                result = generator_parts_from_body(body, generators);
+                result = generator_parts_from_body(body, generators, freevars);
                 if result.is_none() { return None; }
+            }
+            // A rejected iteration can be an inverted continue guard,
+            // followed by the yielded value. Keep the statement parser's
+            // expression instead of losing its COPY/TO_BOOL value merges.
+            Stmt::If { cond, body, orelse }
+                if orelse.is_empty() && matches!(body.as_slice(), [Stmt::Continue]) => {
+                if result.is_some() { return None; }
+                generators.last_mut()?.ifs.push(negate_cond(cond.clone()));
             }
             Stmt::If { cond, body, orelse } if orelse.is_empty() => {
                 if result.is_some() { return None; }
                 generators.last_mut()?.ifs.push(cond.clone());
-                result = generator_parts_from_body(body, generators);
+                result = generator_parts_from_body(body, generators, freevars);
                 if result.is_none() { return None; }
             }
             Stmt::Expr(value) => {
@@ -51625,6 +52438,10 @@ fn generator_parts_from_body(
                     _ => return None,
                 }
             }
+            // Generator walrus targets bind enclosing cells. Their Named
+            // expressions retain the stores; the parent supplies the scope.
+            // Never discard global or unrelated nonlocal declarations.
+            Stmt::Nonlocal(names) if names.iter().all(|name| freevars.contains(name)) => {},
             Stmt::Pass | Stmt::Return(None) => {},
             Stmt::Return(Some(value))
                 if matches!(&**value, Expr::Const(object) if matches!(&**object, PyObject::None)) => {},
@@ -51896,13 +52713,32 @@ fn genexpr_ternary_merge(
         let table = table_for(self.version).ok()?;
         let instrs = crate::bytecode::decode_instructions(code, table, self.version);
 
-        if self.version.at_least(3, 12) && matches!(_kind, CompKind::Generator)
-            && instrs.iter().any(|instruction| instruction.op == Op::LOAD_FAST_AND_CLEAR)
-        {
+        if self.version.at_least(3, 12) && matches!(_kind, CompKind::Generator) {
             if let Some(statements) = decompile(code, self.version).ok().filter(|result| result.clean) {
                 let mut generators = Vec::new();
-                if let Some(element) = generator_parts_from_body(&statements.body, &mut generators) {
+                if let Some(element) = generator_parts_from_body(&statements.body, &mut generators, &code.freevars) {
                     if !generators.is_empty() {
+                        // In 3.12, a filter on a separate source line jumps
+                        // to the shared back edge instead of to the yield.
+                        // Preserve the legacy walker's layout hint when the
+                        // decoded loops map one-to-one to generator clauses.
+                        if !self.version.at_least(3, 13) {
+                            let loops: Vec<_> = instrs.iter()
+                                .filter(|ins| ins.op == Op::FOR_ITER).collect();
+                            if loops.len() == generators.len() {
+                                for (clause, loop_head) in generators.iter_mut().zip(loops.iter()) {
+                                    clause.if_line_break = !clause.ifs.is_empty() && instrs.iter().any(|ins| {
+                                        ins.op == Op::POP_JUMP_IF_FALSE
+                                            && ins.offset > loop_head.offset
+                                            && loop_head.target.map_or(false, |end| ins.offset < end)
+                                            && ins.target.and_then(|target| instrs.iter()
+                                                .find(|tail| tail.offset == target))
+                                                .map_or(false, |tail| tail.op == Op::JUMP_BACKWARD
+                                                    && tail.target == Some(loop_head.offset))
+                                    });
+                                }
+                            }
+                        }
                         generators[0].iter = outer_iter.clone();
                         return Some((element, None, generators));
                     }
@@ -53964,17 +54800,60 @@ mod generator_parts_tests {
     }
 
     #[test]
+    fn extraction_omits_only_declarations_for_real_enclosing_cells() {
+        let declaration = Stmt::Nonlocal(vec!["change".into()]);
+        let body = vec![declaration.clone(), yielded_loop()];
+        assert!(generator_parts_from_body(&body, &mut Vec::new(), &["change".into()]).is_some());
+        assert!(generator_parts_from_body(&body, &mut Vec::new(), &[]).is_none());
+        for declaration in [
+            Stmt::Global(vec!["change".into()]),
+            Stmt::Nonlocal(vec!["change".into(), "unrelated".into()]),
+        ] {
+            assert!(generator_parts_from_body(
+                &[declaration, yielded_loop()], &mut Vec::new(), &["change".into()],
+            ).is_none());
+        }
+    }
+
+    #[test]
+    fn extraction_accepts_only_an_early_continue_guard() {
+        let guard = Stmt::If {
+            cond: Rc::new(Expr::Name("skip".into())),
+            body: vec![Stmt::Continue], orelse: vec![],
+        };
+        let mut accepted = yielded_loop();
+        if let Stmt::For { body, .. } = &mut accepted { body.insert(0, guard.clone()); }
+        let mut clauses = Vec::new();
+        assert!(generator_parts_from_body(&[accepted], &mut clauses, &[]).is_some());
+        assert_eq!(clauses[0].ifs.len(), 1);
+        assert!(matches!(&*clauses[0].ifs[0], Expr::Unary { op: UnaryOp::Not, .. }));
+        assert!(generator_parts_from_body(&[guard.clone()], &mut Vec::new(), &[]).is_none());
+        let mut late = yielded_loop();
+        if let Stmt::For { body, .. } = &mut late { body.push(guard.clone()); }
+        assert!(generator_parts_from_body(&[late], &mut Vec::new(), &[]).is_none());
+        for add_else in [false, true] {
+            let mut rejected = guard.clone();
+            if let Stmt::If { body, orelse, .. } = &mut rejected {
+                if add_else { orelse.push(Stmt::Pass); } else { body.push(Stmt::Pass); }
+            }
+            let mut enclosing = yielded_loop();
+            if let Stmt::For { body, .. } = &mut enclosing { body.insert(0, rejected); }
+            assert!(generator_parts_from_body(&[enclosing], &mut Vec::new(), &[]).is_none());
+        }
+    }
+
+    #[test]
     fn extraction_preserves_one_yield_path_and_rejects_siblings() {
         let body = vec![yielded_loop()];
         let mut generators = Vec::new();
-        let element = generator_parts_from_body(&body, &mut generators).unwrap();
+        let element = generator_parts_from_body(&body, &mut generators, &[]).unwrap();
         assert!(matches!(&*element, Expr::Name(name) if name == "row"));
         assert_eq!(generators.len(), 1);
 
         let mut generators = Vec::new();
         assert!(generator_parts_from_body(
             &[yielded_loop(), yielded_loop()], &mut generators,
-        ).is_none());
+         &[]).is_none());
 
         let branch = Stmt::If {
             cond: Rc::new(Expr::Name("ready".into())),
@@ -53987,7 +54866,7 @@ mod generator_parts_tests {
         if let Stmt::For { body, .. } = &mut body {
             *body = vec![branch.clone(), branch];
         }
-        assert!(generator_parts_from_body(&[body], &mut Vec::new()).is_none());
+        assert!(generator_parts_from_body(&[body], &mut Vec::new(), &[]).is_none());
     }
 
     #[test]
@@ -54000,12 +54879,12 @@ mod generator_parts_tests {
             };
             assert!(generator_parts_from_body(
                 &[assignment, yielded_loop()], &mut Vec::new(),
-            ).is_none());
+             &[]).is_none());
         }
         let mut body = yielded_loop();
         if let Stmt::For { orelse, .. } = &mut body {
             *orelse = vec![Stmt::Pass];
         }
-        assert!(generator_parts_from_body(&[body], &mut Vec::new()).is_none());
+        assert!(generator_parts_from_body(&[body], &mut Vec::new(), &[]).is_none());
     }
 }

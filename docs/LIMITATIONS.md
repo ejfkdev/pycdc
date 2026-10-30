@@ -23,16 +23,11 @@ constant handling.
 On real code compiled with CPython 3.15.0 (pandas + scikit-learn, 2091
 modules), **all 2091 recompile (100%)**.
 
-One 3.15 edge remains outside that corpus: a `with` body whose only
-statement is `return <expr>` (`with c as x: return x`) renders the body as
-`pass` and loses the returned value (the exit protocol is not sunk into
-the body). Attribute and subscript as-targets (`with c as h.attr:`,
+Attribute and subscript as-targets (`with c as h.attr:`,
 `with c as d[k]:`) are recovered on 3.14 and 3.15.
 
 3.15 的 opcode 表由本机解释器直接生成，2.6–3.15 的行为用例全部通过。
 真实代码（pandas + scikit-learn，2091 模块）**全部 2091 个可重编译（100%）**。
-语料之外仍有一个 3.15 边角：`with` 体只有 `return <expr>` 时
-（`with c as x: return x`）体会渲染成 `pass` 并丢失返回值。
 
 ## Class bodies with conditional method definitions (3.14/3.15)
 
