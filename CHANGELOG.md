@@ -4,71 +4,71 @@ All notable changes to pycdc-rs. The full verification baseline for every
 release: stdlib corpus (semantic 622/622) + behavior matrix + cargo tests,
 on 14 interpreters (2.6–3.15).
 
-## Unreleased
-
-### Reconstruction fixes (PR #29, EiNSTeiN-)
-- Merged 22 focused commits that recover constructs which previously
-  produced incomplete or wrong output: disjunctive guards inside `for`
-  loops, padded bare/calculated returns around protected regions,
-  chained-comparison ternaries inside inline comprehensions, generator
-  expressions with repeated unpacking targets, boolean values behind
-  `continue`-shaped filters, captured generators and generator walrus
-  cells in bounded expression simulation, `async with` exception regions
-  across suspension cleanup, context exits across early returns and
-  `finally`, computed returns through nested context and loop handlers,
-  private handler clauses after nested `try`, handler `break` after
-  iterator disposal, and None-led rejection guards / shared validation
-  raises with formatted messages and causes.
-- `src/decompiler.rs` +933 lines, plus a new `src/decompiler_stack_tests.rs`
-  unit-test module; no dependency, build or CI changes.
-- Verification (merged tree): cargo tests 45 + 9 + 62 all pass; stdlib
-  corpus **622/622 semantic** (499 signature-exact) after the new
-  fixtures; behavior matrix **754/754 = 100%** (2.6–3.15, with and
-  without `--cure`); real-world corpus **6411/6411 recompile** and
-  **2502 AST-identical** (was 2493); roundtrip 198/234 on the enlarged
-  fixture set (was 189/234 with the same fixtures).
-- No regressions: on the original 528 corpus modules the verdicts are
-  527 identical + 1 improved and 0 worse; across the 349 real-world
-  modules whose output changed, bytecode-signature comparison shows 0
-  regressions and 50 files moving to signature-identical; 1564 mutated
-  or truncated pycs produce no panics.
+## v0.8.1 — 2026-11-01
 
 ### Fixes
 - **`TO_BOOL` coercion was dropped** (Python 3.12+): a bool that escapes as
   a value was rendered as its operand, so `return not not x` decompiled to
-  `return x` — returning a non-bool (and skipping a raising `__bool__`)
-  instead of `bool(x)`. The instruction is still transparent when the next
-  instruction re-coerces (conditional jump, `UNARY_NOT`), and now renders
-  as `not not x` when the value escapes; `if x:` output is unchanged.
-  Found with the new `tools/cure_differential.py` battery.
-- `tools/cure_differential.py`: 45-case differential harness for `--cure`
-  (source → pycdc → run vs. cure → run), covering side-effecting dead
-  stores, `__bool__`/operator/property effects, `del`, `finally` returns,
-  loop `else`, walrus, closures, generators, exception chaining and
-  `not not`. Against cure 0.4.1 it reports the `del` regression; against
-  the fixed cure it is clean.
+  `return x` — a non-bool result, and a raising `__bool__` was skipped. The
+  instruction stays transparent when the next instruction re-coerces (a
+  conditional jump or `UNARY_NOT`) and now renders as `not not x` when the
+  value escapes, which is exactly `bool(x)` without a `bool` name lookup.
+  `if x:` output is unchanged. Found with the new differential harness.
+- **`del` no longer loses its unbinding under `--cure`**: cure 0.4.1
+  propagated a local's last literal into reads after `del name` (turning a
+  real `UnboundLocalError` into a value) and could drop a bare read. Fixed
+  in cure 0.4.2 (`del` targets now join the per-function `forbidden` set);
+  pycdc no longer needs to skip such modules, so all 6411 real-world
+  modules are cured again.
+
+### Changes
+- **Reconstruction fixes (PR #29, EiNSTeiN-)**: 22 focused commits that
+  recover constructs which previously produced incomplete or wrong output —
+  disjunctive guards inside `for` loops, padded bare/calculated returns
+  around protected regions, chained-comparison ternaries in inline
+  comprehensions, generator expressions with repeated unpacking targets,
+  boolean values behind `continue`-shaped filters, captured generators and
+  generator walrus cells in bounded expression simulation, `async with`
+  exception regions across suspension cleanup, context exits across early
+  returns and `finally`, computed returns through nested context and loop
+  handlers, private handler clauses after nested `try`, handler `break`
+  after iterator disposal, and None-led rejection guards / shared validation
+  raises with formatted messages and causes. `src/decompiler.rs` +933 lines
+  plus a new `src/decompiler_stack_tests.rs` unit-test module; no
+  dependency, build or CI changes.
+- **`tools/cure_differential.py`**: 45-case differential harness for
+  `--cure` (source → pycdc → run vs. cure → run) covering side-effecting
+  dead stores, `__bool__`/operator/property effects, `del`, `finally`
+  returns, loop `else`, walrus, closures, generators, exception chaining
+  and `not not`. Against cure 0.4.1 it reports the `del` regression;
+  against 0.4.2 it is clean.
 - Fixtures `tests/fixtures/bool_coercion.py` + `.pyc` for 3.12–3.15 and an
-  integration test pinning the three shapes (value, assignment, branch).
+  integration test pinning the value/assignment/branch shapes.
 
 ### Dependencies
-- `cure-engine` / `cure-python-{parser,print,simplify}` 0.2 → **0.4.1**
-  (all still dependency-free, MSRV stays 1.74). 0.4 adds comment
+- `cure-engine` / `cure-python-{parser,print,simplify}` 0.2.0 →
+  **0.4.2** (still dependency-free, MSRV stays 1.74). 0.4 adds comment
   fidelity, three new Python rules and directive-comment freezing.
 - `serde_json` 1.0.151 → **1.0.154**, `thiserror` 2.0.20 → **2.0.21**
   (plus transitive `syn` 3.0.9, `unicode-ident` 1.0.27); no API changes.
-- **`--cure` guard for deleted locals**: cure 0.4.1 propagates a local's
-  last literal into reads that follow `del name` (turning a real
-  `UnboundLocalError` into a value) and can drop a bare read entirely.
-  The integration now skips modules that contain a `del` of a bare name
-  and says why on stderr; `del obj.attr` / `del box[k]` still get the
-  pass, so only 111 of the 6411 real-world modules (1.7%) are skipped.
-  Root cause fixed upstream (`cure` `collect_deleted_names`); the guard
-  can be removed once a cured release carries it.
-- Re-verification with 0.4.1: behavior matrix **754/754 = 100%** with
-  and without `--cure`; corpus 622/622 semantic on the default path and
-  all 622 still compile under `--cure`; real-world 6411/6411 recompile
-  (2502 AST-identical), and `--cure` output for those modules is
-  parseable with **−9.39% lines** (1 690 293 → 1 531 610).
+
+### Verification
+- cargo tests **47 + 9 + 62** pass.
+- stdlib corpus **622/622 semantic** (499 signature-exact = 80.2%); with
+  `--cure` all 622 still compile under their own interpreter.
+- behavior matrix **754/754 = 100%** on 2.6–3.15, with and without
+  `--cure`; the differential harness is clean.
+- real-world corpus **6411/6411 recompile**, **2502 AST-identical**
+  (was 2493), serial 5.45 s / parallel 2.02 s; `--cure` output parses for all
+  6411 modules and is **−9.71% lines** (1 690 293 → 1 526 114), with no
+  module skipped.
+- roundtrip 204/240 strict on the enlarged fixture set (the rest differ
+  structurally but stay equivalent); clippy: no errors.
+- No regressions: on the original 528 corpus modules the verdicts are 527
+  identical + 1 improved and 0 worse; across the 349 real-world modules
+  whose output changed, bytecode-signature comparison shows 0 regressions
+  and 50 files moving to signature-identical; 1564 mutated or truncated
+  pycs produce no panics.
 
 ## v0.8.0 — 2026-10-26
 

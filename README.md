@@ -111,14 +111,14 @@ def classify(v):                           def classify(v):
     return 0
 ```
 
-If the input cannot be parsed by `cure`, if it contains
+If the input cannot be parsed by `cure`, or if it contains
 compiler-introspection metadata (`__annotate__`, `co_freevars`,
 `__conditional_annotations__`, `__classdict__`) where simplifying could
-change runtime behaviour, or if it deletes a local name (`del v`, which
-cure 0.4 mis-propagates — fixed upstream, awaiting a release), the file
-is emitted unchanged and a note with the reason goes to stderr. The
-behavior matrix passes 754/754 both with and without `--cure`, and all
-622 corpus modules still compile under their own interpreter with it.
+change runtime behaviour, the file is emitted unchanged and a note with
+the reason goes to stderr. The behavior matrix passes 754/754 both with
+and without `--cure`, all 622 corpus modules still compile under their own
+interpreter with it, and `tools/cure_differential.py` checks 45
+side-effect-heavy programs for behaviour drift between the two forms.
 Because the pass deliberately rewrites statement shapes (if/else →
 ternary), the corpus's bytecode-signature metric is not meaningful for
 `--cure` output; judge it by the behavior matrix.
@@ -147,14 +147,14 @@ seven projects **at its latest release tag**, compiles every `.py` to
 
 | Project (tag) | modules | serial `-j 1` | parallel (default) | recompiles | AST-identical¹ |
 |---|---|---|---|---|---|
-| yt-dlp (2026.08.19) | 1045 | 0.52 s | 0.08 s | **1045/1045** | 502/1045 |
-| matplotlib (v3.11.2) | 253 | 0.28 s | 0.06 s | **253/253** | 60/253 |
-| pandas (v3.0.5) | 1420 | 0.93 s | 0.13 s | **1420/1420** | 586/1420 |
-| django (6.1.1) | 907 | 0.35 s | 0.10 s | **907/907** | 470/907 |
-| sympy (1.14.0) | 1532 | 3.03 s | 1.51 s | **1532/1532** | 482/1532 |
-| scikit-learn (1.9.1) | 671 | 0.55 s | 0.07 s | **671/671** | 216/671 |
-| ansible (v2.21.4) | 583 | 0.25 s | 0.04 s | **583/583** | 186/583 |
-| **total** | **6411** | **5.91 s** | **1.99 s** | **6411/6411 (100 %)** | 2502/6411 |
+| yt-dlp (2026.08.19) | 1045 | 0.39 s | 0.07 s | **1045/1045** | 502/1045 |
+| matplotlib (v3.11.2) | 253 | 0.30 s | 0.06 s | **253/253** | 60/253 |
+| pandas (v3.0.5) | 1420 | 0.83 s | 0.13 s | **1420/1420** | 586/1420 |
+| django (6.1.1) | 907 | 0.35 s | 0.11 s | **907/907** | 470/907 |
+| sympy (1.14.0) | 1532 | 2.91 s | 1.54 s | **1532/1532** | 482/1532 |
+| scikit-learn (1.9.1) | 671 | 0.43 s | 0.07 s | **671/671** | 216/671 |
+| ansible (v2.21.4) | 583 | 0.24 s | 0.04 s | **583/583** | 186/583 |
+| **total** | **6411** | **5.45 s** | **2.02 s** | **6411/6411 (100 %)** | 2502/6411 |
 
 ¹ strict: docstring-stripped AST equal to the original source —
 equivalent normalizations (an if/else instead of a ternary, a redundant
@@ -162,8 +162,8 @@ equivalent normalizations (an if/else instead of a ternary, a redundant
 differences, so treat it as a shape-fidelity floor rather than an error
 rate. The parse/recompile column is the acceptance bar.
 
-One pycdc process per project: ~0.92 ms per module serial, peak RSS
-≈82 MB for the whole 6.4 k-module batch. **All 6411 modules recompile**;
+One pycdc process per project: ~0.85 ms per module serial, peak RSS
+≈84 MB for the whole 6.4 k-module batch. **All 6411 modules recompile**;
 the last family (a dict comprehension nested inside a generator
 expression's element, call arguments included) was closed by the
 community PR batch. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
@@ -178,7 +178,7 @@ Three independent harnesses, all runnable locally (need pyenv/uv interpreters 2.
 |---|---|---|
 | [`tools/verify_corpus.py`](tools/verify_corpus.py) | 622 stdlib modules: decompile → recompile with the *same* interpreter → compare bytecode signatures, fall back to normalized-AST diff | **622/622 semantic** (499 signature-exact, 0 syntax errors, 0 placeholders) |
 | [`tools/run_behavior.py`](tools/run_behavior.py) | 96 behavior cases × 14 interpreters: run original vs decompiled, compare stdout + exit code | **754/754 = 100%** (2.6–3.15) |
-| [`tests/roundtrip.py`](tests/roundtrip.py) | fixture matrix: compile → decompile → recompile → strict bytecode compare | 49/54 strict (exceptions fixtures differ structurally, semantically equivalent) |
+| [`tests/roundtrip.py`](tests/roundtrip.py) | fixture matrix: compile → decompile → recompile → strict bytecode compare | 204/240 strict (the rest differ structurally but are semantically equivalent) |
 
 The 3.15 result reflects CPython 3.15.0/3.15.1, whose inline-comprehension,
 call and import encodings changed; its opcode table is generated from the

@@ -4,39 +4,39 @@ version = 4
 
 [[package]]
 name = "cure-engine"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60d1555745b315dfec9c82f34c31be0445a6229d652c30f217f64a3ec2fef1d5"
+checksum = "825921a6f334b0b12926b6637810718f05b5b8c85ebb226b2048b68e2c1d57b3"
 
 [[package]]
 name = "cure-python-ast"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82de518beacfb7784a0614b585b0976f5e8e634d7166b15861edda1f02b88b2e"
+checksum = "0596811ec75fc4850275eea50972deb29b3a5c4b193f98222b6f8ea856547623"
 
 [[package]]
 name = "cure-python-parser"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4eeb5d583b70661971006068f2c75c1e6e029fc9994e62f403105e6d653b62d"
+checksum = "e3f6f0e4d7318f6af8af0e775815321228cc2d5106570adf78cc49ac0e9a1250"
 dependencies = [
  "cure-python-ast",
 ]
 
 [[package]]
 name = "cure-python-print"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f720e3f0754a1f28a4972a8d70f315bcc2b53fd90f267d5d0eff845c592884af"
+checksum = "21388a1c29ad5106ffa3ffc9cf962e785301fb0f67ea294a71c9e4e235c7e864"
 dependencies = [
  "cure-python-ast",
 ]
 
 [[package]]
 name = "cure-python-simplify"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3048bb85ecb3fc85012c84581b64e8cae54bb016e0fcfef7c1498f8eeafb2451"
+checksum = "cf3f7aa54fc3ad4776225ce693262d632e264fb0fe27657fb259409b54b6be1d"
 dependencies = [
  "cure-engine",
  "cure-python-ast",
@@ -65,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "pycdc"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "cure-engine",
  "cure-python-parser",

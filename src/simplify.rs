@@ -13,8 +13,6 @@ pub enum Skip {
     Unparseable,
     /// The module introspects the compiler's annotation machinery.
     AnnotationIntrospection,
-    /// The module deletes a local name, which cure 0.4 mis-simplifies.
-    DeletedName,
 }
 
 impl Skip {
@@ -22,7 +20,6 @@ impl Skip {
         match self {
             Skip::Unparseable => "cure cannot parse it",
             Skip::AnnotationIntrospection => "annotation introspection",
-            Skip::DeletedName => "deletes a local name",
         }
     }
 }
@@ -46,14 +43,6 @@ pub fn simplify_python(src: &str) -> Result<String, Skip> {
     if REFLECTION_MARKERS.iter().any(|marker| src.contains(marker)) {
         return Err(Skip::AnnotationIntrospection);
     }
-    // `del name` unbinds a local: cure 0.4 propagates the deleted name's
-    // last literal into later reads (turning a real UnboundLocalError into
-    // a value) and can drop the read statement itself. Skip those modules
-    // until cure records deleted names as forbidden (fixed upstream, not
-    // yet in a published release).
-    if has_deleted_name(src) {
-        return Err(Skip::DeletedName);
-    }
     let mut outcome = cure_python_parser::parse(src);
     if !outcome.errors.is_empty() {
         return Err(Skip::Unparseable);
@@ -61,27 +50,6 @@ pub fn simplify_python(src: &str) -> Result<String, Skip> {
     let cfg = cure_engine::Config::default();
     cure_python_simplify::simplify_module(&mut outcome.ast, outcome.module, &cfg);
     Ok(cure_python_print::print_module(&outcome.ast, outcome.module))
-}
-
-/// True when a `del` statement targets a bare local name (`del v`,
-/// `del a, b`, `del (a, b)`). `del obj.attr` and `del box[k]` only drop a
-/// binding's contents, so the base name keeps its value and is safe.
-fn has_deleted_name(src: &str) -> bool {
-    src.lines().any(|line| {
-        let Some(rest) = line.trim_start().strip_prefix("del ") else {
-            return false;
-        };
-        rest.split(',').any(|target| is_bare_name(target))
-    })
-}
-
-fn is_bare_name(target: &str) -> bool {
-    let target = target.trim();
-    let target = target.strip_prefix('(').unwrap_or(target);
-    let target = target.strip_suffix(')').unwrap_or(target);
-    let mut chars = target.chars();
-    matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
-        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 #[cfg(test)]
@@ -107,21 +75,13 @@ mod tests {
     }
 
     #[test]
-    fn skips_modules_that_unbind_locals() {
-        for src in [
-            "def f():\n    v = 5\n    del v\n    return v\n",
-            "def f():\n    a = 1\n    b = 2\n    del a, b\n    return a\n",
-            "def f():\n    a = 1\n    del (a)\n    return a\n",
-        ] {
-            assert_eq!(simplify_python(src), Err(Skip::DeletedName), "{src}");
-        }
-    }
-
-    #[test]
-    fn still_cures_item_and_attribute_deletes() {
-        let src = "def f(box):\n    box['k'] = 1\n    del box['k']\n    obj.attr = 2\n    del obj.attr\n    return box\n";
-        let out = simplify_python(src).expect("only bindings' contents are dropped");
-        assert!(out.contains("def f(box):"), "{out}");
+    fn cures_modules_that_unbind_locals() {
+        // cure 0.4.2 records `del` targets as forbidden; a deleted name must
+        // keep its `del` and its later read untouched.
+        let src = "def f():\n    v = 5\n    del v\n    try:\n        return v\n    except UnboundLocalError:\n        return 'unbound'\n";
+        let out = simplify_python(src).expect("cure parses");
+        assert!(out.contains("del v") && out.contains("return v"), "{out}");
+        assert!(!out.contains("return 5"), "propagated across del: {out}");
     }
 
     #[test]
