@@ -33,6 +33,23 @@ on 14 interpreters (2.6–3.15).
   regressions and 50 files moving to signature-identical; 1564 mutated
   or truncated pycs produce no panics.
 
+### Fixes
+- **`TO_BOOL` coercion was dropped** (Python 3.12+): a bool that escapes as
+  a value was rendered as its operand, so `return not not x` decompiled to
+  `return x` — returning a non-bool (and skipping a raising `__bool__`)
+  instead of `bool(x)`. The instruction is still transparent when the next
+  instruction re-coerces (conditional jump, `UNARY_NOT`), and now renders
+  as `not not x` when the value escapes; `if x:` output is unchanged.
+  Found with the new `tools/cure_differential.py` battery.
+- `tools/cure_differential.py`: 45-case differential harness for `--cure`
+  (source → pycdc → run vs. cure → run), covering side-effecting dead
+  stores, `__bool__`/operator/property effects, `del`, `finally` returns,
+  loop `else`, walrus, closures, generators, exception chaining and
+  `not not`. Against cure 0.4.1 it reports the `del` regression; against
+  the fixed cure it is clean.
+- Fixtures `tests/fixtures/bool_coercion.py` + `.pyc` for 3.12–3.15 and an
+  integration test pinning the three shapes (value, assignment, branch).
+
 ### Dependencies
 - `cure-engine` / `cure-python-{parser,print,simplify}` 0.2 → **0.4.1**
   (all still dependency-free, MSRV stays 1.74). 0.4 adds comment

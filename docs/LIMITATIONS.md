@@ -1,13 +1,13 @@
 # Known limitations / 已知限制
 
-Detailed gap list as of 2026-10-23. Headline numbers: stdlib corpus
-**528/528 semantic** (zero syntax errors, zero placeholders), behavior
-matrix **663/663** (2.6–3.15 all pass).
+Detailed gap list as of 2026-11-01. Headline numbers: stdlib corpus
+**622/622 semantic** (zero syntax errors, zero placeholders), behavior
+matrix **754/754** (2.6–3.15 all pass).
 Everything below is either (a) a rare shape that stays semantically
 equivalent, or (b) a corner with no occurrence in the corpus.
 
-截至 2026-10-23 的完整缺口清单。总体：标准库语料 **528/528 语义等价**
-（零语法错误、零占位符），行为矩阵 **663/663**（2.6–3.15 全部通过）。以下条目要么 (a) 罕见形状但语义仍等价，要么 (b) 语料中
+截至 2026-11-01 的完整缺口清单。总体：标准库语料 **622/622 语义等价**
+（零语法错误、零占位符），行为矩阵 **754/754**（2.6–3.15 全部通过）。以下条目要么 (a) 罕见形状但语义仍等价，要么 (b) 语料中
 零触发的边角。
 
 ## Python 3.15 (2026-10, current stable)

@@ -15101,7 +15101,50 @@ impl<'a> Ctx<'a> {
                 }));
                 true
             }
-            Op::TO_BOOL => true,
+            Op::TO_BOOL => {
+                // 3.13+ boolifies a value ahead of the instruction that
+                // consumes its truthiness. Dropping the coercion is only
+                // sound when the consumer coerces again (a conditional
+                // jump or UNARY_NOT); when the bool escapes as a value
+                // (`return not not x`, `f(not not x)`) it is observable,
+                // and `not not x` keeps it exact without a `bool` name
+                // lookup that a shadowed builtin would change.
+                let e = self.pop_expr();
+                let consumer = self.idx_of.get(&inst.offset).and_then(|i| {
+                    self.instrs[i + 1..]
+                        .iter()
+                        .find(|next| {
+                            !matches!(next.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                        })
+                        .map(|next| next.op)
+                });
+                let re_coerced = matches!(
+                    consumer,
+                    Some(
+                        Op::UNARY_NOT
+                            | Op::POP_JUMP_IF_FALSE
+                            | Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_IF_NONE
+                            | Op::POP_JUMP_IF_NOT_NONE
+                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                            | Op::POP_JUMP_BACKWARD_IF_FALSE
+                            | Op::POP_JUMP_BACKWARD_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_NONE
+                            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                            | Op::POP_JUMP_BACKWARD_IF_NONE
+                            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                    )
+                );
+                if re_coerced {
+                    self.push(e);
+                } else {
+                    let inner =
+                        Rc::new(Expr::Unary { op: UnaryOp::Not, operand: e });
+                    self.push(Rc::new(Expr::Unary { op: UnaryOp::Not, operand: inner }));
+                }
+                true
+            }
 
             // ---------- container building ----------
             Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => {

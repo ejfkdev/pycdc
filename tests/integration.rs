@@ -1280,3 +1280,20 @@ fn shared_validation_raises_keep_causes_and_formatted_error_paths() {
         ], version);
     }
 }
+
+#[test]
+fn bool_coercion_values_keep_their_bool_conversion() {
+    // 3.12+ compiles `not not x` to TO_BOOL, and the coercion is only
+    // observable when the bool escapes as a value: it must survive as
+    // `not not x`, while conditions stay plain (`if value:`).
+    for version in ["3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) = decompile_fixture(&format!("bool_coercion.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(&src, &[
+            "def as_bool(value):\n    return not not value",
+            "flag = not not value",
+            "def branch(value):\n    if value:",
+            "return not not (value and 1)",
+        ], version);
+    }
+}

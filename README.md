@@ -147,14 +147,14 @@ seven projects **at its latest release tag**, compiles every `.py` to
 
 | Project (tag) | modules | serial `-j 1` | parallel (default) | recompiles | AST-identical¹ |
 |---|---|---|---|---|---|
-| yt-dlp (2026.08.19) | 1045 | 0.38 s | 0.08 s | **1045/1045** | 502/1045 |
-| matplotlib (v3.11.2) | 253 | 0.28 s | 0.07 s | **253/253** | 60/253 |
-| pandas (v3.0.5) | 1420 | 0.87 s | 0.16 s | **1420/1420** | 586/1420 |
-| django (6.1.1) | 907 | 0.33 s | 0.12 s | **907/907** | 470/907 |
-| sympy (1.14.0) | 1532 | 3.08 s | 1.62 s | **1532/1532** | 482/1532 |
-| scikit-learn (1.9.1) | 671 | 0.42 s | 0.07 s | **671/671** | 216/671 |
-| ansible (v2.21.4) | 583 | 0.24 s | 0.05 s | **583/583** | 186/583 |
-| **total** | **6411** | **5.60 s** | **2.17 s** | **6411/6411 (100 %)** | 2502/6411 |
+| yt-dlp (2026.08.19) | 1045 | 0.52 s | 0.08 s | **1045/1045** | 502/1045 |
+| matplotlib (v3.11.2) | 253 | 0.28 s | 0.06 s | **253/253** | 60/253 |
+| pandas (v3.0.5) | 1420 | 0.93 s | 0.13 s | **1420/1420** | 586/1420 |
+| django (6.1.1) | 907 | 0.35 s | 0.10 s | **907/907** | 470/907 |
+| sympy (1.14.0) | 1532 | 3.03 s | 1.51 s | **1532/1532** | 482/1532 |
+| scikit-learn (1.9.1) | 671 | 0.55 s | 0.07 s | **671/671** | 216/671 |
+| ansible (v2.21.4) | 583 | 0.25 s | 0.04 s | **583/583** | 186/583 |
+| **total** | **6411** | **5.91 s** | **1.99 s** | **6411/6411 (100 %)** | 2502/6411 |
 
 ¹ strict: docstring-stripped AST equal to the original source —
 equivalent normalizations (an if/else instead of a ternary, a redundant
@@ -162,8 +162,8 @@ equivalent normalizations (an if/else instead of a ternary, a redundant
 differences, so treat it as a shape-fidelity floor rather than an error
 rate. The parse/recompile column is the acceptance bar.
 
-One pycdc process per project: ~0.87 ms per module serial, peak RSS
-≈78 MB for the whole 6.4 k-module batch. **All 6411 modules recompile**;
+One pycdc process per project: ~0.92 ms per module serial, peak RSS
+≈82 MB for the whole 6.4 k-module batch. **All 6411 modules recompile**;
 the last family (a dict comprehension nested inside a generator
 expression's element, call arguments included) was closed by the
 community PR batch. Raw data: [`benchmarks/realworld.json`](benchmarks/realworld.json),
