@@ -222,10 +222,11 @@ fn decompile_file(
     let mut text = generate(&d.body, loaded.version, d.clean);
     if cure && d.clean {
         match pycdc::simplify::simplify_python(&text) {
-            Some(simplified) => text = simplified,
-            None => eprintln!(
-                "{}: cure: skipped, keeping pycdc output",
-                file.display()
+            Ok(simplified) => text = simplified,
+            Err(skip) => eprintln!(
+                "{}: cure: skipped ({}), keeping pycdc output",
+                file.display(),
+                skip.reason()
             ),
         }
     }

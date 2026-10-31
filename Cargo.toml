@@ -28,10 +28,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 # `--cure` post-processing (opt-in at runtime, linked in-process)
-cure-engine = "0.2"
-cure-python-parser = "0.2"
-cure-python-print = "0.2"
-cure-python-simplify = "0.2"
+cure-engine = "0.4"
+cure-python-parser = "0.4"
+cure-python-print = "0.4"
+cure-python-simplify = "0.4"
 
 [build-dependencies]
 serde_json = "1"

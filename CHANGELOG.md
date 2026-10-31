@@ -33,6 +33,26 @@ on 14 interpreters (2.6–3.15).
   regressions and 50 files moving to signature-identical; 1564 mutated
   or truncated pycs produce no panics.
 
+### Dependencies
+- `cure-engine` / `cure-python-{parser,print,simplify}` 0.2 → **0.4.1**
+  (all still dependency-free, MSRV stays 1.74). 0.4 adds comment
+  fidelity, three new Python rules and directive-comment freezing.
+- `serde_json` 1.0.151 → **1.0.154**, `thiserror` 2.0.20 → **2.0.21**
+  (plus transitive `syn` 3.0.9, `unicode-ident` 1.0.27); no API changes.
+- **`--cure` guard for deleted locals**: cure 0.4.1 propagates a local's
+  last literal into reads that follow `del name` (turning a real
+  `UnboundLocalError` into a value) and can drop a bare read entirely.
+  The integration now skips modules that contain a `del` of a bare name
+  and says why on stderr; `del obj.attr` / `del box[k]` still get the
+  pass, so only 111 of the 6411 real-world modules (1.7%) are skipped.
+  Root cause fixed upstream (`cure` `collect_deleted_names`); the guard
+  can be removed once a cured release carries it.
+- Re-verification with 0.4.1: behavior matrix **754/754 = 100%** with
+  and without `--cure`; corpus 622/622 semantic on the default path and
+  all 622 still compile under `--cure`; real-world 6411/6411 recompile
+  (2502 AST-identical), and `--cure` output for those modules is
+  parseable with **−9.39% lines** (1 690 293 → 1 531 610).
+
 ## v0.8.0 — 2026-10-26
 
 ### `--cure`: optional simplification and formatting

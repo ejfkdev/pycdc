@@ -111,15 +111,17 @@ def classify(v):                           def classify(v):
     return 0
 ```
 
-If the input cannot be parsed by `cure`, or if it contains
+If the input cannot be parsed by `cure`, if it contains
 compiler-introspection metadata (`__annotate__`, `co_freevars`,
 `__conditional_annotations__`, `__classdict__`) where simplifying could
-change runtime behaviour, the file is emitted unchanged and a note goes
-to stderr. The behavior matrix passes 754/754 both with and without
-`--cure`, and all 528 corpus modules still compile under their own
-interpreter with it. Because the pass deliberately rewrites statement
-shapes (if/else → ternary), the corpus's bytecode-signature metric is
-not meaningful for `--cure` output; judge it by the behavior matrix.
+change runtime behaviour, or if it deletes a local name (`del v`, which
+cure 0.4 mis-propagates — fixed upstream, awaiting a release), the file
+is emitted unchanged and a note with the reason goes to stderr. The
+behavior matrix passes 754/754 both with and without `--cure`, and all
+622 corpus modules still compile under their own interpreter with it.
+Because the pass deliberately rewrites statement shapes (if/else →
+ternary), the corpus's bytecode-signature metric is not meaningful for
+`--cure` output; judge it by the behavior matrix.
 
 `pycdc --help`, `pycdc dis --help` and `pycdas --help` document every
 flag. Exit codes: `0` success, `1` a file failed to process, `2` usage
