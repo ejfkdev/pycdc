@@ -250,6 +250,21 @@ impl Printer {
         }
     }
 
+    /// A `def`/`class` body ends with a blank separator line (methods are
+    /// spaced apart); a clause keyword that follows the block — `elif`,
+    /// `else`, `except`, `finally` — must not inherit that gap.
+    fn trim_clause_gap(&mut self) {
+        if self.out.ends_with("\n\n") {
+            self.out.pop();
+        }
+    }
+
+    /// Write a clause line (`else:`, `finally:`) with the gap trimmed.
+    fn clause(&mut self, line: &str) {
+        self.trim_clause_gap();
+        self.write_line(line);
+    }
+
     fn block(&mut self, stmts: &[Stmt]) {
         self.indent += 1;
         if stmts.is_empty() {
@@ -501,7 +516,7 @@ impl Printer {
                 self.block(body);
                 self.loop_depth -= 1;
                 if !orelse.is_empty() {
-                    self.write_line("else:");
+                    self.clause("else:");
                     self.block(orelse);
                 }
             }
@@ -525,7 +540,7 @@ impl Printer {
                 self.block(body);
                 self.loop_depth -= 1;
                 if !orelse.is_empty() {
-                    self.write_line("else:");
+                    self.clause("else:");
                     self.block(orelse);
                 }
             }
@@ -592,7 +607,7 @@ impl Printer {
                             self.indent -= 1;
                         }
                     }
-                    self.write_line("finally:");
+                    self.clause("finally:");
                     self.indent += 1;
                     self.write_line("pass");
                     self.indent -= 1;
@@ -601,6 +616,7 @@ impl Printer {
                 self.write_line("try:");
                 self.block(body);
                 for h in &handlers {
+                    self.trim_clause_gap();
                     self.write("except");
                     if h.is_star {
                         self.write("*");
@@ -622,11 +638,11 @@ impl Printer {
                     self.block(&h.body);
                 }
                 if !orelse.is_empty() {
-                    self.write_line("else:");
+                    self.clause("else:");
                     self.block(orelse);
                 }
                 if !finalbody.is_empty() {
-                    self.write_line("finally:");
+                    self.clause("finally:");
                     self.block(finalbody);
                 }
             }
@@ -847,6 +863,7 @@ impl Printer {
         }
         if orelse.len() == 1 {
             if let Stmt::If { cond, body, orelse } = &orelse[0] {
+                self.trim_clause_gap();
                 self.write("elif ");
                 self.expr(cond, 0);
                 self.write(":");
@@ -856,7 +873,7 @@ impl Printer {
                 return;
             }
         }
-        self.write_line("else:");
+        self.clause("else:");
         self.block(orelse);
     }
 

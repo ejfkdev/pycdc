@@ -4,6 +4,37 @@ All notable changes to pycdc-rs. The full verification baseline for every
 release: stdlib corpus (semantic 622/622) + behavior matrix + cargo tests,
 on 14 interpreters (2.6–3.15).
 
+## v0.8.2 — 2026-11-01
+
+### Fixes
+- **Class bodies that define methods inside `if`/`else` now decompile to
+  valid Python and keep the `else` arm** (3.10–3.15). CPython copies the
+  class epilogue (`LOAD None; RETURN_VALUE`, `RETURN_CONST None` on 3.12+)
+  into every branch that leaves the class body; the leftover bare `return`
+  rendered at class scope and pushed the else arm out as a sibling:
+  `class C: if flag: def a(...) return` — a syntax error on recompile. The
+  duplicated epilogues are now dropped and the statements following a
+  terminated arm are folded back into its `else` (`elif` chains nest).
+  This was the last known case of invalid output; the shape does not occur
+  in either corpus, but it is a common `TYPE_CHECKING` idiom.
+- **No blank line before `elif`/`else`/`except`/`finally`** when the
+  preceding block ends with a `def`/`class`: the method separator is
+  trimmed at the clause keyword instead of leaking into the clause gap.
+
+### Changes
+- `tests/fixtures/class_conditional_methods.py` compiled for 3.10–3.15 and
+  an integration test pinning the single-`if`, `if`/`else` and `elif`
+  chains.
+- `docs/LIMITATIONS.md`: the class-body entry is marked fixed.
+
+### Verification
+- cargo tests **46 + 9 + 64** pass.
+- stdlib corpus **622/622 semantic** (499 signature-exact); behavior matrix
+  **754/754 = 100%** with and without `--cure`; `cure_differential.py`
+  45/45.
+- real-world corpus **6411/6411 recompile**, **2502 AST-identical**;
+  roundtrip **210/246** strict with the new fixtures.
+
 ## v0.8.1 — 2026-11-01
 
 ### Fixes

@@ -29,25 +29,20 @@ Attribute and subscript as-targets (`with c as h.attr:`,
 3.15 的 opcode 表由本机解释器直接生成，2.6–3.15 的行为用例全部通过。
 真实代码（pandas + scikit-learn，2091 模块）**全部 2091 个可重编译（100%）**。
 
-## Class bodies with conditional method definitions (3.14/3.15)
+## Class bodies with conditional method definitions (fixed in 0.8.2)
 
-A class body that defines methods inside an `if`/`else` (a common
-`TYPE_CHECKING`/platform-switch idiom) loses the `else` arm and renders a
-compiler-generated `return` at class scope, which is not valid Python:
+CPython copies the class-body epilogue (`LOAD None; RETURN_VALUE`, or
+`RETURN_CONST None` on 3.12+) to the end of every branch that leaves the
+class body, so `if cond: ... else: ...` around method definitions used to
+render a class-scope `return` (invalid Python) and push the `else` arm out
+as a sibling. `fold_class_epilogue_returns` now drops the duplicated
+epilogues and folds the statements that follow a terminated arm back into
+its `else`, across 3.10–3.15 (`tests/fixtures/class_conditional_methods.py`).
 
-```python
-class Result:
-    if flag:
-        def method(self): return 1
-    else:
-        def method(self): return 2
-```
-
-The class-body epilogue (`LOAD None; RETURN_VALUE`) duplicates into each
-branch; the decompiler treats the first one as a terminating return. The
-shape does not occur in the 528-module stdlib corpus, the 6411-module
-real-world corpus or the behavior matrix. Visible invalid output is kept
-rather than silently dropping the `else`.
+3.14/3.15 的类体在每条离开类体的分支末尾复制一份 `LOAD None; RETURN_VALUE`
+尾声，早先会让 `if`/`else` 定义方法的类体在类作用域渲染 `return`（非法）并把
+`else` 臂挤成兄弟语句。0.8.2 起由 `fold_class_epilogue_returns` 去掉重复尾声、
+把终止分支之后的语句折回 `else`，3.10–3.15 均已覆盖。
 
 ## try / except / finally
 

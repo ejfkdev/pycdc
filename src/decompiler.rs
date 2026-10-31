@@ -49109,7 +49109,10 @@ impl<'a> Ctx<'a> {
         self.class_scope.push(name.to_string());
         let r = self.decompile_scoped(code, true);
         self.class_scope.pop();
-        r
+        r.map(|mut body| {
+            fold_class_epilogue_returns(&mut body);
+            body
+        })
     }
 
     fn decompile_scoped(&mut self, code: &Rc<CodeObject>, scope_self: bool) -> Option<Vec<Stmt>> {
@@ -49800,6 +49803,89 @@ fn dedup_sunk_handler_tails(stmts: &mut Vec<Stmt>, scope_end_open: bool) {
 /// last statement was an if/else whose arms all return (a flat chain of
 /// terminal-armed ifs recompiles without the pair). None for modules,
 /// lambdas and generators.
+/// CPython copies the class-body epilogue (`LOAD None; RETURN_VALUE`, or
+/// `RETURN_CONST None` on 3.12+) to the end of every branch that leaves the
+/// class body, so `if cond: ... else: ...` around method definitions leaves a
+/// bare `return` inside the then arm — illegal at class scope, and it hides
+/// the else arm behind a terminating block:
+///
+/// ```python
+/// class C:                     # decompiled before this pass
+///     if flag:                 #     if flag:
+///         def a(self): ...     #         def a(self): ...
+///                              #         return
+///     else:                    #     def b(self): ...
+///         def b(self): ...
+/// ```
+///
+/// A `return` cannot come from class-scope source, so every bare one is
+/// epilogue residue. Drop them; when a then arm ends with one, the statements
+/// that follow the `if` in the class body are its else arm (the then path
+/// terminated, so the bytecode had to reach them from the cond jump's target).
+fn fold_class_epilogue_returns(stmts: &mut Vec<Stmt>) {
+    // Fold before recursing: the recursion strips a branch's own epilogue,
+    // and the terminator is what proves the following statements are the
+    // else arm.
+    let mut i = 0;
+    while i < stmts.len() {
+        let terminated = matches!(
+            &stmts[i],
+            Stmt::If { body, orelse, .. }
+                if orelse.is_empty()
+                    && matches!(body.last(), Some(Stmt::Return(None)))
+        );
+        if terminated {
+            // the epilogue ends this arm, so the rest of the class body is
+            // the else path (an `elif` chain nests through the recursion)
+            let mut tail: Vec<Stmt> = stmts.drain(i + 1..).collect();
+            while matches!(tail.last(), Some(Stmt::Return(None))) {
+                tail.pop();
+            }
+            fold_class_epilogue_returns(&mut tail);
+            if let Stmt::If { body, orelse, .. } = &mut stmts[i] {
+                body.pop();
+                if body.is_empty() {
+                    body.push(Stmt::Pass);
+                }
+                *orelse = tail;
+            }
+            break;
+        }
+        i += 1;
+    }
+    // the class's own epilogue
+    while matches!(stmts.last(), Some(Stmt::Return(None))) {
+        stmts.pop();
+    }
+    for st in stmts.iter_mut() {
+        match st {
+            Stmt::If { body, orelse, .. } => {
+                fold_class_epilogue_returns(body);
+                fold_class_epilogue_returns(orelse);
+            }
+            Stmt::While { body, orelse, .. } | Stmt::For { body, orelse, .. } => {
+                fold_class_epilogue_returns(body);
+                fold_class_epilogue_returns(orelse);
+            }
+            Stmt::With { body, .. } => fold_class_epilogue_returns(body),
+            Stmt::Try {
+                body,
+                handlers,
+                orelse,
+                finalbody,
+            } => {
+                fold_class_epilogue_returns(body);
+                for h in handlers.iter_mut() {
+                    fold_class_epilogue_returns(&mut h.body);
+                }
+                fold_class_epilogue_returns(orelse);
+                fold_class_epilogue_returns(finalbody);
+            }
+            _ => {}
+        }
+    }
+}
+
 fn tail_pair_load_offset(
     code: &CodeObject,
     instrs: &[Instruction],

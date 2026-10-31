@@ -1297,3 +1297,28 @@ fn bool_coercion_values_keep_their_bool_conversion() {
         ], version);
     }
 }
+
+#[test]
+fn class_bodies_keep_conditional_methods_and_their_else() {
+    // CPython copies the class epilogue (`LOAD None; RETURN_VALUE`) into
+    // every branch that leaves the class body; the leftover `return` used to
+    // render at class scope (invalid Python) and pushed the else arm out.
+    for version in ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"] {
+        let (src, clean) =
+            decompile_fixture(&format!("class_conditional_methods.{version}.pyc"));
+        assert!(clean, "Python {version}: incomplete:\n{src}");
+        assert_contains(
+            &src,
+            &[
+                "class Single:\n    if flag:\n        def method(self):\n            return 'then'\n",
+                "class Either:\n    if flag:\n        def method(self):\n            return 'then'\n    else:\n        def method(self):\n            return 'else'\n",
+                "class Chained:\n    if mode == 1:\n        def method(self):\n            return 'one'\n    elif mode == 2:\n        def method(self):\n            return 'two'\n    else:\n        def method(self):\n            return 'many'\n",
+            ],
+            version,
+        );
+        assert!(
+            !src.contains("        return\n    else:"),
+            "Python {version}: class epilogue return survived:\n{src}"
+        );
+    }
+}
